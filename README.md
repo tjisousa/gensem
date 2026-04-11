@@ -99,32 +99,18 @@ Plugin visibility depends entirely on the distribution method chosen and the Git
 
 ### For Claude Code
 
-#### Method A — Permanent Install from Local Clone (recommended)
+GSE-One adds 22 `/gse:*` commands. Choose the installation scope based on where you want them available:
 
-Register the plugin in your user settings so it is available **from any directory**:
+| Scope | When active | Command |
+|-------|------------|---------|
+| **Project** | Only inside a specific project directory | `claude plugin install ~/gensem/gse-one/plugin --scope project` |
+| **Project (personal)** | Same, but not committed to git | `claude plugin install ~/gensem/gse-one/plugin --scope local` |
+| **Global** | Every session, every directory | `claude plugin install ~/gensem/gse-one/plugin --scope user` |
+| **One-time** | Current terminal session only | `claude --plugin-dir ~/gensem/gse-one/plugin/` |
 
-```bash
-claude plugin install ~/gensem/gse-one/plugin --scope user
-```
+> **Tip:** Use `--scope project` or `--scope local` to keep your `/` menu clean when working with multiple plugins. Reserve `--scope user` for plugins you need everywhere.
 
-This adds the plugin to `~/.claude/settings.json`. It persists across sessions and works regardless of your working directory.
-
-Available scopes:
-| Scope | File | Usage |
-|-------|------|-------|
-| `--scope user` | `~/.claude/settings.json` | Personal, available everywhere (default) |
-| `--scope project` | `.claude/settings.json` | Team (committed to repo) |
-| `--scope local` | `.claude/settings.local.json` | Personal, gitignored |
-
-#### Method B — One-time Session (testing only)
-
-```bash
-claude --plugin-dir ~/gensem/gse-one/plugin/
-```
-
-Loads the plugin for the current session only. Use `/reload-plugins` to reload after modifications.
-
-#### Method C — Official Anthropic Marketplace (when available)
+#### Official Anthropic Marketplace (when available)
 
 1. Submit via [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit) or [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit)
 2. Plugin path: `gse-one/plugin`
@@ -132,14 +118,14 @@ Loads the plugin for the current session only. Use `/reload-plugins` to reload a
 
 ### For Cursor
 
-#### Method A — Local Install from Clone (recommended)
-
 ```bash
 cp -r ~/gensem/gse-one/plugin/ /path/to/your-project/gse-one-plugin/
 # In Cursor: /add-plugin > Local > select gse-one-plugin/
 ```
 
-#### Method B — Cursor Marketplace (when available)
+The plugin is scoped to the project where it is copied. Other projects remain unaffected.
+
+#### Cursor Marketplace (when available)
 
 1. Submit via [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)
 2. The plugin already contains `.cursor-plugin/plugin.json` with the correct paths
@@ -169,7 +155,11 @@ git push origin main --tags
 ### Claude Code User
 
 ```bash
-# Permanent install (available from any directory)
+# Project-scoped install (recommended)
+cd /path/to/your-project
+claude plugin install ~/gensem/gse-one/plugin --scope project
+
+# Global install (available everywhere)
 claude plugin install ~/gensem/gse-one/plugin --scope user
 
 # One-time session test
