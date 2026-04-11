@@ -27,31 +27,45 @@ GSE-One orchestrates the full lifecycle: `COLLECT > ASSESS > PLAN > PRODUCE > RE
 
 ## Installation
 
-### Method 1 — Clone the Repository (recommended)
+### Method 1 — Clone and Install (recommended)
 
 This is the primary method. It works with both private (access restricted to invited collaborators) and public repositories.
 
+**Step 1 — Clone the repository** (once, anywhere on your machine):
+
 ```bash
-# Clone the repository
-git clone https://github.com/nicolasguelfi/gensem.git
-cd gensem/gse-one
+git clone https://github.com/nicolasguelfi/gensem.git ~/gensem
 ```
 
-Then load the plugin for your platform:
+#### Claude Code
 
-**Claude Code:**
+The plugin must be registered so it is available **from any directory** where you launch `claude`.
+
+**Permanent install (recommended)** — register the plugin in your user settings:
+
 ```bash
-claude --plugin-dir ./plugin/
+claude plugin install ~/gensem/gse-one/plugin --scope user
 ```
 
-**Cursor:**
+This adds the plugin to `~/.claude/settings.json`, making it available in every future session regardless of your working directory.
+
+**One-time session** — for quick testing only (active until you close the terminal):
+
+```bash
+claude --plugin-dir ~/gensem/gse-one/plugin/
+```
+
+#### Cursor
+
 ```bash
 # Copy the plugin directory into your project
-cp -r plugin/ /path/to/your-project/gse-one-plugin/
+cp -r ~/gensem/gse-one/plugin/ /path/to/your-project/gse-one-plugin/
 # In Cursor: /add-plugin > Local > select gse-one-plugin/
 ```
 
-Type `/gse:go` to get started.
+#### Verify
+
+Type `/gse:go` in Claude Code or Cursor. The agent should respond and detect your project state.
 
 ### Method 2 — Marketplace (when available)
 
@@ -59,12 +73,7 @@ These methods are not yet operational. They will become available once the offic
 
 **Claude Code:**
 ```bash
-# Official Anthropic marketplace
 claude plugin install gse-one
-
-# Personal marketplace
-/plugin marketplace add nicolasguelfi/gensem
-/plugin install gse-one@nicolasguelfi/gensem
 ```
 
 **Cursor:**

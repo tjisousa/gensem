@@ -99,79 +99,51 @@ Plugin visibility depends entirely on the distribution method chosen and the Git
 
 ### For Claude Code
 
-#### Method A — Local Test
+#### Method A — Permanent Install from Local Clone (recommended)
+
+Register the plugin in your user settings so it is available **from any directory**:
 
 ```bash
-claude --plugin-dir ./plugin/
+claude plugin install ~/gensem/gse-one/plugin --scope user
 ```
 
-Loads the plugin for the current session. Use `/reload-plugins` to reload after modifications.
+This adds the plugin to `~/.claude/settings.json`. It persists across sessions and works regardless of your working directory.
 
-#### Method B — Personal Marketplace
+Available scopes:
+| Scope | File | Usage |
+|-------|------|-------|
+| `--scope user` | `~/.claude/settings.json` | Personal, available everywhere (default) |
+| `--scope project` | `.claude/settings.json` | Team (committed to repo) |
+| `--scope local` | `.claude/settings.local.json` | Personal, gitignored |
 
-1. **Verify** `marketplace/.claude-plugin/marketplace.json`:
-   ```json
-   {
-     "plugins": [{
-       "id": "gse-one",
-       "name": "GSE-One",
-       "description": "AI engineering companion for structured SDLC management",
-       "source": {
-         "type": "github",
-         "repo": "gse-one/gse-one",
-         "path": "plugin"
-       },
-       "version": "0.8.0"
-     }]
-   }
-   ```
+#### Method B — One-time Session (testing only)
 
-2. **Push** the repository: `git push origin main`
+```bash
+claude --plugin-dir ~/gensem/gse-one/plugin/
+```
 
-3. **Users** install:
-   ```bash
-   /plugin marketplace add gse-one/gse-one
-   /plugin install gse-one@gse-one
-   ```
+Loads the plugin for the current session only. Use `/reload-plugins` to reload after modifications.
 
-   Available scopes:
-   | Scope | File | Usage |
-   |-------|------|-------|
-   | `--scope user` | `~/.claude/settings.json` | Personal (default) |
-   | `--scope project` | `.claude/settings.json` | Team (committed to repo) |
-   | `--scope local` | `.claude/settings.local.json` | Personal, gitignored |
-
-#### Method C — Official Anthropic Marketplace
+#### Method C — Official Anthropic Marketplace (when available)
 
 1. Submit via [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit) or [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit)
-2. Plugin path: `plugin`
+2. Plugin path: `gse-one/plugin`
 3. After approval: `claude plugin install gse-one`
 
 ### For Cursor
 
-#### Method A — Local Test
+#### Method A — Local Install from Clone (recommended)
 
 ```bash
-# Copy the plugin into the project
-cp -r gse-one/plugin/ ./gse-one-plugin/
-# In Cursor: /add-plugin > Local > select ./gse-one-plugin/
+cp -r ~/gensem/gse-one/plugin/ /path/to/your-project/gse-one-plugin/
+# In Cursor: /add-plugin > Local > select gse-one-plugin/
 ```
 
-#### Method B — Cursor Marketplace
+#### Method B — Cursor Marketplace (when available)
 
 1. Submit via [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)
 2. The plugin already contains `.cursor-plugin/plugin.json` with the correct paths
 3. After approval: users install via `/add-plugin`
-
-#### Method C — GitHub Distribution
-
-Users clone and install locally:
-```bash
-git clone --depth 1 https://github.com/gse-one/gse-one.git /tmp/gse
-cp -r /tmp/gse/plugin/ ./gse-one-plugin/
-rm -rf /tmp/gse
-# In Cursor: /add-plugin > Local > select ./gse-one-plugin/
-```
 
 ---
 
@@ -197,25 +169,18 @@ git push origin main --tags
 ### Claude Code User
 
 ```bash
-# Personal marketplace
-/plugin marketplace add gse-one/gse-one
-/plugin install gse-one@gse-one
+# Permanent install (available from any directory)
+claude plugin install ~/gensem/gse-one/plugin --scope user
 
-# Official marketplace
-/plugin install gse-one
-
-# Local test
-claude --plugin-dir ./plugin/
+# One-time session test
+claude --plugin-dir ~/gensem/gse-one/plugin/
 ```
 
 ### Cursor User
 
 ```bash
-# Official marketplace
-# /add-plugin > search "gse-one"
-
-# Local
-# /add-plugin > Local > select the plugin/ directory
+# Copy plugin into your project, then:
+# /add-plugin > Local > select gse-one-plugin/
 ```
 
 ### Verification
