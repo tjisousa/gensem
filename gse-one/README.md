@@ -10,6 +10,20 @@ GSE-One is an AI engineering companion that guides users through the full softwa
 
 GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile.
 
+**v0.14.0 highlights:**
+- **Interactive QCM** — clickable options (AskUserQuestion / Cursor clarifying questions) instead of numbered text lists
+- **Language-first onboarding** — multilingual language question before anything else, with system locale detection
+- **Test-driven requirements** — every requirement includes testable acceptance criteria (Given/When/Then)
+- **Lifecycle guardrails** — no coding without requirements and test strategy (REQS → DESIGN → PREVIEW → TESTS → PRODUCE)
+- **Beginner output filter** — all jargon translated to plain language for non-IT users
+- **Three project modes** — Micro (< 3 files), Lightweight (3-4), Full (≥ 5)
+- **Spike mode** — complexity-boxed experiments that bypass REQS/TESTS guardrails
+- **Cross-sprint regression scan** — full test suite comparison during REVIEW
+- **Dependency vulnerability check** — audit at every session start
+- **Sprint archival** — automatic backlog compaction and sprint directory archival during COMPOUND
+- **Monorepo sub-domains** — per-directory test pyramid calibration
+- **Resilience** — YAML validation, context overflow prevention, graceful degradation
+
 ## Quick Start
 
 ### 1. Install the plugin (see Installation below)
@@ -23,7 +37,7 @@ The agent detects your project state and proposes the next step:
 
 ### 3. Follow the agent's guidance
 
-GSE-One orchestrates the full lifecycle: `COLLECT > ASSESS > PLAN > PRODUCE > REVIEW > FIX > DELIVER > COMPOUND`. You don't need to memorize the commands — the agent proposes the next activity at each step.
+GSE-One orchestrates the full lifecycle: `COLLECT > ASSESS > PLAN > REQS > DESIGN > PREVIEW > TESTS > PRODUCE > REVIEW > FIX > DELIVER > COMPOUND`. You don't need to memorize the commands — the agent proposes the next activity at each step.
 
 ## Installation
 
@@ -86,7 +100,7 @@ claude plugin install gse-one
 | **Discovery** | `/gse:collect` | Inventory project artefacts + scan external sources |
 | | `/gse:assess` | Gap analysis: what's covered, what's missing |
 | **Planning** | `/gse:plan` | Select backlog items for sprint, assign branches |
-| **Engineering** | `/gse:reqs` | Define functional and non-functional requirements |
+| **Engineering** | `/gse:reqs` | Define test-driven requirements with acceptance criteria |
 | | `/gse:design` | Architecture decisions, component decomposition |
 | | `/gse:preview` | Simulate planned artefacts before building |
 | | `/gse:tests` | Test strategy, environment setup, execution, evidence |
