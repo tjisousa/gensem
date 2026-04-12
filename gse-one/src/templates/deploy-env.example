@@ -1,0 +1,10 @@
+# GSE-One Deploy credentials (solo mode)
+# Copy this file to .env and fill in your values
+# NEVER commit .env to git
+
+HETZNER_API_TOKEN=your-token-here
+DEPLOY_DOMAIN=your-domain.com
+
+# Filled automatically after Coolify installation:
+# COOLIFY_URL=https://coolify.your-domain.com
+# COOLIFY_API_TOKEN=your-coolify-token

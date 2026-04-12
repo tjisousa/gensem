@@ -1,0 +1,10 @@
+# GSE-One Deploy — Training Configuration
+# Provided by your instructor. Copy to .env and set your DEPLOY_USER.
+# NEVER commit .env to git
+
+COOLIFY_URL=https://coolify.training.example.com
+COOLIFY_API_TOKEN=instructor-provided-token
+DEPLOY_DOMAIN=training.example.com
+
+# === SET YOUR LEARNER ID BELOW ===
+DEPLOY_USER=learnerXX

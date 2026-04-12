@@ -2,11 +2,11 @@
 
 Mono-plugin architecture — cross-platform parity. See [CHANGELOG](../CHANGELOG.md) for version history.
 
-> AI engineering companion for structured SDLC management. 22 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.
+> AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.
 
 ## What is GSE-One?
 
-GSE-One is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a single plugin deployable on both Claude Code and Cursor, providing 22 commands covering planning, requirements, design, production, quality, delivery, and capitalization.
+GSE-One is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a single plugin deployable on both Claude Code and Cursor, providing 23 commands covering planning, requirements, design, production, quality, delivery, and capitalization.
 
 GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile.
 

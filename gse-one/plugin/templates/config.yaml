@@ -99,3 +99,11 @@ testing:
   environment:
     db_test: auto                      # auto | sqlite-memory | docker-postgres | none
     mocks: auto                        # auto-detect mock needs
+
+# --- Section 12: Deploy ---
+deploy:
+  provider: hetzner                    # only supported provider
+  server_type: cax21                   # cax21 | cax31 | cax41
+  datacenter: fsn1                     # fsn1 | nbg1 | hel1
+  app_type: auto                       # auto | python | streamlit | static
+  health_check_timeout: 120            # seconds

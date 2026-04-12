@@ -54,7 +54,7 @@ TEMPLATES_DIR = SRC / "templates"
 ACTIVITY_NAMES = [
     "go", "hug", "learn", "backlog", "collect", "assess", "plan",
     "reqs", "design", "preview", "tests", "produce", "deliver",
-    "review", "fix", "compound", "integrate", "task", "status",
+    "review", "fix", "compound", "integrate", "deploy", "task", "status",
     "health", "pause", "resume",
 ]
 

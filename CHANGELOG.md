@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-04-12
+
+Layers impacted: **spec** (moderate), **design** (minor), **production** (major)
+
+### Added
+- `/gse:deploy` skill (23rd command): deploy current project to Hetzner server via Coolify
+- Flexible starting points: from zero infrastructure (solo) to pre-configured shared server (training mode)
+- 6-phase workflow: setup → provision → secure → install Coolify → configure DNS → deploy application
+- Situation detection (Step 0): reads `.env` variables to skip completed phases automatically
+- Training mode: `DEPLOY_USER` variable for per-learner subdomains on shared servers
+- Templates: `deploy.json` (state schema), `Dockerfile` (Python/Streamlit), `deploy-env.example` (solo), `deploy-env-training.example` (training)
+- Config section 12: `deploy:` (provider, server_type, datacenter, app_type, health_check_timeout)
+- Options: `--status`, `--redeploy`, `--destroy` (Gate, double confirmation)
+- Spec: new "Deployment" category (§3.8), glossary entries (Coolify, Deploy state), config deploy section, appendix updated
+
+### Changed
+- Command count: 22 → 23 (updated in spec, design, READMEs, plugin description)
+- Template count: 15 → 19 (added deploy.json, Dockerfile, deploy-env.example, deploy-env-training.example)
+- Plugin file count: 52 → 57
+
 ## [0.11.0] - 2026-04-12
 
 Layers impacted: **spec** (major), **production** (moderate), **design** (minor)
@@ -120,6 +140,7 @@ Layers impacted: **spec** (major), **design** (moderate), **production** (modera
 - First specification and implementation design drafts
 - Requirements document
 
+[0.12.0]: https://github.com/nicolasguelfi/gensem/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/nicolasguelfi/gensem/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/nicolasguelfi/gensem/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/nicolasguelfi/gensem/compare/v0.8.0...v0.9.0

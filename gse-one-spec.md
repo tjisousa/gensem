@@ -13,7 +13,7 @@
 
 1. [Overview](#1-overview) — Coding agent architecture, platform mapping, GSE-One philosophy, key concepts, agent roles
 2. [Core Principles](#2-core-principles) — Foundations (P1-P3, P5-P6) | Risk & Communication (P4, P7–P11) | Infrastructure (P12–P14) | AI Integrity (P15–P16)
-3. [Activities (Commands)](#3-activities-commands) — 22 commands across 8 categories
+3. [Activities (Commands)](#3-activities-commands) — 23 commands across 9 categories
 4. [Collect — Artefact Inventory and External Source Discovery](#4-collect)
 5. [Preview](#5-preview)
 6. [Testing Strategy](#6-testing-strategy) — Test pyramid, environment, evidence, coverage
@@ -253,7 +253,7 @@ GSE-One delivers its methodology as a **single plugin directory** (`plugin/`) th
 
 | Artifact | Files | Claude Code | Cursor |
 |----------|-------|:-----------:|:------:|
-| Skills (22) | `skills/<name>/SKILL.md` | Loaded | Loaded |
+| Skills (23) | `skills/<name>/SKILL.md` | Loaded | Loaded |
 | Agents (9) | `agents/<name>.md` | Loaded | Loaded |
 | Templates (15) | `templates/*` | Loaded | Loaded |
 | Always-on skill (methodology) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Via `rules/000-gse-methodology.mdc` (identical body) |
@@ -267,7 +267,7 @@ Note: "orchestrator" is a GSE-One convention. In Claude Code, it is the session'
 
 ### 1.2 GSE-One Overview
 
-GSE-One (Generic Software Engineering One) is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a plugin for AI coding agents (Claude Code, Cursor, or any compatible agent-based IDE) and provides 22 commands covering planning, requirements, design, production, quality, delivery, and capitalization.
+GSE-One (Generic Software Engineering One) is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a plugin for AI coding agents (Claude Code, Cursor, or any compatible agent-based IDE) and provides 23 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
 
 GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to the user's profile, and progressively transfers knowledge so the user grows alongside the project.
 
@@ -928,7 +928,13 @@ The agent also creates backlog items **automatically** during other activities (
 | `/gse:review` | **Review** | Review operates on the **branch diff** (`git diff sprint-branch...feature-branch`), not just file state. Complete review of all artefact types in the current sprint. Includes **devil's advocate** perspective on the agent's own productions (P16): hunts hallucinations, challenges assumptions, verifies libraries/APIs exist. Updates health score |
 | `/gse:fix` | **Fix** | Create a fix branch from the reviewed branch, apply fixes in an isolated worktree, with traceability to review items |
 
-### 3.8 Capitalization
+### 3.8 Deployment
+
+| Command | Activity | Description |
+|---------|----------|-------------|
+| `/gse:deploy` | **Deploy** | Deploy the current project to a Hetzner server via Coolify. Adapts to the user's situation: from zero infrastructure (solo) to a pre-configured shared server (training). Handles provisioning, server hardening, Coolify installation, DNS/SSL, and application deployment in a single guided flow. Options: `--status` (show deployment state), `--redeploy` (rebuild), `--destroy` (tear down server, Gate). |
+
+### 3.9 Capitalization
 
 | Command | Activity | Description |
 |---------|----------|-------------|
@@ -2070,6 +2076,13 @@ testing:
   environment:
     db_test: auto                      # auto | sqlite-memory | docker-postgres | none
     mocks: auto                        # auto-detect mock needs
+
+deploy:
+  provider: hetzner                    # only supported provider
+  server_type: cax21                   # cax21 | cax31 | cax41
+  datacenter: fsn1                     # fsn1 | nbg1 | hel1
+  app_type: auto                       # auto | python | streamlit | static
+  health_check_timeout: 120            # seconds
 ```
 
 **Documentation as first-class artefact:** Documentation tasks (`artefact_type: doc`) follow the same lifecycle as code — planned, produced in a worktree branch (`gse/sprint-NN/docs/<name>`), reviewed, and delivered. The agent can auto-generate API documentation from code (e.g., docstrings → reference docs) during `/gse:produce` when the TASK has `artefact_type: doc`.
@@ -2367,6 +2380,8 @@ When `it_expertise: beginner` and no sprint exists yet, the orchestrator enters 
 | **Adopt mode** | `/gse:go --adopt` — onboarding flow for existing projects, scans and initializes without destroying existing state |
 | **Backlog** | Unified, ordered list of all work items (TASK). Items are either in the pool (unplanned) or assigned to a sprint. Syncs with GitHub Issues when enabled |
 | **Planning debt** | Tracked item when planning is skipped under pressure — reviewed during next `/gse:compound` retrospective |
+| **Coolify** | Self-hosted PaaS (Platform as a Service) used by `/gse:deploy` for application deployment on Hetzner servers. Includes Traefik reverse proxy and Let's Encrypt SSL. |
+| **Deploy state** | The `.gse/deploy.json` file tracking infrastructure phases, server details, Coolify configuration, and application deployment status |
 | **Pool** | Subset of the backlog containing unplanned items (`sprint: null`) — candidates for future sprints |
 | **Artefact type** | Classification of what a TASK produces: code, requirement, design, test, doc, config, or import |
 | **Mono-repo** | GSE-One assumes a single repository per project. Recommended for multi-component projects |
@@ -2395,12 +2410,13 @@ DISCOVERY           /gse:collect   /gse:assess
 PLANNING            /gse:plan      (cross-cutting, any level, any time)
 ENGINEERING         /gse:reqs      /gse:design     /gse:preview
                     /gse:tests     /gse:produce    /gse:deliver
+DEPLOYMENT          /gse:deploy
 QUALITY             /gse:review    /gse:fix
 CAPITALIZATION      /gse:compound  /gse:integrate
 AD-HOC              /gse:task
 ```
 
-**Total: 22 commands** | Canonical prefix: `/gse:`
+**Total: 23 commands** | Canonical prefix: `/gse:`
 
 ---
 
