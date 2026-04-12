@@ -170,11 +170,11 @@ Evaluate states **in order** — the first matching row wins.
 | No sprint + `it_expertise: beginner` | **Intent-First mode**: elicit intent conversationally ("What would you like to build?"), reformulate in plain language, translate to goals. No technical output, no file names, no command names. Then transition to LC01 with plain-language phase names. |
 | No sprint + non-beginner | LC01: `COLLECT` > `ASSESS` > `PLAN` |
 | Sprint, plan not approved | Resume `PLAN` |
-| Sprint, plan approved, **no requirements** (`reqs.md` absent or empty) | Start `REQS` — define acceptance criteria, data rules, edge cases for each planned TASK. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
-| Sprint, reqs done, **no test strategy** (no `test-strategy.md` or `tests` section in plan) | Start `TESTS --strategy` — define what to test, test pyramid, coverage targets. Traced to REQ- IDs. |
-| Sprint, reqs + test strategy done, **no design** (optional — skip for small/simple tasks) | If tasks involve architecture decisions (new data model, API design, component structure): start `DESIGN`. Otherwise: proceed to PREVIEW or PRODUCE. |
+| Sprint, plan approved, **no requirements** (`reqs.md` absent or empty) | Start `REQS` — **test-driven requirements**: every REQ MUST include testable acceptance criteria (Given/When/Then or equivalent) and identify open technical questions. These criteria become the spec for validation tests. For beginners: "I'll write down exactly what the app should do, and for each feature, how we'll know it works. You'll confirm before I build anything." **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
+| Sprint, reqs done, **no design** (optional — skip for small/simple tasks) | If tasks involve architecture decisions (new data model, API design, component structure): start `DESIGN`. Otherwise: proceed to PREVIEW or TESTS. |
 | Sprint, design done (or skipped), **no preview** and `project_domain` is `web` or `mobile` | Start `PREVIEW` — show mockup/prototype for user validation before coding. For beginners: "Before I build, let me show you what it will look like — tell me if it matches what you want." For CLI/API/data/embedded: skip silently. |
-| Sprint, tasks ready (reqs + tests strategy + preview done or skipped), none in-progress | Start `PRODUCE` on first planned TASK |
+| Sprint, design + preview done (or skipped), **no test strategy** (no `test-strategy.md`) | Start `TESTS --strategy` — define test pyramid, verification tests (from DESIGN) + validation tests (from REQS acceptance criteria). For beginners: "Now I'll describe how we'll check that each feature works correctly." |
+| Sprint, tasks ready (reqs + design + tests strategy + preview done or skipped), none in-progress | Start `PRODUCE` on first planned TASK |
 | Sprint, tasks in-progress | Resume `PRODUCE` on current task |
 | Sprint, tasks done, not reviewed | Start `REVIEW` |
 | Sprint, review done, fixes pending | Start `FIX` |
@@ -186,8 +186,8 @@ Evaluate states **in order** — the first matching row wins.
 
 These guardrails **block** progression and cannot be overridden silently:
 
-1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact is traced to it. If the agent attempts to start coding without requirements, it MUST stop and run REQS first. For beginners: "Before I start building, I need to write down exactly what the app should do — and have you confirm it."
-2. **No PRODUCE without test strategy** — The test approach (what to test, how, coverage targets) must be defined before coding starts. Tests are written FROM requirements, not FROM code. For beginners: "Before I build, I'll also describe how we'll verify each feature works correctly."
+1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specifications. For beginners: "Before I start building, I need to write down exactly what the app should do and how we'll check it works — and have you confirm."
+2. **No PRODUCE without test strategy** — The test approach (pyramid, verification from DESIGN + validation from REQS acceptance criteria, coverage targets) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW, because the architecture informs what to test and how. For beginners: "Before I build, I'll describe how we'll verify each feature works correctly."
 3. **Supervised mode enforcement** — When `decision_involvement: supervised`, ANY technical choice during PRODUCE (library selection, data format, folder structure, persistence strategy, API design) MUST be presented as a Gate decision. The agent MUST NOT make these choices silently.
 
 ### Step 3 — Failure handling

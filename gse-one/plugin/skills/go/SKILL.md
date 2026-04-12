@@ -70,10 +70,11 @@ Evaluate states **in order** — the first matching row wins.
 |---------------|-----------------|
 | No sprint defined | Sub-decision below |
 | Plan exists, not approved | Resume PLAN — present plan summary, ask for approval Gate |
-| Plan approved, **no requirements** (`reqs.md` absent or empty) | Start REQS — define acceptance criteria, data rules, edge cases for each planned TASK. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
-| Reqs done, **no test strategy** (no `test-strategy.md`) | Start TESTS `--strategy` — define what to test, test pyramid, coverage targets. Traced to REQ- IDs. |
-| Reqs + test strategy done, **no design** (optional) | If tasks involve architecture decisions: start DESIGN. Otherwise: proceed to PRODUCE. |
-| Tasks ready (reqs + test strategy exist), none in-progress | Start PRODUCE on first planned TASK |
+| Plan approved, **no requirements** (`reqs.md` absent or empty) | Start REQS — **test-driven requirements**: every REQ MUST include testable acceptance criteria (Given/When/Then or equivalent) and identify open technical questions. These criteria become the spec for validation tests. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
+| Reqs done, **no design** (optional) | If tasks involve architecture decisions (new data model, API design, component structure): start DESIGN. Otherwise: proceed to PREVIEW or TESTS. |
+| Design done (or skipped), **no preview** and `project_domain` is `web` or `mobile` | Start PREVIEW — show mockup/prototype for user validation before coding. For CLI/API/data/embedded: skip silently. |
+| Design + preview done (or skipped), **no test strategy** (no `test-strategy.md`) | Start TESTS `--strategy` — define test pyramid: verification tests (from DESIGN) + validation tests (from REQS acceptance criteria). |
+| Tasks ready (reqs + design + test strategy + preview done or skipped), none in-progress | Start PRODUCE on first planned TASK |
 | Tasks with status `in-progress` | Resume PRODUCE — show current task, propose continuation |
 | All sprint tasks `done`, no review | Start REVIEW — propose `/gse:review` |
 | Review done, fixes pending | Start FIX — propose `/gse:fix` |
@@ -86,8 +87,8 @@ Evaluate states **in order** — the first matching row wins.
 3. Otherwise → start full **LC01**: `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`
 
 **Lifecycle guardrails (Hard — cannot be skipped):**
-1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact is traced to it. If the agent attempts to start coding without requirements, it MUST stop and run REQS first.
-2. **No PRODUCE without test strategy** — The test approach must be defined before coding starts. Tests are written FROM requirements, not FROM code.
+1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specs.
+2. **No PRODUCE without test strategy** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW.
 3. **Supervised mode enforcement** — When `decision_involvement: supervised`, ANY technical choice during PRODUCE (library, data format, folder structure, persistence, API design) MUST be a Gate decision. The agent MUST NOT make these choices silently.
 
 Present the proposal and wait for user confirmation before executing.

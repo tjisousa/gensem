@@ -35,6 +35,14 @@ Before executing, read:
 
 ### Step 1 — Strategy (`--strategy`)
 
+**Test strategy is derived from two sources:**
+- **Validation tests** (acceptance, E2E) → derived from **REQS acceptance criteria** (Given/When/Then). Each acceptance criterion in `reqs.md` becomes a TST- artefact with `traces.validates: [REQ-NNN]`. These verify the app does what the user asked.
+- **Verification tests** (unit, integration) → derived from **DESIGN decisions** (DES-). These verify the code is built correctly (interfaces, module boundaries, data contracts).
+
+**Prerequisite:** REQS must exist with testable acceptance criteria. DESIGN should exist if applicable. If either is missing, report and redirect to the missing activity.
+
+For beginners: "I'll take each feature description you confirmed and turn it into a checklist of things to verify. Some checks are from the user's point of view (does the app do what you want?) and some are technical (is the code structured correctly?)."
+
 Define the test pyramid calibrated by project domain:
 
 | Domain | Unit | Integration | E2E/Visual | Other |

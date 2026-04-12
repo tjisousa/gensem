@@ -40,7 +40,13 @@ Identify which backlog items in the current sprint need requirements:
 
 Present the scope: "Sprint S02 has 5 tasks. I'll define requirements for: TASK-010 (rate limiting), TASK-013 (webhook handler), TASK-016 (CSV export)."
 
-### Step 2 — Functional Requirements (FR)
+### Step 2 — Functional Requirements (FR) — Test-Driven
+
+**REQS is test-driven:** every requirement MUST include testable acceptance criteria. These criteria are not decorative — they become the specification for validation tests during the TESTS activity. A requirement without testable acceptance criteria is incomplete.
+
+For beginners: "For each feature, I'll describe what the app should do AND how we'll check it works. You'll confirm before I build anything."
+
+**Open technical questions:** For each requirement, the agent MUST identify technical choices that are not yet resolved (e.g., data format, persistence strategy, library choice). These are listed as `open_questions` and become Gate decisions before PRODUCE. This prevents the agent from making silent arbitrary choices during coding.
 
 For each in-scope item, define functional requirements using the standard format:
 
@@ -56,6 +62,9 @@ For each in-scope item, define functional requirements using the standard format
   acceptance_criteria:
     - "Given [context], when [action], then [result]"
     - "Given [context], when [action], then [result]"
+  open_questions:          # technical choices not yet resolved → become Gate decisions before PRODUCE
+    - "Persistence: localStorage, IndexedDB, or server-side?"
+    - "Currency format: EUR, USD, or user-configurable?"
   traces:
     derives_from: [TASK-{NNN}]
     tested_by: []        # filled by TESTS activity
