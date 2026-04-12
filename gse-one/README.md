@@ -6,7 +6,7 @@ Mono-plugin architecture — cross-platform parity. See [CHANGELOG](../CHANGELOG
 
 ## What is GSE-One?
 
-GSE-One is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a single plugin deployable on both Claude Code and Cursor, providing 23 commands covering planning, requirements, design, production, quality, delivery, and capitalization.
+GSE-One is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a single plugin deployable on both Claude Code and Cursor, providing 23 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
 
 GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile.
 
@@ -71,7 +71,7 @@ claude plugin install gse-one
 # Cursor — search "gse-one" in /add-plugin
 ```
 
-## Commands (22)
+## Commands (23)
 
 | Category | Commands | What they do |
 |----------|----------|-------------|
@@ -92,6 +92,7 @@ claude plugin install gse-one
 | | `/gse:tests` | Test strategy, environment setup, execution, evidence |
 | | `/gse:produce` | Execute production in isolated worktree |
 | | `/gse:deliver` | Merge, tag release, cleanup branches |
+| **Deployment** | `/gse:deploy` | Deploy to Hetzner server via Coolify (solo or training mode) |
 | **Quality** | `/gse:review` | Review branch diff + devil's advocate (AI integrity) |
 | | `/gse:fix` | Apply fixes from review in isolated branch |
 | **Capitalization** | `/gse:compound` | Capitalize learnings across 3 axes |
@@ -104,9 +105,9 @@ claude plugin install gse-one
 gse-one/
 ├── src/                        # Shared source of truth
 │   ├── principles/             # 16 core principles (P1-P16)
-│   ├── activities/             # 22 activity definitions
+│   ├── activities/             # 23 activity definitions
 │   ├── agents/                 # 9 agents (8 specialized + orchestrator)
-│   └── templates/              # 15 artefact & config templates
+│   └── templates/              # 19 artefact & config templates
 ├── plugin/                     # Single deployable directory (both platforms)
 │   ├── .claude-plugin/         # Claude Code manifest
 │   ├── .cursor-plugin/         # Cursor manifest

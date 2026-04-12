@@ -23,16 +23,16 @@ GSE-One uses a **single deployable directory** (`plugin/`) that works on both pl
 gse-one/
 ├── src/                              # Single source of truth (62 files)
 │   ├── principles/                   # 16 principles (P1-P16)
-│   ├── activities/                   # 22 skills SKILL.md
+│   ├── activities/                   # 23 activity definitions, each generated as a skill
 │   ├── agents/                       # 9 agents (8 specialized + orchestrator)
-│   └── templates/                    # 15 templates
+│   └── templates/                    # 19 templates
 │
-├── plugin/                           # Deployable directory (52 files)
+├── plugin/                           # Deployable directory (57 files)
 │   ├── .claude-plugin/plugin.json    # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json    # Cursor manifest
-│   ├── skills/                       # 22 skills (shared)
+│   ├── skills/                       # 23 skills (shared)
 │   ├── agents/                       # 9 agents (shared)
-│   ├── templates/                    # 15 templates (shared)
+│   ├── templates/                    # 19 templates (shared)
 │   ├── rules/000-gse-methodology.mdc # Cursor only (ignored by Claude)
 │   ├── hooks/hooks.claude.json       # Claude Code format
 │   ├── hooks/hooks.cursor.json       # Cursor format
