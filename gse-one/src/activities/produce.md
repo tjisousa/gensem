@@ -14,7 +14,7 @@ Arguments: $ARGUMENTS
 | `--task TASK-ID`   | Execute a specific task by ID |
 | `--all`            | Execute all pending tasks sequentially |
 | `--dry-run`        | Show what would be produced without executing |
-| `--skip-tests`     | Skip automatic test execution after production |
+| `--skip-tests`     | Skip automatic test execution after production (**Gate guardrail** — requires confirmation, logged as DEC-, penalizes health score) |
 | `--help`           | Show this command's usage summary |
 
 ## Prerequisites
@@ -24,9 +24,19 @@ Before executing, read:
 2. `.gse/config.yaml` — project configuration, especially `git.strategy` (worktree/branch-only/none)
 3. `.gse/backlog.yaml` — sprint tasks, their status, and assignment
 4. `.gse/profile.yaml` — user expertise level (affects test generation behavior)
+5. `docs/sprints/sprint-{NN}/reqs.md` — requirements for the current sprint (**mandatory**)
+6. `docs/sprints/sprint-{NN}/test-strategy.md` — test strategy (**mandatory**)
 
 
 ## Workflow
+
+### Step 0 — Pre-production Guardrails (Hard — cannot be skipped)
+
+Before starting ANY task, verify these conditions. If any check fails, **STOP and do not proceed**.
+
+1. **Requirements check** — Verify that `docs/sprints/sprint-{NN}/reqs.md` exists and contains at least one REQ- artefact traced to the TASK about to start. If missing: report "Requirements not defined for this task. I need to write down what the app should do first." Then run REQS.
+2. **Test strategy check** — Verify that a test strategy exists (`docs/sprints/sprint-{NN}/test-strategy.md` or a `tests` section in `plan.md`). If missing: report "Test strategy not defined. I need to describe how we'll verify each feature works." Then run TESTS `--strategy`.
+3. **Supervised mode check** — If `profile.decision_involvement` is `supervised`, flag all technical choices in this TASK as Gate decisions. This includes: library/dependency selection, data format, folder structure, persistence strategy, API design, naming conventions. The agent MUST present options and wait for user confirmation before proceeding.
 
 ### Step 1 — Select Task
 
@@ -91,7 +101,15 @@ Produce the artefact according to the task specification:
 2. If the task references requirements (REQ-NNN), read them from the requirements artefact
 3. If the task references design decisions (DES-NNN), read them from the design artefact
 4. Execute the work, creating or modifying files as specified
-5. Commit at logical checkpoints using the convention:
+5. **Pre-commit self-review (P16 — before every commit):**
+   Before committing, the agent MUST run these 5 checks on the changes about to be committed:
+   - **(a) Hallucination hunt** — verify that all referenced APIs, libraries, and functions actually exist in the versions used
+   - **(b) Assumption check** — list any assumptions made during implementation; flag those not validated by a REQ-
+   - **(c) Complaisance check** — does the code match exactly what was asked in the requirements? No extra features, no missing features?
+   - **(d) Edge cases** — have boundary conditions been considered (empty input, max values, concurrent access, error states)?
+   - **(e) Temporal validity** — are the dependency versions, API endpoints, and syntax current and not deprecated?
+   If any check fails, fix before committing. If uncertain, flag as a finding for REVIEW.
+6. Commit at logical checkpoints using the convention:
    ```
    gse(sprint-{NN}/{type}): description
 
@@ -102,7 +120,16 @@ Produce the artefact according to the task specification:
 
 ### Step 4 — Test Execution (After Production)
 
-Unless `--skip-tests` was specified:
+**If `--skip-tests` was specified:**
+1. Present a **Gate decision** (cannot be silently bypassed):
+   - "Skipping tests means we won't verify this task works correctly. Are you sure?"
+   - Options: **Skip tests** / **Run tests anyway** / **Discuss**
+   - For beginners: "I'd normally check that what I built works correctly. Do you want me to skip that check? I don't recommend it."
+2. If confirmed: record a DEC- artefact in the decision journal with rationale.
+3. Decrement health score: `test_pass_rate` receives a penalty for the skipped task.
+4. In `supervised` mode: require **double confirmation** ("This is unusual — please confirm again").
+
+**If `--skip-tests` was NOT specified (normal flow):**
 
 1. **Check if tests exist** for the produced artefact:
    - Look for test files matching the artefact (e.g., `test_*.py`, `*.test.ts`, `*_test.go`)

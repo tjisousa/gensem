@@ -52,6 +52,11 @@ Verify delivery readiness:
 3. **Uncommitted changes** — For each active worktree, check for uncommitted work:
    - If uncommitted changes exist: report and present Gate: **Commit** / **Stash** / **Discard** / **Discuss**
 
+4. **Requirements coverage (REQ→TST traceability)** — For each REQ- in `docs/sprints/sprint-{NN}/reqs.md`, verify that at least one TST- artefact traces to it:
+   - **Uncovered REQ with priority `must`** → **Hard guardrail: block delivery.** Report: "Requirement REQ-{NNN} ({description}) has no test covering it. Tests must be written before delivery." For beginners: "One of the things the app should do hasn't been verified yet. I need to add a check for it first."
+   - **Uncovered REQ with priority `should` or `could`** → **Soft guardrail: warn.** Report: "Requirement REQ-{NNN} has no test. This is acceptable but noted." Add a RVW- finding.
+   - **All must-priority REQs covered** → Proceed.
+
 ### Step 2 — Merge Features into Sprint Branch
 
 For each feature branch (in dependency order):

@@ -27,6 +27,15 @@ Before executing, read:
 
 ## Workflow
 
+### Step 0 — Pre-review Guardrails (Hard)
+
+Before reviewing any TASK, verify test execution:
+
+1. **Check test evidence** — For each TASK with `status: done`, read `test_evidence` in `backlog.yaml`.
+2. **If test evidence is absent or `status: skipped`** — **Hard guardrail: block review.** Report: "Tests were not run for this task. Tests must pass before review." For beginners: "I need to verify that what I built works correctly before I check my own work. Let me run the tests first." Then execute tests for this TASK and return to review only after tests pass.
+3. **If test evidence `status: fail`** — **Soft guardrail: warn and continue.** Report: "Tests are currently failing for this task. Review will proceed, but test failures will be included as findings." Add a RVW- finding with severity HIGH for the failing tests.
+4. **If test evidence `status: pass`** — Proceed to Step 1.
+
 ### Step 1 — Identify Review Scope
 
 1. Read `backlog.yaml` and select tasks with `status: done` that have not been reviewed
@@ -125,6 +134,19 @@ After the standard review completes, run the devil's advocate pass. This is a me
 - Flag patterns that are outdated for the language version in use
 
 All devil's advocate findings are tagged with `[AI-INTEGRITY]`.
+
+#### 3f — Passive Acceptance Detection (P16)
+
+Track these 5 signals in `status.yaml → review.acceptance_signals`:
+- `consecutive_acceptances` — count of review rounds where user accepted all findings without discussion
+- `never_discusses` — user has never chosen "Discuss" on any Gate decision this sprint
+- `terse_responses` — user responds with single words ("ok", "yes", "fine") >80% of the time
+- `never_modifies` — user has never requested a change to agent output this sprint
+- `never_questions` — user has never asked a clarifying question this sprint
+
+When `consecutive_acceptances` reaches threshold (beginner=3, intermediate=5, expert=8): trigger a pushback checkpoint — present the 3 most impactful recent decisions and ask: "I want to make sure we're aligned. Do these choices still look right?"
+
+**Suppression rule:** If the user responds "Everything looks good" (or equivalent affirmation) to **two consecutive** pushback checkpoints, suppress further pushback for the rest of the sprint. Record in `status.yaml → review.pushback_suppressed: true`. This prevents the agent from harassing a user who has genuinely reviewed and approved.
 
 #### P15 Confidence Integration (Design 5.11)
 

@@ -135,11 +135,12 @@ topics:
 
 Triggered automatically at workflow transitions when GSE-One detects a learning opportunity.
 
-#### When to Trigger
+#### When to Trigger (4 specific triggers)
 
-- Before a phase that requires knowledge the user may not have
-- After a task that introduced a new concept
-- When the user makes an error that suggests a knowledge gap
+1. **Sprint end** — During COMPOUND, propose learning on topics encountered during the sprint
+2. **Before complex activity** — Before DESIGN, TESTS strategy, or PRODUCE on a TASK involving unfamiliar technology, check competency map and propose if gaps exist
+3. **After repeated review findings** — If REVIEW finds the same type of issue (e.g., missing error handling) across 2+ TASKs, propose a learning session on that topic
+4. **HUG learning goals** — If the user specified learning goals in their profile, propose relevant sessions when the current work touches those topics
 
 #### Structured Interaction Pattern
 

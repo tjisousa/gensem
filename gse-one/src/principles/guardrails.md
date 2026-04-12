@@ -35,7 +35,18 @@ Guardrails operate at three severity levels. Soft guardrails advise. Hard guardr
    | Stale branches (not touched in >2 sprints) | **Soft** | Warn. Suggest deletion or archival. |
    | Large binary commit (>10MB) | **Soft** | Warn. Suggest Git LFS or `.gitignore`. |
 
-3. **Project-specific guardrails:**
+3. **Lifecycle guardrails:**
+
+   | Condition | Level | Action |
+   |-----------|-------|--------|
+   | Starting PRODUCE without requirements (`reqs.md` absent or no REQ- traced to TASK) | **Hard** | Block. Run REQS first. "Requirements must be defined and validated before coding starts." |
+   | Starting PRODUCE without test strategy (`test-strategy.md` absent) | **Hard** | Block. Run TESTS `--strategy` first. "Test approach must be defined before coding starts." |
+   | Using `--skip-tests` during PRODUCE | **Gate** | Require confirmation + DEC- journal entry + health score penalty. |
+   | Starting REVIEW without test evidence (`test_evidence` absent on TASK) | **Hard** | Block. Run tests first. "Tests must pass before review." |
+   | Starting DELIVER with uncovered must-priority REQ (no TST- traced to it) | **Hard** | Block. Write tests first. "All must-priority requirements need test coverage." |
+   | `decision_involvement: supervised` + technical choice during PRODUCE | **Gate** | Every technical choice (lib, format, structure, persistence) must be presented as a Gate decision. |
+
+4. **Project-specific guardrails:**
 
    | Condition | Level | Action |
    |-----------|-------|--------|
