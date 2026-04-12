@@ -541,6 +541,39 @@ Examples:
 
 **Question cadence:** The number of questions asked simultaneously is proportional to IT expertise. Beginner: 1 question at a time. Intermediate: 2-3 grouped by theme. Advanced/Expert: all in one block. This applies across all skills.
 
+**Beginner output filter:** When `it_expertise: beginner`, the agent applies a translation table to ALL chat output. Internal artefacts keep technical names — only chat is filtered. The user never needs to type `/gse:` commands; the agent proposes actions in plain language.
+
+| Internal term | Beginner-visible term |
+|---|---|
+| `config.yaml` | "your project settings" |
+| `backlog.yaml` | "your task list" |
+| `status.yaml` | "the project progress tracker" |
+| `profile.yaml` | "your preferences" |
+| `.gse/` | "the project folder" |
+| `TASK-001`, `TASK-002`... | "Step 1", "Step 2"... |
+| `REQ-001`, `DES-001`... | hide IDs, use descriptive names |
+| `sprint N` | "work cycle N" |
+| `LC01`, `LC02`, `LC03` | hide — describe the activity instead |
+| `/gse:collect` | "I'll look at what we have" |
+| `/gse:assess` | "I'll figure out what's missing" |
+| `/gse:plan` | "I'll organize the work" |
+| `/gse:reqs` | "I'll write down what the app should do and ask you to confirm" |
+| `/gse:design` | "I'll decide how to structure the app" |
+| `/gse:tests --strategy` | "I'll describe how we'll verify each feature works" |
+| `/gse:produce` | "I'll build it" |
+| `/gse:review` | "I'll check my work" |
+| `/gse:fix` | "I'll fix what was found during review" |
+| `/gse:deliver` | "I'll finalize the result" |
+| `/gse:compound` | "I'll review what we learned" |
+| `reqs.md` | "the description of what the app should do" |
+| `test-strategy.md` | "the verification plan" |
+| `design.md` | "the app structure decisions" |
+| `acceptance criteria` | "how we'll know each feature is done" |
+| `Gate decision` | "I need your decision" |
+| `complexity budget` | "the amount of new things we can add" |
+| `worktree` | "a separate workspace" |
+| `merge` | "combine changes" |
+
 **Output formatting:** Chat output uses **bold** for decisions and key terms, *italic* for file paths and references, bullet lists over tables (portability), code blocks for commands and YAML. Emoji usage is controlled by the `emoji` HUG dimension (default: on, at most one per message, never inside technical content).
 
 ### P10 — Complexity Budget
@@ -1779,7 +1812,8 @@ This log is not shown to the user by default but is available via `/gse:status -
 │   │       ├── plan.md              # Sprint plan
 │   │       ├── reqs.md              # Requirements (FR & NFR)
 │   │       ├── design.md            # Design decisions & architecture
-│   │       ├── tests.md             # Test definitions & traceability
+│   │       ├── test-strategy.md      # Test strategy (pyramid, coverage targets, verification + validation)
+│   │       ├── test-reports/        # Test campaign reports and evidence
 │   │       ├── review.md            # Review findings
 │   │       ├── compound.md          # Capitalized learnings
 │   │       └── release.md           # Release/delivery notes
@@ -1810,9 +1844,10 @@ gse:
   sprint: 3
   branch: gse/sprint-03/feat/user-auth
   traces:                                 # typed trace links (P6)
-    derives_from: [REQ-001]
-    implements: [DES-002]
-    decided_by: [DEC-005]
+    derives_from: [REQ-001]               # this artefact was created because of...
+    implements: [DES-002]                 # this artefact satisfies...
+    tested_by: [TST-001]                 # this artefact is verified by...
+    decided_by: [DEC-005]                # this artefact was shaped by decision...
   status: draft | reviewed | approved | implemented
   complexity_cost: 2                    # optional — points consumed
   source: SRC-001                       # optional — external source reference
@@ -2286,31 +2321,48 @@ When invoked, `/gse:go` follows this decision tree:
 | Condition | Action |
 |-----------|--------|
 | `.gse/` does not exist + project has files | Enter **adopt mode** (14.2) |
-| `.gse/` does not exist + project is empty | Enter **HUG** (LC00) |
-| `.gse/` exists | Read `status.yaml` → proceed to Step 2 |
+| `.gse/` does not exist + project is empty | **Automatically execute** `/gse:hug` inline (LC00). No diagnostic output, no status table. User sees the language question as the very first interaction. |
+| `.gse/` exists | Read `status.yaml` → proceed to Step 1.5 (recovery) → Step 2 |
 
-**Step 2 — Recovery check:**
+**"Project files"** excludes tool/IDE dirs: `.cursor/`, `.claude/`, `.gse/`, `.git/`, `.vscode/`, `.idea/`, `.fleet/`, `node_modules/`, `__pycache__/`, `.venv/`, `target/`, `dist/`, `build/`.
+
+**Step 1.5 — Recovery check:**
 
 If `.gse/` exists, scan for unsaved work from a previous session that ended without `/gse:pause`:
-- Check all active worktrees and the main directory for uncommitted changes
-- If found: present a Gate decision — recover (auto-commit), review the diff first, discard, or skip
-- If nothing found: proceed silently
+1. Check all active worktrees listed in `config.yaml → git.worktree_dir` and the main directory for uncommitted changes
+2. If found: present a Gate decision — **Recover** (auto-commit checkpoint) / **Review first** (show diff) / **Discard** (confirm twice) / **Skip** (leave uncommitted). For beginners: "I found unsaved work from a previous session. Should I save it before we continue?"
+3. If nothing found: proceed silently to Step 2
 
-**Step 3 — Determine next action:**
+**Step 2 — Determine next action:**
+
+Evaluate states **in order** — the first matching row wins.
 
 | Current state | Next action |
 |--------------|-------------|
-| No sprint exists AND `it_expertise: beginner` AND new project | Enter **intent-first mode** (Step 6) |
-| No sprint exists | Start LC01 (GO > COLLECT > ASSESS > PLAN) |
-| Sprint exists, plan not approved | Resume PLAN |
-| Sprint exists, tasks in-progress | Resume PRODUCE on current task |
-| Sprint exists, tasks done, not reviewed | Start REVIEW |
-| Sprint exists, review done, fixes pending | Start FIX |
-| Sprint exists, all tasks delivered | Start LC03 (COMPOUND > INTEGRATE) |
+| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | Enter **intent-first mode** (Step 6) |
+| No sprint + non-beginner + < 5 project files | Propose **Lightweight mode** (Gate): `PLAN` > `PRODUCE` > `DELIVER`, branch-only, Auto+Gate only, 3 health dimensions. User can upgrade anytime. |
+| No sprint + non-beginner | Start LC01 (`COLLECT` > `ASSESS` > `PLAN`) |
+| Sprint exists, plan not approved | Resume `PLAN` |
+| Sprint, plan approved, **no requirements** (`reqs.md` absent or empty) | Start `REQS` — **test-driven requirements**: every REQ MUST include testable acceptance criteria (Given/When/Then) and identify open technical questions. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
+| Sprint, reqs done, **no design** (optional) | If tasks involve architecture decisions (new data model, API design, component structure): start `DESIGN`. Otherwise: proceed to PREVIEW or TESTS. |
+| Sprint, design done (or skipped), **no preview** and `project_domain` is `web` or `mobile` | Start `PREVIEW` — show mockup/prototype for user validation before coding. For CLI/API/data/embedded: skip silently. |
+| Sprint, design + preview done (or skipped), **no test strategy** (no `test-strategy.md`) | Start `TESTS --strategy` — define test pyramid: verification tests (from DESIGN) + validation tests (from REQS acceptance criteria). |
+| Sprint, tasks ready (reqs + design + test strategy + preview done or skipped), none in-progress | Start `PRODUCE` on first planned TASK |
+| Sprint exists, tasks in-progress | Resume `PRODUCE` on current task |
+| Sprint exists, tasks done, not reviewed | Start `REVIEW` |
+| Sprint exists, review done, fixes pending | Start `FIX` |
+| Sprint exists, all tasks delivered | Start LC03 (`COMPOUND` > `INTEGRATE`) |
 | Sprint exists, compound done | Propose next sprint → LC01 |
-| Sprint stale (> `lifecycle.stale_sprint_sessions` sessions without progress) | Stale detection (Step 4) |
+| Sprint stale (> `lifecycle.stale_sprint_sessions` sessions without progress) | Stale detection (Step 3) |
 
-**Step 4 — Stale sprint detection:**
+**Lifecycle guardrails (Hard — cannot be skipped):**
+1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specs.
+2. **No PRODUCE without test strategy** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW.
+
+**Decision tier override:**
+3. **Supervised mode** — When `decision_involvement: supervised`, ALL technical choices during PRODUCE are escalated to **Gate-tier** decisions. The agent presents options and waits for user confirmation.
+
+**Step 3 — Stale sprint detection:**
 
 ```
 **Question:** Sprint N has had X sessions without progress. What would you like to do?
@@ -2324,7 +2376,7 @@ If `.gse/` exists, scan for unsaved work from a previous session that ended with
 4. Discuss
 ```
 
-**Step 5 — Failure handling:**
+**Step 4 — Failure handling:**
 
 If an activity fails (test failure, merge conflict, tool error):
 1. Save current state to checkpoint
@@ -2332,9 +2384,9 @@ If an activity fails (test failure, merge conflict, tool error):
 3. Propose options (Gate): retry, skip (if skippable), pause, discuss
 4. Never silently continue after a failure
 
-**Step 6 — Intent-first mode (beginner + new project):**
+**Step 5 — Intent-first mode (beginner + first sprint):**
 
-When `it_expertise: beginner` and no sprint exists yet, the orchestrator enters a conversational mode before the formal lifecycle:
+When `it_expertise: beginner` and `current_sprint: 0` (first time through LC01), the orchestrator enters a conversational mode before the formal lifecycle:
 1. Elicit intent in plain language: *"Describe what you'd like to build or achieve."*
 2. Reformulate and validate: *"If I understand correctly, you want: [list]. Correct?"*
 3. Translate to initial backlog items (no jargon)
