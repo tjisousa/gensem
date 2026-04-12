@@ -28,12 +28,18 @@ Before executing, read:
 
 ### Step 1 — Detect Project State
 
-Examine the working directory to classify the situation:
+Examine the working directory to classify the situation.
+
+**"Project files" definition:** Only count files that belong to the actual project. **Exclude** the following directories from the file count — they are tool/IDE configuration, not project content:
+- `.cursor/`, `.claude/`, `.gse/` — agent/plugin artifacts
+- `.git/` — version control internals
+- `.vscode/`, `.idea/`, `.fleet/` — IDE settings
+- `node_modules/`, `__pycache__/`, `.venv/`, `target/`, `dist/`, `build/` — generated/dependency directories
 
 | Condition | State | Action |
 |-----------|-------|--------|
-| No `.gse/` directory AND project files exist | **Adopt candidate** | Transition to Adopt mode (Step 5) |
-| No `.gse/` directory AND directory is empty/near-empty | **New project** | Transition to HUG (`/gse:hug`) |
+| No `.gse/` directory AND project files exist (after exclusions) | **Adopt candidate** | Transition to Adopt mode (Step 8) |
+| No `.gse/` directory AND directory is empty/near-empty (only excluded dirs) | **New project** | Transition to HUG (`/gse:hug`) |
 | `.gse/` exists | **Existing project** | Read `status.yaml` and proceed to Step 2 |
 
 ### Step 2 — Recovery Check (Unsaved Work Detection)
