@@ -80,12 +80,13 @@ Execute review from multiple specialized perspectives. Each perspective produces
 - Module coupling and cohesion
 - Interface contract compliance
 
-#### 2e — Test Coverage (test-strategist agent)
+#### 2e — Test Coverage & Regression Scan (test-strategist agent)
 
 - Test existence for new/changed code
 - Test quality (meaningful assertions, edge cases)
 - Coverage gaps
 - Test naming and organization
+- **Regression scan:** Execute the **full test suite** (not just tests for the current TASK). Compare pass/fail counts with the last sprint's test report in `docs/sprints/sprint-{NN-1}/test-reports/`. If tests that passed in the previous sprint now fail → create a finding with severity **HIGH** and tag `[REGRESSION]`. For beginners: "I found that something that worked before stopped working after this change."
 
 #### 2f — UX Review (ux-advocate agent, for web/UI projects)
 

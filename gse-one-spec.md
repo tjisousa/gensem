@@ -1180,6 +1180,8 @@ The `/gse:tests` activity manages the full testing lifecycle: strategy definitio
 | **Acceptance** | Validate that a requirement is met (from the user's perspective) | REQ (acceptance criteria) |
 | **Regression** | Ensure that previously fixed bugs don't reappear | RVW (past review findings) |
 
+**Cross-sprint regression detection:** During `/gse:review`, the agent executes the **full test suite** (not just tests for the current TASK) and compares pass/fail counts with the previous sprint's test report (`docs/sprints/sprint-{NN-1}/test-reports/`). Tests that passed in the previous sprint but now fail are flagged as `[REGRESSION]` findings with severity HIGH. This provides automatic cross-sprint regression detection without additional infrastructure — it leverages the accumulated test suite.
+
 #### Test pyramid (calibrated by project domain)
 
 The agent proposes a test distribution adapted to the project type (from `config.yaml → project.domain`):
