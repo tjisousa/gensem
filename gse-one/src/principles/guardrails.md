@@ -52,7 +52,7 @@ Guardrails operate at three severity levels. Soft guardrails advise. Hard guardr
    |-----------|-------|--------|
    | Deleting a file with trace links (P6) | Hard | Block. Show dependent artefacts. |
    | Modifying a `done` artefact without sprint plan update | Soft | Warn. Suggest creating a new task. |
-   | Complexity budget >100% (P10) | Hard | Block new complexity additions. Require budget adjustment. |
+   | Complexity budget >100% (P10) | **Gate** | Present options: (1) continue with overrun, (2) reduce scope, (3) defer to next sprint, (4) discuss. Complexity estimates are imprecise by nature — the budget is a directional tool, not a rigid constraint. Log the decision as DEC-. |
    | Complexity budget >80% | Soft | Warn. Show remaining budget. |
    | Sprint plan not approved, starting work | Hard | Block. Require plan approval (P4, P5). |
    | Skipping tests for modified code | Soft | Warn. Suggest adding tests. |

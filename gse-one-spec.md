@@ -583,8 +583,8 @@ A sprint that accumulates too many features, dependencies, or architectural chan
 To prevent this, each sprint has a **complexity budget** — a finite number of points representing the maximum amount of new complexity the sprint can absorb. Every planned task consumes points based on what it introduces (a new dependency costs 1–2 points, an architectural change costs 3–5). The agent tracks the running total and makes it visible throughout the sprint (see Section 8).
 
 **Role in the methodology:**
-- During **PLAN**, the agent evaluates whether planned tasks fit within the budget. If the total exceeds the budget, a Hard guardrail triggers and the agent proposes either deferring lower-priority tasks to the next sprint or splitting the sprint into two smaller ones.
-- During **PRODUCE**, if ad-hoc additions push the sprint over budget, the agent warns before proceeding.
+- During **PLAN**, the agent evaluates whether planned tasks fit within the budget. If the total exceeds the budget, a Gate decision is presented (not Hard — complexity estimates are imprecise by nature): continue with overrun, reduce scope, defer to next sprint, or discuss. The budget is a directional tool, not a rigid constraint.
+- During **PRODUCE**, if ad-hoc additions push the sprint over budget, the agent warns (Soft at 80%, Gate at 100%) before proceeding.
 - During **HEALTH**, the budget consumption ratio is one of the 8 health sub-scores — a sprint at 90% budget is a risk signal.
 
 The budget size is calibrated by project size and team context (via HUG). A solo beginner gets a smaller budget (fewer moving parts to manage); an expert team gets a larger one.
