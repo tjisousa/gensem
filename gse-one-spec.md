@@ -1197,6 +1197,8 @@ The agent proposes a test distribution adapted to the project type (from `config
 
 The pyramid is a **starting point** — the agent adjusts based on actual project needs and presents deviations as Inform-tier decisions.
 
+**Monorepo sub-domains:** When `config.yaml → project.sub_domains` is defined, the test pyramid is calibrated **per sub-domain**. For example, a project with `frontend/` (web) and `backend/` (api) uses the web pyramid for frontend tests and the api pyramid for backend tests. The top-level `project.domain` is the fallback for files outside any sub-domain path.
+
 #### Risk-based prioritization
 
 Not all code needs equal test coverage. The agent prioritizes testing based on risk:
@@ -2063,9 +2065,17 @@ Users can customize GSE-One behavior via `.gse/config.yaml`:
 project:
   name: "My Project"
   domain: "web"                        # web | embedded | scientific | cli | library | mobile
+  # Optional: sub-domains for monorepos (calibrates test pyramid per sub-project)
+  # sub_domains:
+  #   - path: frontend/
+  #     domain: web
+  #   - path: backend/
+  #     domain: api
+  #   - path: services/auth/
+  #     domain: api
 
 lifecycle:
-  mode: full                           # full | lightweight
+  mode: full                           # full | lightweight | micro
   stale_sprint_sessions: 3              # sessions without progress before stale detection (/gse:go)
   phases:
     LC02:

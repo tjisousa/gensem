@@ -55,8 +55,13 @@ Define the test pyramid calibrated by project domain:
 | **Library / SDK** | 70% | 20% | 0% | 10% (compat, docs) |
 | **Embedded** | 50% | 25% | 0% | 25% (hardware sim) |
 
+**Monorepo sub-domains:** When `config.yaml → project.sub_domains` is defined, create a separate pyramid section per sub-domain in the test strategy. For example:
+- `frontend/` (domain: web) → web pyramid (20% unit, 20% integration, 40% visual, 20% other)
+- `backend/` (domain: api) → api pyramid (50% unit, 30% integration, 5% smoke, 15% other)
+Files outside any sub-domain path use the top-level `project.domain` pyramid as fallback.
+
 The strategy document defines:
-- Test pyramid distribution for this project
+- Test pyramid distribution for this project (or per sub-domain if applicable)
 - Coverage targets per level
 - Test naming conventions (TST-NNN)
 - Test data management approach
