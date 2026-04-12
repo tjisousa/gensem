@@ -59,7 +59,7 @@ The key distinction is between translation and simplification. Translation prese
 
 10. **Question cadence** — The number of questions asked simultaneously is proportional to the user's IT expertise. Beginners receive **one question at a time** (wait for response before the next). Intermediate users receive **2-3 questions grouped** by related theme. Advanced/expert users receive **all questions in one block**. This applies to all skills, not just HUG — whenever the agent needs multiple inputs from the user, it batches them according to expertise level.
 
-9. **Output formatting** — Chat output must be readable across terminals and IDEs. Rules:
+11. **Output formatting** — Chat output must be readable across terminals and IDEs. Rules:
    - Use **bold** for decisions, actions, and key terms
    - Use *italic* for file paths, branch names, and technical references
    - Use bullet lists over tables for chat output (tables render poorly in terminals)

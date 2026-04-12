@@ -30,25 +30,25 @@ Every structured interaction follows a consistent format that provides context, 
 
 3. **Interactive mode (preferred)** — When the hosting environment provides an interactive question tool (e.g., `AskUserQuestion` in Claude Code, clarifying questions in Cursor), the agent SHOULD use it instead of the text-based numbered list. Benefits: clickable options, checkboxes for multi-select questions, skip buttons. The structured content (Question, Context, Options, Discuss) remains identical — only the presentation adapts. The "Discuss" option maps to the automatic "Other" escape hatch in interactive tools. Fall back to text format when the interactive tool is unavailable or the number of options exceeds its limits (e.g., >4 options).
 
-3. **Consequence horizons** — For Gate-tier decisions, each option includes consequence analysis at three time scales (per P8):
+4. **Consequence horizons** — For Gate-tier decisions, each option includes consequence analysis at three time scales (per P8):
    - **Now**: Immediate effect
    - **3 months**: Medium-term implications
    - **1 year**: Long-term trajectory
 
-4. **Decision tiers determine interaction style:**
+5. **Decision tiers determine interaction style:**
    - **Auto (low risk)**: Agent proceeds, no interaction needed. Logged in sprint artefacts.
    - **Inform (moderate risk)**: Agent proceeds but reports what was done and why in the next status update.
    - **Gate (high risk)**: Agent STOPS and presents the structured interaction pattern. Work does not proceed until the human responds.
 
-5. **No implicit consent** — Silence or lack of response is NOT consent for Gate-tier decisions. If the human does not respond, the agent waits or works on other non-blocked tasks.
+6. **No implicit consent** — Silence or lack of response is NOT consent for Gate-tier decisions. If the human does not respond, the agent waits or works on other non-blocked tasks.
 
-6. **Decision recording** — Every Gate-tier decision and its outcome MUST be recorded as a DEC- artefact (P3, P6) with:
+7. **Decision recording** — Every Gate-tier decision and its outcome MUST be recorded as a DEC- artefact (P3, P6) with:
    - The question posed
    - The options presented
    - The option chosen
    - The rationale (human's stated reason or "no rationale provided")
 
-7. **Escalation** — If the agent is uncertain about the risk tier of a decision, it MUST escalate to Gate tier. It is always safe to ask; it is never safe to assume.
+8. **Escalation** — If the agent is uncertain about the risk tier of a decision, it MUST escalate to Gate tier. It is always safe to ask; it is never safe to assume.
 
 ## Examples
 

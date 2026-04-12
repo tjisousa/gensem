@@ -66,7 +66,8 @@ If a language is already configured, skip to Step 1.
    5. Other — type your language
    ```
 
-4. **Switch immediately** — From this point on, ALL communication is in the chosen language.
+4. **Set artifact language** — After the user chooses the chat language, set `language.artifacts` to `en` (industry default). Inform the user: "I'll chat in [chosen language]. Files I produce (code, docs) will be in English by default — you can change this anytime." This covers the `artifacts` and `overrides` sub-fields of dimension #4, which are NOT re-asked during Step 2.
+5. **Switch immediately** — From this point on, ALL communication is in the chosen language.
 
 ### Step 1 — Smart Inference
 
@@ -165,7 +166,7 @@ Profile file structure:
 Verify the project environment is ready. **This step is blocking** — do NOT mention `/gse:go` or any next steps until git initialization is fully resolved (accepted or declined).
 
 1. **Git repo check** — If no `.git/` directory exists:
-   - **For beginner users (P9):** Explain what git is before asking, and warn about the system dialog that will appear:
+   - **For beginner users (per P9 — Adaptive Communication):** Explain what git is before asking, and warn about the system dialog that will appear:
      ```
      Agent: Before we continue, I need to set up version control for your project.
      
@@ -201,7 +202,10 @@ dimensions:
   it_expertise: advanced
   scientific_expertise: practitioner
   abstraction_capability: balanced
-  mother_tongue: fr
+  language:
+    chat: fr
+    artifacts: en
+    overrides: {}
   preferred_verbosity: normal
   domain_background: "Software engineering, AI-assisted development"
   decision_involvement: collaborative
@@ -209,11 +213,12 @@ dimensions:
   team_context: solo
   learning_goals: "Rust async patterns, property-based testing"
   contextual_tips: on
+  emoji: on
 inferred:
   it_expertise: true
   project_domain: true
   team_context: true
-  mother_tongue: true
+  language.chat: true
 created: 2026-01-15
 updated: 2026-01-15
 ```

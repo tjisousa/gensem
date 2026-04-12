@@ -64,13 +64,18 @@ Read `status.yaml` fields: `current_sprint`, `lifecycle_phase`, `last_activity`,
 
 | Current State | Proposed Action |
 |---------------|-----------------|
-| No sprint defined | If `it_expertise: beginner` and new project: start Intent-First mode (Step 7). Otherwise: start LC01 — run sequence: `/gse:collect` > `/gse:assess` > `/gse:plan --strategic` |
+| No sprint defined | Sub-decision below |
 | Plan exists, not approved | Resume PLAN — present plan summary, ask for approval Gate |
 | Tasks with status `in-progress` | Resume PRODUCE — show current task, propose continuation |
 | All sprint tasks `done`, no review | Start REVIEW — propose `/gse:review` |
 | Review done, fixes pending | Start FIX — propose `/gse:fix` |
 | All tasks delivered, no compound | Start LC03 — propose `/gse:compound` |
 | Compound done | Propose next sprint — increment sprint number, transition to LC01 (`COLLECT` > `ASSESS` > `PLAN`) |
+
+**"No sprint defined" sub-decision** (evaluated in order):
+1. If `it_expertise: beginner` and `current_sprint: 0` (first time) → start **Intent-First mode** (Step 7)
+2. If the project has < 5 actual project files (using Step 1 exclusion rules) → propose **Lightweight mode** (Step 6)
+3. Otherwise → start full **LC01**: `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`
 
 Present the proposal and wait for user confirmation before executing.
 
@@ -103,7 +108,7 @@ If the last activity ended with an error or incomplete state:
 
 ### Step 6 — Lightweight Mode Detection
 
-If `.gse/` does not exist AND the project has < 5 files:
+**Trigger:** Reached from Step 3 when no sprint is defined and the project has < 5 actual project files (using Step 1 exclusion rules). At this point `.gse/` already exists (created by HUG or adopt).
 
 1. Propose lightweight mode (Inform tier — user can override to full):
    "This is a small project. I recommend lightweight mode — reduced overhead while preserving traceability."
@@ -121,9 +126,11 @@ If `.gse/` does not exist AND the project has < 5 files:
 3. User can upgrade to full mode anytime via `/gse:go` — the agent scaffolds the missing structure.
 4. **Minimum viable project size:** For truly one-off tasks (single script, quick fix), using GSE-One adds more overhead than value. Suggest working without GSE-One and adopting later if the project grows.
 
-### Step 7 — Intent-First Mode (Beginner + New Project)
+### Step 7 — Intent-First Mode (Beginner + First Sprint)
 
-When `profile.it_expertise` is `beginner` and no sprint has been defined yet (first time through LC01), the orchestrator enters a conversational mode to clarify the user's intent before starting the formal lifecycle:
+**Trigger:** Reached from Step 3 when `it_expertise: beginner` and `current_sprint: 0` (first time through LC01). At this point `.gse/` exists with a profile from HUG.
+
+The orchestrator enters a conversational mode to clarify the user's intent before starting the formal lifecycle:
 
 1. **Elicit intent** — Ask in simple terms:
    *"Describe in a few sentences what you'd like to build or achieve."*
@@ -149,11 +156,13 @@ When `profile.it_expertise` is `beginner` and no sprint has been defined yet (fi
 
 ### Step 8 — Adopt Mode (`--adopt`)
 
-When adopting an existing project not created with GSE-One.
+**Trigger:** Reached from Step 1 (auto-detected: no `.gse/` + project files exist) or via explicit `--adopt` flag.
+
+**Guard:** If `--adopt` is used but `.gse/` already exists, warn: "This project already has GSE-One state. Use `/gse:go` without `--adopt` to continue, or delete `.gse/` first to re-adopt from scratch." Do NOT proceed.
 
 **Non-destructive guarantee:** The adopt flow NEVER modifies existing files without explicit user approval. It can be interrupted and resumed at any point.
 
-1. **Detect** — Confirm project files exist, identify language/framework from manifests (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.)
+1. **Identify** — Detect language/framework from manifests (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.)
 2. **Scan** — Run `/gse:collect` (internal mode) to inventory all existing artefacts
 3. **Infer state** — Analyze git history to estimate:
    - How many sprints of work exist (commits, age, tags)

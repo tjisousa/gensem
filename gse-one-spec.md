@@ -2261,7 +2261,7 @@ The `/gse:go` orchestrator adapts its flow depending on project maturity:
 | **COLLECT** | Internal finds nothing (or very little). Agent suggests external source scan. | Internal finds existing artefacts, previous sprint results. |
 | **ASSESS** | Starts from project goals only. No baseline to compare against. | Compares against previous sprint health, reviews, and delivery. |
 | **PLAN** | Creates sprint branch from `main`. No previous velocity data. Agent asks more Gate questions about scope. | Uses previous sprint velocity to calibrate budget. Detects unfinished tasks from previous sprint. |
-| **HUG** | Full interview (all 11 dimensions). | Asks only if profile needs updating ("Anything changed since last time?"). |
+| **HUG** | Full interview (all 12 dimensions). | Asks only if profile needs updating ("Anything changed since last time?"). |
 | **LEARN** | Frequent proactive proposals — the user encounters many new concepts. | Targeted — only for competency gaps detected in the previous sprint. |
 
 ### 14.2 Adopting GSE-One on an Existing Project
