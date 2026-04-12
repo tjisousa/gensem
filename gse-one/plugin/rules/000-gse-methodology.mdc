@@ -150,8 +150,10 @@ Traces: <artefact IDs>
 | Condition | Action |
 |-----------|--------|
 | `.gse/` absent + project has files | **Adopt mode** — scan, infer, init `.gse/`, set sprint 0, non-destructive |
-| `.gse/` absent + project empty | **HUG** (LC00) — run `/gse:hug` |
+| `.gse/` absent + project empty | **HUG** (LC00) — **automatically execute** `/gse:hug` inline. No diagnostic output, no status table. User sees the language question as the very first interaction. |
 | `.gse/` exists | Read `status.yaml` → Step 1.5 (recovery) → Step 2 |
+
+**"Project files"** excludes tool/IDE dirs: `.cursor/`, `.claude/`, `.gse/`, `.git/`, `.vscode/`, `.idea/`, `.fleet/`, `node_modules/`, `__pycache__/`, `.venv/`, `target/`, `dist/`, `build/`.
 
 ### Step 1.5 — Recovery check
 
@@ -167,7 +169,8 @@ Evaluate states **in order** — the first matching row wins.
 
 | Current state | Next action |
 |--------------|-------------|
-| No sprint + `it_expertise: beginner` | **Intent-First mode**: elicit intent conversationally ("What would you like to build?"), reformulate in plain language, translate to goals. No technical output, no file names, no command names. Then transition to LC01 with plain-language phase names. |
+| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | **Intent-First mode**: elicit intent conversationally ("What would you like to build?"), reformulate in plain language, translate to goals. No technical output, no file names, no command names. Then transition to LC01 with plain-language phase names. |
+| No sprint + non-beginner + < 5 project files | Propose **Lightweight mode** (Gate): `PLAN` > `PRODUCE` > `DELIVER`, branch-only, Auto+Gate only, 3 health dimensions. User can upgrade to full mode anytime. |
 | No sprint + non-beginner | LC01: `COLLECT` > `ASSESS` > `PLAN` |
 | Sprint, plan not approved | Resume `PLAN` |
 | Sprint, plan approved, **no requirements** (`reqs.md` absent or empty) | Start `REQS` — **test-driven requirements**: every REQ MUST include testable acceptance criteria (Given/When/Then or equivalent) and identify open technical questions. These criteria become the spec for validation tests. For beginners: "I'll write down exactly what the app should do, and for each feature, how we'll know it works. You'll confirm before I build anything." **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |

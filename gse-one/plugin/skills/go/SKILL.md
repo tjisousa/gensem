@@ -87,8 +87,8 @@ Evaluate states **in order** — the first matching row wins.
 3. Otherwise → start full **LC01**: `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`
 
 **Lifecycle guardrails (Hard — cannot be skipped):**
-1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specs.
-2. **No PRODUCE without test strategy** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW.
+1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specs. For beginners: "Before I start building, I need to write down exactly what the app should do and how we'll check it works — and have you confirm."
+2. **No PRODUCE without test strategy** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW. For beginners: "Before I build, I'll describe how we'll verify each feature works correctly."
 
 **Decision tier override:**
 3. **Supervised mode** — When `decision_involvement: supervised`, ALL technical choices during PRODUCE are escalated to **Gate-tier** decisions. The agent presents options and waits for user confirmation.
