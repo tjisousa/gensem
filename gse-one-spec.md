@@ -1919,6 +1919,22 @@ items:
 - **Sprint plan = filtered view** — `docs/sprints/sprint-NN/plan.md` is generated from the backlog, not a primary data store
 - **Merge queue = derived view** — items where `status == done AND git.branch_status == active`
 
+**Archival (multi-sprint scalability):**
+
+To keep `backlog.yaml` within context limits (~200 lines), delivered TASKs are archived during COMPOUND:
+- TASKs with `status: delivered` are moved from `backlog.yaml` to `backlog-archive.yaml` (same YAML format, not auto-loaded)
+- Sprint artefact directories older than 2 sprints are moved: `docs/sprints/sprint-{NN}/` → `docs/archive/sprint-{NN}/`
+- Archived data remains accessible via `/gse:status --history`
+
+```
+.gse/
+├── backlog.yaml              # active TASKs (pool + current/recent sprints)
+├── backlog-archive.yaml      # delivered TASKs from past sprints (not auto-loaded)
+docs/
+├── sprints/                   # last 2 sprints (active)
+├── archive/                   # older sprints (accessible on demand)
+```
+
 **Status lifecycle:**
 
 | TASK status | git.branch_status | git.worktree_status | Triggered by |

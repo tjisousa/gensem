@@ -108,4 +108,19 @@ Feed the user's learning journey:
    - Lessons learned: {count}
    - Methodology proposals: {count}
    - Learning notes added: {count}
+4. Proceed to Step 5 (archival), then propose `/gse:integrate`
+
+### Step 5 — Sprint Archival (scalability)
+
+After capitalization, archive the completed sprint to keep state files lean:
+
+1. **Backlog compaction** — Move all TASKs with `status: delivered` for the completed sprint from `backlog.yaml` to `backlog-archive.yaml` (same YAML format). This keeps the active backlog within ~200 lines.
+   - For beginners: "I'll move the completed items to an archive so your task list stays clean."
+
+2. **Sprint directory archival** — If there are more than 2 completed sprint directories in `docs/sprints/`, propose (Inform) moving older ones to `docs/archive/`:
+   - Move `docs/sprints/sprint-{NN}/` → `docs/archive/sprint-{NN}/` for sprints older than current - 2
+   - The 2 most recent sprints stay in `docs/sprints/` for easy reference
+
+3. **Archive accessibility** — Archived data is not deleted, just moved. It remains accessible via `/gse:status --history` or by reading `docs/archive/` directly.
+
 4. Propose next step: `/gse:integrate` to route solutions to their targets
