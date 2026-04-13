@@ -123,7 +123,7 @@ After capitalization, archive the completed sprint to keep state files lean:
 
 3. **Archive accessibility** — Archived data is not deleted, just moved. It remains accessible via `/gse:status --history` or by reading `docs/archive/` directly.
 
-4. **Regenerate dashboard** — Run `python3 .gse/dashboard.py` to update `docs/dashboard.html` with capitalization results, archived sprints, and updated health trends. Inform the user:
+4. **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with capitalization results, archived sprints, and updated health trends. Inform the user:
    - For beginners: "Le tableau de bord a été mis à jour avec le bilan de ce cycle. Tu peux le consulter pour voir l'historique complet du projet."
    - For intermediate/expert: "Dashboard updated with compound results and sprint history."
 

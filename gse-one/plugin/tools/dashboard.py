@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+# @gse-tool dashboard 0.14.0
 """
 GSE-One Dashboard Generator — Generates docs/dashboard.html from .gse/ state files.
 
-Usage:
-    python3 .gse/dashboard.py                  # Generate once (CDN mode, default)
-    python3 .gse/dashboard.py --watch          # Regenerate on file changes
-    python3 .gse/dashboard.py --no-cdn         # Offline mode (no external dependencies)
-    python3 .gse/dashboard.py --output path    # Custom output path
+Usage (via registry):
+    python3 "$(cat ~/.gse-one)/tools/dashboard.py"              # Generate once (CDN mode)
+    python3 "$(cat ~/.gse-one)/tools/dashboard.py" --watch      # Live updates
+    python3 "$(cat ~/.gse-one)/tools/dashboard.py" --no-cdn     # Offline mode
+    python3 "$(cat ~/.gse-one)/tools/dashboard.py" --output X   # Custom output path
 
 The dashboard is a single self-contained HTML file showing:
   - Project state (sprint, phase, TASK kanban, complexity budget)
@@ -350,7 +351,7 @@ def generate_html(data, use_cdn=True):
   .kanban {{ display: flex; gap: 8px; flex-wrap: wrap; }}
   .kanban-col {{ flex: 1; min-width: 80px; text-align: center; padding: 8px; border-radius: 6px; }}
   .kanban-count {{ font-size: 1.5em; font-weight: bold; }}
-  .kanban-label {{ font-size: 0.75em; color: var(--muted); }}
+  .kanban-label {{ font-size: 0.75em; color: var(--muted); background: rgba(0,0,0,0.4); border-radius: 8px; padding: 1px 8px; display: inline-block; }}
   .refresh-btn {{ background: var(--accent); color: var(--text); border: 1px solid var(--blue);
                   padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85em; }}
   .refresh-btn:hover {{ background: var(--blue); }}
@@ -456,7 +457,7 @@ def generate_html(data, use_cdn=True):
 
 <div class="muted" style="text-align:center; margin-top:20px; padding:10px">
   GSE-One Dashboard &mdash; Generated from <code>.gse/</code> state files &mdash;
-  <code>python3 .gse/dashboard.py --watch</code> for live updates
+  <code>python3 &quot;$(cat ~/.gse-one)/tools/dashboard.py&quot; --watch</code> for live updates
 </div>
 
 </body>

@@ -227,11 +227,12 @@ updated: 2026-01-15
 
 After `.gse/` is created and profile saved:
 
-1. Copy `gse_dashboard.py` to `.gse/dashboard.py` (from the plugin's source)
-2. Generate the first `docs/dashboard.html` by running: `python3 .gse/dashboard.py`
-3. Inform the user:
+1. **Validate tool access** — Run: `cat ~/.gse-one` to verify the plugin registry exists. If the file is missing, warn the user: "GSE-One registry not found. Run `python3 install.py` again to fix."
+2. **Generate the first dashboard** — Run: `python3 "$(cat ~/.gse-one)/tools/dashboard.py"`
+3. **Verify** — Check that `docs/dashboard.html` was created and is not empty.
+4. Inform the user:
    - **For beginner users:** "J'ai créé un tableau de bord pour suivre l'avancement de ton projet. Tu peux l'ouvrir dans ton navigateur à tout moment : `docs/dashboard.html`. Il se met à jour à chaque étape."
-   - **For intermediate/advanced users:** "Dashboard generated at `docs/dashboard.html`. Regenerated after each activity. Run `python3 .gse/dashboard.py --watch` for live updates."
+   - **For intermediate/advanced users:** "Dashboard generated at `docs/dashboard.html`. Regenerated after each activity. Run `python3 \"$(cat ~/.gse-one)/tools/dashboard.py\" --watch` for live updates."
 
 ### Step 6 — Transition
 

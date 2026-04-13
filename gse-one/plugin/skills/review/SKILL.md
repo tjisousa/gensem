@@ -202,6 +202,6 @@ Update `status.yaml`:
 - `last_activity: review`
 - `last_activity_timestamp: {now}`
 
-**Regenerate dashboard** — Run `python3 .gse/dashboard.py` to update `docs/dashboard.html` with review findings, health scores, and quality metrics. After review is a key moment to check the dashboard — inform the user:
+**Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with review findings, health scores, and quality metrics. After review is a key moment to check the dashboard — inform the user:
 - For beginners: "Le tableau de bord du projet a été mis à jour avec les résultats de la vérification. Tu peux le consulter à `docs/dashboard.html`."
 - For intermediate/expert: "Dashboard updated with review findings and health scores."

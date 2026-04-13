@@ -1,14 +1,17 @@
-# GSE-One — Generic Software Engineering One
+<h1 align="center">GSE-One</h1>
+<h2 align="center">Built by AI.<br>Governed by Humans.</h2>
+
+GSE-One is an AI engineering companion that brings structured software development lifecycle (SDLC) management to coding agents. It works as a plugin for **Claude Code** and **Cursor**, guiding projects through requirements, design, testing, production, review, and knowledge transfer — with adaptive risk analysis and methodology guardrails.
+
+<p align="center">
+  <img src="../assets/images/logo-gse-geni-with-shield-landscape_4x_slogan.png" width="700" alt="GSE-One — Built by AI, Governed by Humans">
+</p>
 
 Mono-plugin architecture — cross-platform parity. See [CHANGELOG](../CHANGELOG.md) for version history.
 
-> AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.
-
 ## What is GSE-One?
 
-GSE-One is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a single plugin deployable on both Claude Code and Cursor, providing 23 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
-
-GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile.
+GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile. 23 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
 
 **v0.14.0 highlights:**
 - **Interactive QCM** — clickable options (AskUserQuestion / Cursor clarifying questions) instead of numbered text lists
@@ -125,9 +128,10 @@ gse-one/
 ├── plugin/                     # Single deployable directory (both platforms)
 │   ├── .claude-plugin/         # Claude Code manifest
 │   ├── .cursor-plugin/         # Cursor manifest
-│   ├── skills/                 # 22 skills (shared)
+│   ├── skills/                 # 23 skills (shared)
 │   ├── agents/                 # 9 agents (shared)
-│   ├── templates/              # 15 templates (shared)
+│   ├── templates/              # 19 templates (shared)
+│   ├── tools/                  # Python tools (dashboard, etc.)
 │   ├── rules/                  # 1 .mdc (Cursor-only, ignored by Claude)
 │   ├── hooks/                  # 2 hooks files (1 per platform)
 │   └── settings.json           # Claude-only (ignored by Cursor)

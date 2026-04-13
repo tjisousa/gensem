@@ -208,6 +208,22 @@ def ensure_dir(path):
     Path(path).mkdir(parents=True, exist_ok=True)
 
 
+REGISTRY_FILE = Path.home() / ".gse-one"
+
+
+def _write_registry(plugin_path):
+    """Write the plugin path to ~/.gse-one so tools can be resolved at runtime."""
+    REGISTRY_FILE.write_text(str(Path(plugin_path).resolve()) + "\n", encoding="utf-8")
+    ok(f"Registry written: {REGISTRY_FILE}")
+
+
+def _remove_registry():
+    """Remove ~/.gse-one if it exists."""
+    if REGISTRY_FILE.exists():
+        REGISTRY_FILE.unlink()
+        ok(f"Registry removed: {REGISTRY_FILE}")
+
+
 # ---------------------------------------------------------------------------
 # Duplicate installation detection
 # ---------------------------------------------------------------------------
@@ -402,6 +418,7 @@ def install_claude_plugin(scope):
             ok(f"Plugin installed (scope: {scope})")
             if result.stdout.strip():
                 info(result.stdout.strip())
+            _write_registry(PLUGIN_DIR)
             tracker.add("Claude Code", "plugin", scope, plugin_path, "OK", f"v{VERSION}")
             return True
         else:
@@ -436,6 +453,7 @@ def uninstall_claude_plugin():
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
             ok("Plugin uninstalled from Claude Code")
+            _remove_registry()
             tracker.add("Claude Code", "uninstall", "-", "-", "OK", "removed")
             return True
         else:
@@ -487,6 +505,13 @@ def install_claude_no_plugin(project_dir):
         agent_count += 1
     ok(f"Copied {agent_count} agents to {agents_dst}")
 
+    # Tools
+    tools_src = PLUGIN_DIR / "tools"
+    if tools_src.is_dir():
+        tools_dst = claude_dir / "tools"
+        copy_tree(tools_src, tools_dst)
+        ok(f"Copied tools to {tools_dst}")
+
     # Templates
     templates_dst = claude_dir / "templates"
     copy_tree(PLUGIN_DIR / "templates", templates_dst)
@@ -501,6 +526,8 @@ def install_claude_no_plugin(project_dir):
     # Default agent
     _set_default_agent(settings_file, "gse-orchestrator")
     ok(f"Set default agent to gse-orchestrator")
+
+    _write_registry(PLUGIN_DIR)
 
     # Verify
     is_ok, detail = verify_no_plugin(project_dir, "claude")
@@ -539,7 +566,13 @@ def uninstall_claude_no_plugin(project_dir):
         shutil.rmtree(templates_dir)
         ok(f"Removed {templates_dir}")
 
+    tools_dir = claude_dir / "tools"
+    if tools_dir.exists():
+        shutil.rmtree(tools_dir)
+        ok(f"Removed {tools_dir}")
+
     info("Hooks and settings.json were not modified (manual cleanup if needed)")
+    _remove_registry()
     tracker.add("Claude Code", "uninstall", "project", str(claude_dir), "OK", "removed")
     return True
 
@@ -567,6 +600,8 @@ def install_cursor_plugin(env):
     copy_tree(PLUGIN_DIR, dst)
     ok(f"Plugin copied to {dst}")
 
+    _write_registry(dst)
+
     # Verify
     is_ok, detail = verify_plugin(dst, "cursor")
     if is_ok:
@@ -587,6 +622,7 @@ def uninstall_cursor_plugin(env):
     if dst.exists() or dst.is_symlink():
         remove_path(dst)
         ok(f"Removed {dst}")
+        _remove_registry()
         tracker.add("Cursor", "uninstall", "global", str(dst), "OK", "removed")
     else:
         info("No Cursor plugin installation found.")
@@ -639,6 +675,13 @@ def install_cursor_no_plugin(project_dir):
         shutil.copy2(rule_file, rules_dst / rule_file.name)
     ok(f"Copied rule(s) to {rules_dst}")
 
+    # Tools
+    tools_src = PLUGIN_DIR / "tools"
+    if tools_src.is_dir():
+        tools_dst = cursor_dir / "tools"
+        copy_tree(tools_src, tools_dst)
+        ok(f"Copied tools to {tools_dst}")
+
     # Templates
     templates_dst = cursor_dir / "templates"
     copy_tree(PLUGIN_DIR / "templates", templates_dst)
@@ -650,6 +693,8 @@ def install_cursor_no_plugin(project_dir):
     if hooks_src.exists():
         shutil.copy2(hooks_src, hooks_dst)
         ok(f"Copied hooks to {hooks_dst}")
+
+    _write_registry(PLUGIN_DIR)
 
     # Verify
     is_ok, detail = verify_no_plugin(project_dir, "cursor")
@@ -667,7 +712,7 @@ def uninstall_cursor_no_plugin(project_dir):
 
     cursor_dir = Path(project_dir) / ".cursor"
 
-    for subdir in ("skills", "agents", "templates"):
+    for subdir in ("skills", "agents", "templates", "tools"):
         d = cursor_dir / subdir
         if d.exists():
             shutil.rmtree(d)
@@ -684,6 +729,7 @@ def uninstall_cursor_no_plugin(project_dir):
         hooks_file.unlink()
         ok(f"Removed {hooks_file}")
 
+    _remove_registry()
     tracker.add("Cursor", "uninstall", "project", str(cursor_dir), "OK", "removed")
     return True
 

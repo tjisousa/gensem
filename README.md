@@ -1,55 +1,91 @@
-# GSE-One — Plugin Publication Guide
+<h1 align="center">GSE-One</h1>
+<h2 align="center">Built by AI.<br>Governed by Humans.</h2>
 
-This repository contains the specification (`gse-one-spec.md`), the design document (`gse-one-implementation-design.md`) and the complete plugin implementation (`gse-one/`). All three share the same version number, defined in the `VERSION` file at the repository root.
+GSE-One is an AI engineering companion that brings structured software development lifecycle (SDLC) management to coding agents. It works as a plugin for **Claude Code** and **Cursor**, guiding projects through requirements, design, testing, production, review, and knowledge transfer — with adaptive risk analysis and methodology guardrails.
 
-This guide describes all the steps to publish the GSE-One plugin and make it installable by Claude Code and Cursor users.
+<p align="center">
+  <img src="assets/images/logo-gse-geni-with-shield-landscape_4x_slogan.png" width="700" alt="GSE-One — Built by AI, Governed by Humans">
+</p>
 
 ---
 
 ## Table of Contents
 
-1. [Mono-plugin Architecture](#1-mono-plugin-architecture)
-2. [Develop and Generate](#2-develop-and-generate)
-3. [Publish the Plugin](#3-publish-the-plugin)
-4. [Command Reference](#4-command-reference)
+1. [Key Features](#key-features)
+2. [Quick Start](#quick-start)
+3. [Mono-plugin Architecture](#mono-plugin-architecture)
+4. [Develop and Generate](#develop-and-generate)
+5. [Publish the Plugin](#publish-the-plugin)
+6. [Command Reference](#command-reference)
+7. [Versioning](#versioning)
 
 ---
 
-## 1. Mono-plugin Architecture
+## Key Features
+
+- **23 commands** covering the full SDLC — from onboarding (`/gse:hug`) to capitalization (`/gse:compound`)
+- **3 modes** — Micro (< 3 files), Lightweight, Full — adapting to project complexity
+- **Adaptive risk analysis** — 3-tier decision system (Auto / Gate / Hard) calibrated to user expertise
+- **Unified backlog** — single task tracking with git state per-task
+- **8-dimension health dashboard** — generated HTML with radar chart, kanban, lifecycle checklist
+- **AI integrity guardrails** — confidence levels, verification gates, devil's advocate agent
+- **Cross-platform** — one plugin, identical methodology on Claude Code and Cursor
+
+---
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/gse-one/gse-one.git
+cd gse-one
+
+# Install (interactive — guides you through platform and mode selection)
+python3 install.py
+```
+
+Then, in your coding agent:
+
+```
+/gse:go
+```
+
+The GSE-One agent responds, detects the project state, and proposes the next activity.
+
+---
+
+## Mono-plugin Architecture
 
 GSE-One uses a **single deployable directory** (`plugin/`) that works on both platforms:
 
 ```
 gse-one/
-├── src/                              # Single source of truth (62 files)
+├── src/                              # Single source of truth
 │   ├── principles/                   # 16 principles (P1-P16)
-│   ├── activities/                   # 23 activity definitions, each generated as a skill
+│   ├── activities/                   # 23 activity definitions → skills
 │   ├── agents/                       # 9 agents (8 specialized + orchestrator)
 │   └── templates/                    # 19 templates
 │
-├── plugin/                           # Deployable directory (57 files)
+├── plugin/                           # Deployable directory
 │   ├── .claude-plugin/plugin.json    # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json    # Cursor manifest
 │   ├── skills/                       # 23 skills (shared)
 │   ├── agents/                       # 9 agents (shared)
 │   ├── templates/                    # 19 templates (shared)
-│   ├── rules/000-gse-methodology.mdc # Cursor only (ignored by Claude)
-│   ├── hooks/hooks.claude.json       # Claude Code format
-│   ├── hooks/hooks.cursor.json       # Cursor format
-│   └── settings.json                 # Claude only (ignored by Cursor)
+│   ├── tools/                        # Python tools (dashboard, etc.)
+│   ├── rules/000-gse-methodology.mdc # Cursor only
+│   ├── hooks/                        # Platform-specific hooks
+│   └── settings.json                 # Claude only
 │
-├── marketplace/
-│   └── .claude-plugin/marketplace.json
-│
-└── gse_generate.py                   # Generator: src/ → plugin/
+└── install.py                        # Cross-platform installer
 ```
 
-**Shared files (46):** skills, agents, templates — single copy, zero divergence.
-**Platform-specific files (6):** 2 manifests + 2 hooks + 1 settings + 1 .mdc — generated as equivalent pairs.
+**Shared files:** skills, agents, templates, tools — single copy, zero divergence.
+**Platform-specific:** manifests, hooks, settings, rules — generated as equivalent pairs.
 
 ---
 
-## 2. Develop and Generate
+## Develop and Generate
 
 ### Edit the Sources
 
@@ -68,89 +104,58 @@ python3 gse_generate.py --clean --verify
 
 The generator:
 1. Copies skills, specialized agents and templates (shared)
-2. Generates the orchestrator (`agents/gse-orchestrator.md`) and the Cursor rule (`rules/000-gse-methodology.mdc`) from the **same source** — verifies that the body is identical
-3. Generates the 2 hooks (Claude PascalCase / Cursor camelCase) from the same commands
-4. Generates the 2 manifests and `settings.json`
-
-### Create the GitHub Repository
-
-```bash
-cd gse-one/
-git init
-git add .
-git commit -m "feat: GSE-One v0.8.0 — initial release"
-gh repo create gse-one/gse-one --public --source=. --push
-```
-
-> **Important:** Update the `repository` field in `plugin/.claude-plugin/plugin.json`, `plugin/.cursor-plugin/plugin.json` and `marketplace/.claude-plugin/marketplace.json` with the actual repository URL.
+2. Generates the orchestrator and Cursor rule from the **same source** — verifies body parity
+3. Generates hooks (Claude PascalCase / Cursor camelCase) from the same commands
+4. Generates manifests and `settings.json`
 
 ---
 
-## 3. Publish the Plugin
+## Publish the Plugin
 
-Plugin visibility depends entirely on the distribution method chosen and the GitHub repository visibility:
+Plugin visibility depends on the distribution method:
 
 | Method | Visibility | Prerequisites |
 |--------|-----------|---------------|
-| A — Local test | You only, on your machine | None |
-| B — GitHub distribution (private repo) | You + invited collaborators | Private GitHub repo |
-| B — GitHub distribution (public repo) | Anyone with the link | Public GitHub repo |
-| C — Official marketplace | Everyone (public catalog) | Submission and approval by Anthropic/Cursor |
+| Local test | You only | None |
+| GitHub (private repo) | Invited collaborators | Private GitHub repo |
+| GitHub (public repo) | Anyone with the link | Public GitHub repo |
+| Marketplace | Everyone | Anthropic/Cursor approval |
 
-> **Important:** As long as the GitHub repository remains **private**, no one can view the code or install the plugin without being explicitly invited as a collaborator. Method B with a private repo is suitable for personal use or small teams.
-
-### Install the plugin
-
-Run the interactive installer (works on macOS, Linux, Windows):
+### Install
 
 ```bash
+# Interactive (recommended)
 python3 install.py
 ```
-
-The installer detects your environment and guides you through platform selection (Claude Code, Cursor, or both), installation mode (plugin or non-plugin), and scope (project, personal, global).
-
-For non-interactive or scripted installation, use the CLI options described below.
 
 #### `install.py` options
 
 | Option | Values | Default | Description |
 |--------|--------|---------|-------------|
-| *(no flags)* | — | — | **Interactive mode** — the installer detects your environment and guides you step by step |
-| `--platform` | `claude` \| `cursor` \| `both` | *(interactive)* | Target platform. `both` installs on Claude Code and Cursor in one run |
-| `--mode` | `plugin` \| `no-plugin` | *(interactive)* | **plugin**: uses the platform's plugin system (recommended). **no-plugin**: copies artifacts directly into `.claude/` or `.cursor/` (fallback if plugin system is unavailable) |
-| `--scope` | `project` \| `local` \| `user` | `project` | **Claude Code plugin scope only** (ignored for Cursor). `project`: visible to all users of the project (committed to git). `local`: project-scoped but gitignored. `user`: global, applies to all projects for this user |
-| `--project-dir` | path | current directory | **no-plugin mode only**. The project directory where artifacts are installed. If the directory does not exist, the installer proposes to create it |
-| `--uninstall` | *(flag)* | `false` | Remove GSE-One from the specified platform and mode |
+| *(no flags)* | — | — | **Interactive mode** — detects environment, guides step by step |
+| `--platform` | `claude` \| `cursor` \| `both` | *(interactive)* | Target platform |
+| `--mode` | `plugin` \| `no-plugin` | *(interactive)* | `plugin` (recommended) or `no-plugin` (copies artifacts directly) |
+| `--scope` | `project` \| `local` \| `user` | `project` | Claude Code plugin scope only |
+| `--project-dir` | path | current directory | No-plugin mode only |
+| `--uninstall` | *(flag)* | `false` | Remove GSE-One |
 
 #### Examples
 
 ```bash
-# Interactive (recommended for first install)
-python3 install.py
-
 # Claude Code — plugin, project scope
 python3 install.py --platform claude --mode plugin --scope project
 
-# Claude Code — plugin, global (all projects)
-python3 install.py --platform claude --mode plugin --scope user
-
-# Claude Code — plugin, gitignored
-python3 install.py --platform claude --mode plugin --scope local
-
-# Cursor — plugin (global, copied to ~/.cursor/plugins/)
+# Cursor — plugin (global)
 python3 install.py --platform cursor --mode plugin
 
 # Both platforms at once
 python3 install.py --platform both --mode plugin --scope user
 
-# Non-plugin mode (copy to .claude/ in a specific project)
+# Non-plugin mode
 python3 install.py --platform claude --mode no-plugin --project-dir /path/to/myproject
 
-# Uninstall — Claude Code plugin
+# Uninstall
 python3 install.py --uninstall --platform claude --mode plugin
-
-# Uninstall — Cursor non-plugin from a specific project
-python3 install.py --uninstall --platform cursor --mode no-plugin --project-dir /path/to/myproject
 ```
 
 > **Windows:** If `python3` is not recognized, use `python` instead.
@@ -163,7 +168,7 @@ Not yet operational. After approval:
 
 ---
 
-## 4. Command Reference
+## Command Reference
 
 ### Developer
 
@@ -173,18 +178,15 @@ cd gse-one/
 python3 gse_generate.py --clean --verify
 
 # Publish a new version
-# 1. Update VERSION file at repo root
+# 1. Update VERSION file
 # 2. Update CHANGELOG.md
-# 3. Regenerate
+# 3. Regenerate + commit + tag + push
 python3 gse_generate.py --clean --verify
-# 4. Commit + tag + push
 git add .
 git commit -m "feat: GSE-One vX.Y.Z — description"
 git tag vX.Y.Z
 git push origin main --tags
 ```
-
-> **Windows:** If `python3` is not recognized, use `python` instead.
 
 ### User
 
@@ -201,7 +203,7 @@ python3 install.py --uninstall --platform claude --mode plugin
 
 ### Verification
 
-Regardless of the method, type:
+Type in your coding agent:
 
 ```
 /gse:go
@@ -218,6 +220,6 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 To publish a new version:
 
 1. Update the `VERSION` file at the repository root
-2. Update `CHANGELOG.md` (include "Layers impacted: spec, design, production" as applicable)
+2. Update `CHANGELOG.md`
 3. Regenerate: `cd gse-one && python3 gse_generate.py --clean --verify`
 4. Commit + tag: `git add . && git commit -m "feat: GSE-One vX.Y.Z" && git tag vX.Y.Z && git push origin main --tags`

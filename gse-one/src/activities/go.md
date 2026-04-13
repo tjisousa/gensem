@@ -71,8 +71,8 @@ If `config.yaml → dependency_audit: true` (default for projects with package m
 
 ### Step 2.6 — Dashboard Refresh
 
-1. **If `.gse/dashboard.py` does not exist** — Copy it from the plugin source (rattrapage for projects initialized before dashboard was added).
-2. **Regenerate `docs/dashboard.html`** — Run `python3 .gse/dashboard.py` to update the dashboard with current state.
+1. **Validate tool registry** — Run `cat ~/.gse-one`. If the file is missing or the path it contains does not exist, warn the user: "GSE-One registry not found. Run `python3 install.py` to fix." and skip dashboard generation.
+2. **Regenerate `docs/dashboard.html`** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update the dashboard with current state.
 3. This runs silently — no message to the user unless it's the first generation (in which case, inform per HUG Step 5.5 rules).
 
 ### Step 3 — Determine Next Action (Decision Tree)

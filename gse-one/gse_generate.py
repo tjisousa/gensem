@@ -178,14 +178,13 @@ def generate(clean: bool = False) -> None:
                 count += 1
     print(f"  {count}/15\n")
 
-    # 4.5. Dashboard script (shared)
-    print("Dashboard:")
-    dashboard_src = ROOT / "gse_dashboard.py"
-    if dashboard_src.exists():
-        copy_file(dashboard_src, PLUGIN / "gse_dashboard.py")
-        print(f"  copied gse_dashboard.py\n")
+    # 4.5. Tools directory (dashboard etc.)
+    print("Tools:")
+    tools_src = ROOT / "plugin" / "tools"
+    if tools_src.is_dir():
+        print(f"  tools/ already in plugin ({sum(1 for _ in tools_src.glob('*.py'))} scripts)\n")
     else:
-        print(f"  WARNING: gse_dashboard.py not found\n")
+        print(f"  WARNING: plugin/tools/ not found\n")
 
     # 5. Manifests
     print("Manifests:")
