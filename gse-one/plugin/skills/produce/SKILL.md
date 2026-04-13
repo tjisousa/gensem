@@ -56,14 +56,16 @@ If no tasks are pending:
 
 ### Step 2 — Git Setup (Before Production)
 
+**Git branch check:** Before starting work on any TASK, verify that the current branch is NOT `main`. If on `main`, remind the user that the methodology recommends working on a dedicated branch and create one per the convention below. If the user explicitly chooses to stay on `main`, respect the choice and note it as a known process deviation in the sprint review.
+
 Read `config.yaml` field `git.strategy` and branch accordingly:
 
 #### Strategy: `worktree` (default)
 
-1. Determine the sprint branch name: `gse/sprint-{NN}`
-2. Create feature branch from sprint branch:
+1. Determine the sprint integration branch: `gse/sprint-{NN}/integration`
+2. Create feature branch from sprint integration branch:
    ```
-   git branch gse/sprint-{NN}/{type}/{name} gse/sprint-{NN}
+   git branch gse/sprint-{NN}/{type}/{name} gse/sprint-{NN}/integration
    ```
    Where `{type}` is the artefact type (feat, fix, doc, test, refactor) and `{name}` is a slug of the task title.
 3. Create worktree for the feature branch:
@@ -81,12 +83,12 @@ Read `config.yaml` field `git.strategy` and branch accordingly:
 #### Strategy: `branch-only`
 
 1. Determine base branch:
-   - If sprint branch `gse/sprint-{NN}` exists (full mode): branch from it.
+   - If sprint integration branch `gse/sprint-{NN}/integration` exists (full mode): branch from it.
    - If no sprint branch exists (Lightweight mode): branch from `main` directly.
 2. Create feature branch:
    ```
    # Full mode:
-   git branch gse/sprint-{NN}/{type}/{name} gse/sprint-{NN}
+   git branch gse/sprint-{NN}/{type}/{name} gse/sprint-{NN}/integration
    git checkout gse/sprint-{NN}/{type}/{name}
 
    # Lightweight mode (no sprint branch):
@@ -204,8 +206,8 @@ Produce the artefact according to the task specification:
    Build: OK | Lint: OK
    ```
 
-5. **Persist campaign report**:
-   - Save full output to `docs/sprints/sprint-{NN}/test-reports/`
+5. **Persist campaign report** (MANDATORY after every test execution):
+   - Create a report file in `docs/sprints/sprint-{NN}/test-reports/` named `campaign-{YYYY-MM-DD}-{TASK-ID}.md` containing: date, tool used, total tests (pass/fail/skip), TASKs covered, and a brief summary. This file is what the dashboard counts — without it, the dashboard shows "0 reports" even if tests ran successfully.
    - Attach summary to TASK in `backlog.yaml`: `test_campaign: { ... }`
    - Coverage delta if measurable
 
@@ -222,9 +224,11 @@ Produce the artefact according to the task specification:
    - `last_task: TASK-{ID}`
 4. Update complexity budget: subtract task complexity from sprint remaining budget
 5. **Beginner auto-execution** — For beginner users, do NOT list commands for the user to run (`npm install`, `npm run dev`, `npm test`, `pip install`, etc.). Instead, **execute them automatically** and report the result in plain language. Say "I'm starting the application for you" instead of "Run `npm run dev`". The beginner should never need to type a terminal command. If a command requires user interaction (e.g., opening a URL in a browser), give clear instructions: "Open this link in your browser: http://localhost:5173".
-6. Report production summary:
+6. **Manual testing procedure** — After each completed task, provide the user with a step-by-step procedure to manually verify the result. Adapt to the project type: for web apps, the URL and actions to perform in the browser; for APIs, the curl commands or test tool instructions; for CLIs, the commands to run with expected output; for libraries, a usage example. For beginners, write the procedure in simple language with numbered steps. For experts, a concise summary is sufficient. The goal is to enable the user to validate the produced work themselves — complementing automated tests with human verification.
+7. Report production summary:
    - What was produced (in beginner terms: feature descriptions, not file paths)
    - Test Campaign Summary (from Step 4)
+   - Manual testing procedure (from Step 6)
    - Remaining sprint budget (for intermediate/expert; hidden for beginner)
    - Next task suggestion (if any)
-7. **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with new task status, test results, and budget consumption.
+8. **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with new task status, test results, and budget consumption.

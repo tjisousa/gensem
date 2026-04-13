@@ -2,7 +2,7 @@
 gse:
   type: plan
   sprint: 1                            # numeric sprint number
-  branch: gse/sprint-01                # sprint branch
+  branch: gse/sprint-01/integration     # sprint branch
   traces:
     derives_from: []                   # e.g., [TASK-001, TASK-002]
   status: draft                        # draft | reviewed | approved

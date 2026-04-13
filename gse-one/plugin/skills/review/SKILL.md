@@ -42,7 +42,7 @@ Before reviewing any TASK, verify test execution:
 2. For each task, identify the feature branch: `git.branch` field
 3. Generate the diff against the sprint branch:
    ```
-   git diff gse/sprint-{NN}...gse/sprint-{NN}/{type}/{name}
+   git diff gse/sprint-{NN}/integration...gse/sprint-{NN}/{type}/{name}
    ```
 4. The review operates on the **diff**, not the full file state. This ensures focus on what changed.
 
@@ -201,6 +201,18 @@ If findings with severity HIGH exist:
 Update `status.yaml`:
 - `last_activity: review`
 - `last_activity_timestamp: {now}`
+
+**Update health scores in `status.yaml`** (MANDATORY after every review). Compute and write the 8 health dimensions using the formulas from the spec:
+- `test_pass_rate`: (passing tests / total tests) × 10
+- `review_findings`: 10 − (open HIGH × 1.5 + MEDIUM × 0.8 + LOW × 0.3), floor 0
+- `design_debt`: 10 − (design HIGH × 2.0 + MEDIUM × 1.0 + LOW × 0.5), floor 0
+- `requirements_coverage`: (traced requirements / total requirements) × 10
+- `complexity_ratio`: (remaining budget / total budget) × 10
+- `git_hygiene`: 10 if on correct branches, no stale branches, no uncommitted; deduct for issues
+- `ai_integrity`: 10 − (unverified assertions × 1.5 + hallucination findings × 2.0), floor 0
+- `delivery_velocity`: (delivered tasks / planned tasks) × 10
+
+Write these values at the top level of `status.yaml` (e.g., `test_pass_rate: 9`). These values are read by the dashboard to populate the health radar chart. Without them, the radar shows empty.
 
 **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with review findings, health scores, and quality metrics. After review is a key moment to check the dashboard — inform the user:
 - For beginners: "Le tableau de bord du projet a été mis à jour avec les résultats de la vérification. Tu peux le consulter à `docs/dashboard.html`."

@@ -37,11 +37,13 @@ Analyze the sprint for project-level learnings:
 
 2. **Errors and anti-patterns** — Extract lessons from review findings (especially HIGH severity), failed tests, and fix cycles. Document what went wrong and how to prevent recurrence.
 
-3. **Best practices confirmed** — Identify practices that worked well (clean test coverage, good naming, effective decomposition). Reinforce these as project conventions.
+3. **Process deviation scan** — Read `docs/sprints/sprint-{NN}/review.md` and identify all findings tagged as process or methodology deviations (e.g., missing branches, missing test reports, skipped steps). For each deviation, create an explicit lesson in the Lessons Learned section of `compound.md` with: what the methodology expected, what actually happened, and the corrective action for future sprints. This ensures process issues are never silently ignored — they become documented, reusable lessons.
 
-4. **Technical debt identified** — Flag shortcuts taken during the sprint that should be addressed in future sprints. Add to backlog pool with `artefact_type: refactor`.
+4. **Best practices confirmed** — Identify practices that worked well (clean test coverage, good naming, effective decomposition). Reinforce these as project conventions.
 
-5. Persist to `docs/sprints/sprint-{NN}/compound.md`:
+5. **Technical debt identified** — Flag shortcuts taken during the sprint that should be addressed in future sprints. Add to backlog pool with `artefact_type: refactor`.
+
+6. Persist to `docs/sprints/sprint-{NN}/compound.md`:
 
 ```markdown
 # Sprint S{NN} — Capitalization

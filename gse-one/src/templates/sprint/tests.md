@@ -2,7 +2,7 @@
 gse:
   type: test
   sprint: 1
-  branch: gse/sprint-01
+  branch: gse/sprint-01/integration
   traces:
     implements: []                     # e.g., [REQ-001, DES-001] — what these tests validate
   status: draft                        # draft | reviewed | approved

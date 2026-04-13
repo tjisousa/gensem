@@ -106,7 +106,7 @@ Increment sprint number in `status.yaml`.
 
 #### Step 6 — Git Integration
 
-1. **Create sprint branch**: `gse/sprint-{NN}` from `main`
+1. **Create sprint integration branch**: `gse/sprint-{NN}/integration` from `main`
 2. **Assign branch names** to each task:
 
 | Artefact Type | Branch Pattern |

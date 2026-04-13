@@ -167,7 +167,27 @@ Requirements Validation — Sprint S02
   ✓ Duplicates: None detected
 ```
 
-### Step 6 — Persist
+### Step 6 — Requirements Coverage Analysis
+
+After drafting requirements, perform a proactive coverage analysis against standard requirement dimensions. For each dimension not addressed by the user's requirements, inform the user of the gap and its potential consequences, giving them the opportunity to add requirements if desired.
+
+Standard dimensions (adapt to project type and domain):
+
+| Dimension | Typical question |
+|-----------|-----------------|
+| **Functionality** | Are all user-facing features described? |
+| **Data & persistence** | Where and how is data stored, backed up, migrated? |
+| **User interface & visual quality** | Is there a desired look and feel, style guide, or visual standard? |
+| **Accessibility** | Should the app meet accessibility standards (screen readers, contrast, keyboard nav)? |
+| **Performance** | Are there response time, throughput, or resource constraints? |
+| **Security** | Are there authentication, authorization, or data protection needs? |
+| **Error handling** | How should the app behave when things go wrong? |
+| **Deployment & operations** | Where and how will the app be deployed? |
+| **Internationalization** | Does the app need to support multiple languages or locales? |
+
+Present the analysis as a helpful summary — not a blocker. For beginners, use plain language: "I noticed you haven't mentioned how the app should look. Without guidance, I'll use a very basic design. Would you like to describe the visual style you'd prefer?" For experts, a concise gap list is sufficient. The user may choose to add requirements, explicitly defer them, or acknowledge the gap as acceptable.
+
+### Step 7 — Persist
 
 Save requirements to `docs/sprints/sprint-{NN}/reqs.md`:
 

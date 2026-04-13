@@ -2,7 +2,7 @@
 gse:
   type: design
   sprint: 1
-  branch: gse/sprint-01
+  branch: gse/sprint-01/integration
   traces:
     derives_from: []                   # e.g., [REQ-001, REQ-002]
     decided_by: []                     # e.g., [DEC-001]

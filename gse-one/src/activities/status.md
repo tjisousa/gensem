@@ -107,7 +107,7 @@ Display git-related information:
 ```
 GIT
   Current branch:   {branch}
-  Sprint branch:    gse/sprint-{NN}
+  Sprint branch:    gse/sprint-{NN}/integration
 
   Active worktrees:
     ✓ sprint-{NN}-feat-{name}    active    0 uncommitted   TASK-{ID}

@@ -2,7 +2,7 @@
 gse:
   type: requirement
   sprint: 1                            # numeric sprint number
-  branch: gse/sprint-01                # sprint branch
+  branch: gse/sprint-01/integration     # sprint branch
   traces:
     implements: []                     # e.g., [TASK-001] — requirements this doc implements
   status: draft                        # draft | reviewed | approved

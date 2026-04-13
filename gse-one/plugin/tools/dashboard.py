@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# @gse-tool dashboard 0.14.0
+# @gse-tool dashboard 0.16.0
 """
 GSE-One Dashboard Generator — Generates docs/dashboard.html from .gse/ state files.
 
@@ -59,7 +59,13 @@ DEFAULT_OUTPUT = DOCS_DIR / "dashboard.html"
 # ---------------------------------------------------------------------------
 
 def parse_yaml_simple(filepath):
-    """Parse a simple YAML file into a dict. Handles flat keys, nested dicts, lists."""
+    """Parse a simple YAML file into a dict with dotted keys for nested values.
+
+    Handles up to 2 levels of nesting using indentation detection.
+    Nested keys are stored as 'parent.child' in a flat dict.
+    Example: 'dimensions:\\n  it_expertise: beginner' → {'dimensions.it_expertise': 'beginner'}
+    Top-level keys are also stored without prefix for backward compatibility.
+    """
     if not filepath.exists():
         return {}
     try:
@@ -68,19 +74,39 @@ def parse_yaml_simple(filepath):
         if content.startswith("---"):
             parts = content.split("---", 2)
             if len(parts) >= 3:
-                content = parts[1]  # Take the frontmatter content
+                content = parts[1]
             elif len(parts) == 2:
                 content = parts[1]
         result = {}
-        current_key = None
+        parent_key = None
+        parent_indent = -1
         for line in content.split("\n"):
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
+            if not line.strip() or line.strip().startswith("#"):
                 continue
-            # Simple key: value
-            match = re.match(r'^(\w[\w.]*)\s*:\s*(.+)$', stripped)
-            if match:
-                key, val = match.group(1), match.group(2).strip().strip('"').strip("'")
+            # Measure indentation
+            indent = len(line) - len(line.lstrip())
+            stripped = line.strip()
+            # If indentation dropped back to top level, reset parent
+            if indent == 0:
+                parent_key = None
+                parent_indent = -1
+            # Key with no value → start of nested section
+            match_parent = re.match(r'^(\w[\w.-]*)\s*:\s*$', stripped)
+            if match_parent:
+                key = match_parent.group(1)
+                if indent == 0:
+                    parent_key = key
+                    parent_indent = indent
+                elif parent_key and indent > parent_indent:
+                    # Sub-parent (2nd level nesting) — use dotted key as new parent
+                    parent_key = f"{parent_key}.{key}"
+                continue
+            # Key: value pair
+            match_kv = re.match(r'^(\w[\w.-]*)\s*:\s*(.+)$', stripped)
+            if match_kv:
+                key = match_kv.group(1)
+                val = match_kv.group(2).strip().strip('"').strip("'")
+                # Type coercion
                 if val.lower() == "true":
                     val = True
                 elif val.lower() == "false":
@@ -95,13 +121,14 @@ def parse_yaml_simple(filepath):
                             val = float(val)
                         except ValueError:
                             pass
-                result[key] = val
-                current_key = key
-            # Key with no value (start of nested)
-            elif re.match(r'^(\w[\w.]*)\s*:\s*$', stripped):
-                key = re.match(r'^(\w[\w.]*)\s*:', stripped).group(1)
-                result[key] = {}
-                current_key = key
+                # Store with dotted prefix if nested
+                if parent_key and indent > parent_indent:
+                    result[f"{parent_key}.{key}"] = val
+                else:
+                    # Top-level key — also reset parent
+                    result[key] = val
+                    parent_key = None
+                    parent_indent = -1
         return result
     except Exception:
         return {}
@@ -207,22 +234,31 @@ def collect_data():
     data["last_activity"] = status.get("last_activity", "none")
     data["last_activity_timestamp"] = status.get("last_activity_timestamp", "never")
 
-    # Health scores
+    # Health scores (may be at top level or under a 'health:' parent)
     data["health"] = {}
     for dim in ["test_pass_rate", "review_findings", "git_hygiene", "design_debt",
                  "complexity_ratio", "requirements_coverage", "ai_integrity", "delivery_velocity"]:
-        val = status.get(dim)
+        val = status.get(f"health.{dim}", status.get(dim))
         if val is not None:
             data["health"][dim] = val
 
-    # Profile
+    # Profile — use dotted keys from nested YAML (dimensions.it_expertise, user.name)
     profile = parse_yaml_simple(GSE_DIR / "profile.yaml")
-    data["user_name"] = profile.get("name", "Unknown")
-    data["it_expertise"] = profile.get("it_expertise", "unknown")
-    data["decision_involvement"] = profile.get("decision_involvement", "collaborative")
+    data["user_name"] = (profile.get("user.name")
+                         or profile.get("name")
+                         or "Unknown")
+    data["it_expertise"] = (profile.get("dimensions.it_expertise")
+                            or profile.get("it_expertise")
+                            or "unknown")
+    data["decision_involvement"] = (profile.get("dimensions.decision_involvement")
+                                    or profile.get("decision_involvement")
+                                    or "collaborative")
 
-    # Backlog
+    # Backlog — cumulative: active backlog + archive
     data["task_counts"] = count_tasks_by_status(GSE_DIR / "backlog.yaml")
+    archive_counts = count_tasks_by_status(GSE_DIR / "backlog-archive.yaml")
+    for s, c in archive_counts.items():
+        data["task_counts"][s] = data["task_counts"].get(s, 0) + c
     total_tasks = sum(data["task_counts"].values())
     done_tasks = data["task_counts"].get("done", 0) + data["task_counts"].get("delivered", 0)
     data["total_tasks"] = total_tasks
@@ -233,32 +269,54 @@ def collect_data():
     data["complexity_budget"] = status.get("complexity_budget", None)
     data["complexity_used"] = status.get("complexity_used", None)
 
-    # Sprint artefacts
+    # Sprint directories — collect all (active + archived)
+    all_sprint_dirs = []
+    sprints_dir = DOCS_DIR / "sprints"
+    if sprints_dir.exists():
+        all_sprint_dirs.extend(sorted(d for d in sprints_dir.iterdir() if d.is_dir() and "sprint" in d.name))
+    archive_dir = DOCS_DIR / "archive"
+    if archive_dir.exists():
+        all_sprint_dirs.extend(sorted(d for d in archive_dir.iterdir() if d.is_dir() and "sprint" in d.name))
+
+    # Current sprint artefacts (for lifecycle checklist — shows current sprint state)
     sprint_num = data["current_sprint"]
     sprint_dir = DOCS_DIR / "sprints" / f"sprint-{sprint_num:02d}"
     if not sprint_dir.exists() and sprint_num > 0:
         sprint_dir = DOCS_DIR / "sprints" / f"sprint-{sprint_num}"
 
-    data["reqs_total"], data["reqs_approved"] = count_reqs(sprint_dir)
-    data["has_test_strategy"], data["test_report_count"] = count_tests(sprint_dir)
     data["has_design"] = (sprint_dir / "design.md").exists()
     data["has_review"] = (sprint_dir / "review.md").exists()
     data["has_compound"] = (sprint_dir / "compound.md").exists()
-    data["review_findings"] = count_review_findings(sprint_dir)
+
+    # Quality metrics — cumulative across ALL sprints
+    data["reqs_total"] = 0
+    data["reqs_approved"] = 0
+    data["has_test_strategy"] = False
+    data["test_report_count"] = 0
+    data["review_findings"] = {}
+    for sd in all_sprint_dirs:
+        rt, ra = count_reqs(sd)
+        data["reqs_total"] += rt
+        data["reqs_approved"] += ra
+        has_ts, rc = count_tests(sd)
+        if has_ts:
+            data["has_test_strategy"] = True
+        data["test_report_count"] += rc
+        rf = count_review_findings(sd)
+        for sev, count in rf.items():
+            data["review_findings"][sev] = data["review_findings"].get(sev, 0) + count
 
     # Git
     data["git"] = get_git_info()
 
     # Sprint history
     data["sprint_history"] = []
-    sprints_dir = DOCS_DIR / "sprints"
     if sprints_dir.exists():
         for d in sorted(sprints_dir.iterdir()):
             if d.is_dir() and "sprint" in d.name:
                 data["sprint_history"].append(d.name)
 
     # Archive
-    archive_dir = DOCS_DIR / "archive"
     data["archived_sprints"] = []
     if archive_dir.exists():
         data["archived_sprints"] = sorted([d.name for d in archive_dir.iterdir() if d.is_dir()])
@@ -413,7 +471,7 @@ def generate_html(data, use_cdn=True):
 
   <!-- Lifecycle Checklist -->
   <div class="card">
-    <div class="card-title">Lifecycle — Sprint {data.get('current_sprint', 0)}</div>
+    <div class="card-title">Lifecycle — Sprint {data.get('current_sprint', 0)} ({len(data.get('sprint_history', [])) + len(data.get('archived_sprints', []))} total)</div>
     <ul class="checklist">
       <li class="{phase_status('LC00', phase)}">Onboarding (HUG)</li>
       <li class="{'done' if data['has_design'] or data['reqs_total'] > 0 else phase_status('LC01', phase)}">Discovery (COLLECT &gt; ASSESS &gt; PLAN)</li>

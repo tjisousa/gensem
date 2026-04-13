@@ -73,7 +73,7 @@ The version control presentation adapts to the user's expertise level. Beginners
 8. **Safety tags before destructive operations** — Before any destructive git operation (merge, branch delete, worktree remove, tag delete), the agent creates a backup tag:
    ```bash
    # Before merging:
-   git tag gse-backup/sprint-03-pre-merge-feat-auth $(git rev-parse gse/sprint-03)
+   git tag gse-backup/sprint-03-pre-merge-feat-auth $(git rev-parse gse/sprint-03/integration)
    # Before deleting a branch:
    git tag gse-backup/sprint-03-feat-auth-deleted $(git rev-parse gse/sprint-03/feat/auth)
    ```
@@ -81,7 +81,7 @@ The version control presentation adapts to the user's expertise level. Beginners
 
    **Recovery procedures:**
    - Branch recovery: `git checkout -b gse/sprint-03/feat/auth gse-backup/sprint-03-feat-auth-deleted`
-   - Merge reversal: `git checkout gse/sprint-03 && git reset --hard gse-backup/sprint-03-pre-merge-feat-auth`
+   - Merge reversal: `git checkout gse/sprint-03/integration && git reset --hard gse-backup/sprint-03-pre-merge-feat-auth`
    - State file recovery: `git checkout HEAD~1 -- .gse/backlog.yaml`
 
 9. **Adaptive presentation by expertise level:**
@@ -133,12 +133,12 @@ The version control presentation adapts to the user's expertise level. Beginners
 
 | Activity | Git Actions |
 |----------|------------|
-| **PLAN (strategic)** | Create sprint branch `gse/sprint-NN` from `main`. Assign branch names to each planned task. |
+| **PLAN (strategic)** | Create sprint integration branch `gse/sprint-NN/integration` from `main`. Assign branch names to each planned task. |
 | **PLAN (tactical)** | Assign branch names to newly planned tasks. No branch creation yet. |
-| **PRODUCE** | Create feature branch from sprint branch + create worktree in `.worktrees/`. All work in worktree. |
-| **REVIEW** | Review on branch diff: `git diff gse/sprint-NN...gse/sprint-NN/feat/X`. |
+| **PRODUCE** | Create feature branch from sprint integration branch + create worktree in `.worktrees/`. All work in worktree. |
+| **REVIEW** | Review on branch diff: `git diff gse/sprint-NN/integration...gse/sprint-NN/feat/X`. |
 | **FIX** | Create fix branch `gse/sprint-NN/fix/rvw-NNN` from reviewed feature branch. Fix in worktree. |
-| **DELIVER** | Gate: merge strategy. Merge features → sprint → main. Tag. Delete branches/worktrees. |
+| **DELIVER** | Gate: merge strategy. Merge features → sprint integration → main. Tag. Delete branches/worktrees. |
 | **PAUSE** | Auto-commit all uncommitted work in all active worktrees. Save worktree map in checkpoint. |
 | **RESUME** | Verify all worktrees exist and are intact. Report external changes. |
 | **STATUS** | Show branch tree, worktree state, merge queue, stale branches. |

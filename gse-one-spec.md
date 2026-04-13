@@ -1629,13 +1629,13 @@ Emergency guardrails always trigger regardless of expertise — they represent g
 ### 10.1 Branch Model
 
 ```
-main                                         # Always stable, deployable
-├── gse/sprint-03                           # Sprint branch (created by PLAN)
-│   ├── gse/sprint-03/feat/user-auth        # Feature branch (created by PRODUCE)
-│   ├── gse/sprint-03/feat/dashboard        # Another feature branch
-│   ├── gse/sprint-03/fix/rvw-005           # Fix branch (created by FIX)
-│   └── gse/sprint-03/docs/api-reference    # Documentation branch
-└── gse/sprint-04                           # Next sprint (future)
+main                                              # Always stable, deployable
+├── gse/sprint-03/integration                     # Sprint integration branch (created by PLAN)
+│   ├── gse/sprint-03/feat/user-auth              # Feature branch (created by PRODUCE)
+│   ├── gse/sprint-03/feat/dashboard              # Another feature branch
+│   ├── gse/sprint-03/fix/rvw-005                 # Fix branch (created by FIX)
+│   └── gse/sprint-03/docs/api-reference          # Documentation branch
+└── gse/sprint-04/integration                     # Next sprint (future)
 ```
 
 **Branch naming convention:** `gse/sprint-NN/type/short-description`
@@ -1676,12 +1676,12 @@ Each active branch is checked out in its own git worktree — a separate directo
 
 | Activity | Git Actions |
 |----------|------------|
-| **PLAN (strategic)** | Create sprint branch `gse/sprint-NN` from `main`. Assign branch names to each planned task. |
+| **PLAN (strategic)** | Create sprint integration branch `gse/sprint-NN/integration` from `main`. Assign branch names to each planned task. |
 | **PLAN (tactical)** | Assign branch names to newly planned tasks. No branch creation yet. |
-| **PRODUCE** | Create feature branch from sprint branch + create worktree in `.worktrees/`. All work happens in the worktree. Commit with conventional messages: `gse(sprint-NN/activity): description`. |
-| **REVIEW** | Review operates on the branch diff: `git diff gse/sprint-NN...gse/sprint-NN/feat/X`. Shows exactly what changed. |
+| **PRODUCE** | Create feature branch from sprint integration branch + create worktree in `.worktrees/`. All work happens in the worktree. Commit with conventional messages: `gse(sprint-NN/activity): description`. |
+| **REVIEW** | Review operates on the branch diff: `git diff gse/sprint-NN/integration...gse/sprint-NN/feat/X`. Shows exactly what changed. |
 | **FIX** | Create fix branch `gse/sprint-NN/fix/rvw-NNN` from the reviewed feature branch. Fix in isolated worktree. |
-| **DELIVER** | **Gate decision:** merge strategy (squash/merge/rebase). Merge feature branches → sprint branch → `main`. Tag `main` with semantic version. Delete merged branches and worktrees. |
+| **DELIVER** | **Gate decision:** merge strategy (squash/merge/rebase). Merge feature branches → sprint integration → `main`. Tag `main` with semantic version. Delete merged branches and worktrees. |
 | **PAUSE** | Auto-commit all uncommitted work in all active worktrees. Save worktree map in checkpoint. |
 | **RESUME** | Verify all worktrees exist and are intact. Report any external changes. |
 | **STATUS** | Show branch tree, worktree state (active/paused/ready-to-merge), uncommitted changes. |
@@ -1794,7 +1794,7 @@ Before any destructive git operation (merge, branch delete, worktree remove, tag
 
 ```bash
 # Before merging:
-git tag gse-backup/sprint-03-pre-merge-feat-auth $(git rev-parse gse/sprint-03)
+git tag gse-backup/sprint-03-pre-merge-feat-auth $(git rev-parse gse/sprint-03/integration)
 
 # Before deleting a branch:
 git tag gse-backup/sprint-03-feat-auth-deleted $(git rev-parse gse/sprint-03/feat/auth)
@@ -1804,7 +1804,7 @@ Safety tags are prefixed `gse-backup/` and retained for 30 days (configurable vi
 
 **Recovery procedures:**
 - **Branch recovery:** `git checkout -b gse/sprint-03/feat/auth gse-backup/sprint-03-feat-auth-deleted`
-- **Merge reversal:** `git checkout gse/sprint-03 && git reset --hard gse-backup/sprint-03-pre-merge-feat-auth`
+- **Merge reversal:** `git checkout gse/sprint-03/integration && git reset --hard gse-backup/sprint-03-pre-merge-feat-auth`
 - **State file recovery:** `.gse/` files are git-tracked — `git checkout HEAD~1 -- .gse/backlog.yaml` restores the previous version
 
 **Cleanup:** Old backup tags are cleaned up during `/gse:deliver` (delete tags older than `backup_retention_days`).
@@ -2577,7 +2577,7 @@ When `it_expertise: beginner` and `current_sprint: 0` (first time through LC01),
 | **Health score** | Composite metric (0–10) reflecting project quality across 8 dimensions |
 | **Preview** | Lightweight simulation of a planned artefact before production begins |
 | **Decision journal** | Persistent log of all non-trivial decisions with rationale and consequence analysis |
-| **Sprint branch** | Git branch `gse/sprint-NN` that collects all feature branches for a sprint |
+| **Sprint integration branch** | Git branch `gse/sprint-NN/integration` that collects all feature branches for a sprint |
 | **Feature branch** | Git branch `gse/sprint-NN/type/name` where a single task is developed |
 | **Worktree** | Isolated working directory linked to a branch, allowing parallel work without branch switching |
 | **Merge strategy** | How commits from a feature branch are integrated: squash, merge commit, or rebase |

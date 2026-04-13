@@ -100,6 +100,7 @@ The 12 HUG dimensions are:
 | 10 | **Learning goals** | free text (optional) | Activate proactive LEARN at relevant moments |
 | 11 | **Contextual tips** | on / off | Enable/disable inline micro-explanations |
 | 12 | **Emoji** | on / off | Enable/disable emoji in chat output (default: on) |
+| 13 | **User name** | free text (optional) | Display name in dashboard and artefacts. For beginners: "What name should I use for you in the project? (You can skip this.)" Store in `profile.yaml` under `user.name`. If skipped, defaults to git user name or "Unknown". |
 
 #### Question cadence (adaptive)
 

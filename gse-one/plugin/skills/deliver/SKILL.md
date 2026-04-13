@@ -45,7 +45,7 @@ Verify delivery readiness:
 
 2. **Merge conflict detection** — For each feature branch, check for conflicts:
    ```
-   git merge-tree $(git merge-base gse/sprint-{NN} gse/sprint-{NN}/{type}/{name}) gse/sprint-{NN} gse/sprint-{NN}/{type}/{name}
+   git merge-tree $(git merge-base gse/sprint-{NN}/integration gse/sprint-{NN}/{type}/{name}) gse/sprint-{NN}/integration gse/sprint-{NN}/{type}/{name}
    ```
    Report any conflicts found with affected files.
 
@@ -67,9 +67,9 @@ For each feature branch (in dependency order):
    - **expert**: "Strategy for `{branch}`: squash / merge --no-ff / rebase / discuss"
 
 2. **Execute chosen merge**:
-   - **squash**: `git checkout gse/sprint-{NN} && git merge --squash gse/sprint-{NN}/{type}/{name} && git commit`
-   - **merge**: `git checkout gse/sprint-{NN} && git merge --no-ff gse/sprint-{NN}/{type}/{name}`
-   - **rebase**: `git checkout gse/sprint-{NN}/{type}/{name} && git rebase gse/sprint-{NN} && git checkout gse/sprint-{NN} && git merge --ff-only gse/sprint-{NN}/{type}/{name}`
+   - **squash**: `git checkout gse/sprint-{NN}/integration && git merge --squash gse/sprint-{NN}/{type}/{name} && git commit`
+   - **merge**: `git checkout gse/sprint-{NN}/integration && git merge --no-ff gse/sprint-{NN}/{type}/{name}`
+   - **rebase**: `git checkout gse/sprint-{NN}/{type}/{name} && git rebase gse/sprint-{NN}/integration && git checkout gse/sprint-{NN}/integration && git merge --ff-only gse/sprint-{NN}/{type}/{name}`
 
 3. If merge fails due to conflicts:
    - Report conflicting files
@@ -78,7 +78,7 @@ For each feature branch (in dependency order):
 ### Step 3 — Merge Sprint into Main
 
 1. **Present merge strategy Gate**:
-   - **merge** — `git merge --no-ff gse/sprint-{NN}` (default, preserves sprint boundary)
+   - **merge** — `git merge --no-ff gse/sprint-{NN}/integration` (default, preserves sprint boundary)
    - **squash** — Collapse entire sprint into one commit
    - **defer** — Keep sprint branch, do not merge yet
    - **discuss** — Explore options
@@ -86,7 +86,7 @@ For each feature branch (in dependency order):
 2. Execute the chosen strategy:
    ```
    git checkout main
-   git merge --no-ff gse/sprint-{NN} -m "gse(deliver): sprint S{NN} delivery"
+   git merge --no-ff gse/sprint-{NN}/integration -m "gse(deliver): sprint S{NN} delivery"
    ```
 
 ### Step 4 — Tag Release
@@ -127,7 +127,7 @@ Unless `--skip-cleanup` was specified:
    ```
 
 3. **Sprint branch cleanup** — Present Gate:
-   - **Delete** — `git branch -d gse/sprint-{NN}` (merged, safe)
+   - **Delete** — `git branch -d gse/sprint-{NN}/integration` (merged, safe)
    - **Keep** — Retain for reference
    - Default: delete if fully merged
 
@@ -193,6 +193,7 @@ Remove backup tags older than `backup_retention_days` (default: 30):
    - `last_activity: deliver`
    - `last_activity_timestamp: {now}`
    - `lifecycle_phase: LC03` (transition to capitalization)
+   - **Refresh all 8 health dimension scores** using the same formulas as review (final snapshot for the delivered sprint). This ensures the dashboard health radar reflects the state at delivery time.
 2. Report delivery summary:
    - Tasks delivered
    - Version tagged (if applicable)

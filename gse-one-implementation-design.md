@@ -159,18 +159,18 @@ Read `.gse/config.yaml` → `git.strategy`.
 
 1. Check if sprint branch exists:
    ```bash
-   git branch --list "gse/sprint-<N>"
+   git branch --list "gse/sprint-<N>/integration"
    ```
 
-2. If strategic plan and no sprint branch:
-   - Create sprint branch from main:
+2. If strategic plan and no sprint integration branch:
+   - Create sprint integration branch from main:
      ```bash
-     git checkout -b gse/sprint-<N> main
+     git checkout -b gse/sprint-<N>/integration main
      git checkout main  # return to main
      ```
    - If strategy is `worktree`, create sprint worktree:
      ```bash
-     git worktree add .worktrees/sprint-<N> gse/sprint-<N>
+     git worktree add .worktrees/sprint-<N> gse/sprint-<N>/integration
      ```
 
 3. For each planned task, assign a branch name:
@@ -199,7 +199,7 @@ Read `.gse/config.yaml` → `git.strategy`.
 
 2. Create the feature branch from the sprint branch:
    ```bash
-   git branch gse/sprint-<N>/<type>/<name> gse/sprint-<N>
+   git branch gse/sprint-<N>/<type>/<name> gse/sprint-<N>/integration
    ```
 
 3. Create a worktree for this branch:
@@ -266,8 +266,8 @@ Read `.gse/config.yaml` → `git.strategy`.
 
 2. Generate the diff against the sprint branch:
    ```bash
-   git diff gse/sprint-<N>...gse/sprint-<N>/<type>/<name> --stat
-   git diff gse/sprint-<N>...gse/sprint-<N>/<type>/<name>
+   git diff gse/sprint-<N>/integration...gse/sprint-<N>/<type>/<name> --stat
+   git diff gse/sprint-<N>/integration...gse/sprint-<N>/<type>/<name>
    ```
 
 3. The review operates on this **diff**, not on the full file state.
@@ -352,8 +352,8 @@ Read `.gse/config.yaml` → `git.strategy`.
 
 2. Check for merge conflicts between feature branches and sprint branch:
    ```bash
-   git merge-tree $(git merge-base gse/sprint-<N> gse/sprint-<N>/feat/X) \
-     gse/sprint-<N> gse/sprint-<N>/feat/X
+   git merge-tree $(git merge-base gse/sprint-<N>/integration gse/sprint-<N>/feat/X) \
+     gse/sprint-<N>/integration gse/sprint-<N>/feat/X
    ```
    If conflicts → **Gate**: present conflicts, options to resolve.
 
@@ -371,7 +371,7 @@ For each feature branch in the merge queue (ordered by dependency):
 2. Execute the chosen merge:
    ```bash
    # Example: squash merge
-   git checkout gse/sprint-<N>
+   git checkout gse/sprint-<N>/integration
    git merge --squash gse/sprint-<N>/feat/<name>
    git commit -m "gse(sprint-<N>/deliver): merge feat/<name> (squash)
 
@@ -400,7 +400,7 @@ For each feature branch in the merge queue (ordered by dependency):
 2. Execute merge:
    ```bash
    git checkout main
-   git merge gse/sprint-<N> --no-ff \
+   git merge gse/sprint-<N>/integration --no-ff \
      -m "gse(deliver): sprint <N> — <summary>
 
    Sprint: <N>"
@@ -528,7 +528,7 @@ Add to status output:
 ```
 Git:
   Current branch: gse/sprint-03/feat/user-auth
-  Sprint branch:  gse/sprint-03
+  Sprint branch:  gse/sprint-03/integration
 
   Active worktrees:
     ✓ sprint-03-feat-user-auth    active    0 uncommitted   TASK-003

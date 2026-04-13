@@ -2,7 +2,7 @@
 gse:
   type: compound
   sprint: 1
-  branch: gse/sprint-01
+  branch: gse/sprint-01/integration
   traces:
     derives_from: []                   # e.g., [RVW-001] — review that triggered this
   status: draft                        # draft | reviewed | approved
