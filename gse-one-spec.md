@@ -694,6 +694,7 @@ The following behaviors are executed by the orchestrator agent during activities
 | **Sprint boundary** | Sprint start/end | Generate sprint artefact templates, archive previous sprint | P1 (iterative), P5 (planning) |
 | **Dependency tracking** | New package detected during `/gse:produce` | Log complexity cost, check budget, update ledger | P10 (complexity budget) |
 | **Risk escalation** | High-risk condition detected during any activity | Interrupt current flow, trigger Gate interaction | P7 (risk classification) |
+| **Process discipline** | Every transition between lifecycle phases | The next step in the GSE lifecycle is always the default action. Shortcuts or alternatives are never proposed proactively — only if the user asks or a Gate exposes them. | P1 (iterative), P2 (agile) |
 
 ### P14 — Knowledge Transfer (Tutoring)
 GSE-One acts as a **tutor** alongside its engineering companion role. Knowledge transfer operates in two complementary modes:
@@ -959,6 +960,7 @@ The HUG activity captures and maintains the following profile dimensions:
 | **Learning goals** | Drive proactive learning proposals (P14) | "I want to understand testing" / "Learn git basics" / None |
 | **Contextual tips** | Enable/disable in-activity micro-explanations (P14) | Enabled / Disabled |
 | **Emoji** | Enable/disable emoji in chat output | On (default) / Off |
+| **User name** | Display name in dashboard and artefacts (optional) | Free text / Skip (defaults to git user name or "Unknown") |
 
 **Smart interview:** The agent infers as many dimensions as possible from context before asking:
 - **Language:** detected from the user's first message
@@ -2399,7 +2401,7 @@ LC00 (once)
   v
 ┌─── LC01: Discovery & Planning ──────────────────────────┐
 │    GO > COLLECT > ASSESS > PLAN                         │
-│    PLAN creates sprint branch: gse/sprint-NN           │
+│    PLAN creates branch: gse/sprint-NN/integration      │
 │         ↑ PLAN callable at any point                    │
 └──────────────────────────────────────┬──────────────────┘
                                        │
@@ -2441,7 +2443,7 @@ The `/gse:go` orchestrator adapts its flow depending on project maturity:
 | **COLLECT** | Internal finds nothing (or very little). Agent suggests external source scan. | Internal finds existing artefacts, previous sprint results. |
 | **ASSESS** | Starts from project goals only. No baseline to compare against. | Compares against previous sprint health, reviews, and delivery. |
 | **PLAN** | Creates sprint branch from `main`. No previous velocity data. Agent asks more Gate questions about scope. | Uses previous sprint velocity to calibrate budget. Detects unfinished tasks from previous sprint. |
-| **HUG** | Full interview (all 12 dimensions). | Asks only if profile needs updating ("Anything changed since last time?"). |
+| **HUG** | Full interview (all 13 dimensions). | Asks only if profile needs updating ("Anything changed since last time?"). |
 | **LEARN** | Frequent proactive proposals — the user encounters many new concepts. | Targeted — only for competency gaps detected in the previous sprint. |
 
 ### 14.2 Adopting GSE-One on an Existing Project
@@ -2692,6 +2694,8 @@ When changing any concept, verify alignment across all layers:
 > **Note:** Versions 0.1.0 through 0.7.0 were developed during an intensive design session. The dates reflect the actual drafting period. Future versions will follow standard release cadence.
 
 | Version | Date | Changes |
+| 0.16.0 | 2026-04-13 | **Methodology hardening from CalcApp V03 testing.** Process discipline rule (lifecycle default, no proactive shortcuts). Beginner artefact approval (plain-language summaries, not technical files). Git branch check in PRODUCE (reminder, not blocker). Mandatory test campaign reports in test-reports/ after every PRODUCE test run. Branch naming: sprint integration branch renamed to `gse/sprint-NN/integration` (avoids git path conflict). Manual testing procedure in PRODUCE (adapted to project type and user level). Requirements coverage analysis step in REQS (proactive gap detection across 9 dimensions). Dashboard: cumulative view (all sprints + archive), YAML parser handles nested keys, health scores written by review/deliver. HUG collects user name (13th dimension). Compound auto-captures process deviations from review findings. Tool registry `~/.gse-one` written by install.py. |
+| 0.15.0 | 2026-04-13 | **Tool registry and branding.** `~/.gse-one` registry file (written by install.py) for tool resolution. Dashboard moved to `plugin/tools/dashboard.py` with `@gse-tool` header. install.py writes/removes registry on install/uninstall. README branding (header, banner, key features). Kanban label readability fix (dark pill background). |
 | 0.14.0 | 2026-04-13 | **Major methodology hardening.** §1.2 Agile Foundations (principles, adaptations, originals). Test-driven requirements: acceptance criteria (Given/When/Then) mandatory in REQS, validation test derivation in TESTS. Correct LC02 order: REQS→DESIGN→PREVIEW→TESTS→PRODUCE. Lifecycle guardrails (Hard): no PRODUCE without REQS/test strategy. Supervised mode = Gate tier override. Spike mode (complexity-boxed experiments, max 3pts, non-deliverable, bypass REQS/TESTS). Micro mode (< 3 files: PRODUCE→DELIVER, 1 state file). Beginner output filter (28-entry translation table). Interactive QCM (AskUserQuestion/Cursor). Language-first onboarding with locale detection. Adaptive question cadence. System dialog anticipation. Recovery check (Step 1.5). Dependency vulnerability check (Step 1.6). Dashboard (`docs/dashboard.html` via `~/.gse-one` registry + `tools/dashboard.py`, Chart.js CDN, 6 lifecycle touchpoints). Cross-sprint regression scan during REVIEW. Pre-commit self-review (5 checks). P16 passive acceptance signals + suppression rule. Sprint archival during COMPOUND. Monorepo sub_domains for test pyramid calibration. Resilience: YAML validation, context overflow prevention, graceful degradation. Complexity budget >100% downgraded Hard→Gate. P7 composite rule + uncertainty escalation in orchestrator. P14 5-option learning format + progressive reduction. P15 confidence escalation to Gate. Maintainer Guide (Appendix B). Installer duplicate detection. 23 commands, 3 modes (Micro/Lightweight/Full), 8 health dimensions. |
 | 0.13.0 | 2026-04-12 | Interactive QCM (AskUserQuestion/Cursor clarifying questions). Language-first onboarding. Adaptive question cadence. Beginner git init flow. |
 |---------|------|---------|

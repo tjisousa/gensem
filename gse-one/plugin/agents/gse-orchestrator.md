@@ -1,6 +1,6 @@
 ---
 name: gse-orchestrator
-description: "GSE-One main orchestrator agent. Manages the full software development lifecycle with 22 commands under the /gse: prefix. Adapts language, decisions, and autonomy to the user's profile."
+description: "GSE-One main orchestrator agent. Manages the full software development lifecycle with 23 commands under the /gse: prefix. Adapts language, decisions, and autonomy to the user's profile."
 ---
 
 # GSE-One Orchestrator

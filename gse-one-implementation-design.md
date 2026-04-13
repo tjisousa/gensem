@@ -1,7 +1,7 @@
 # GSE-One — Implementation Design Document
 
 **Version:** see `VERSION` file  
-**Date:** 2026-04-12  
+**Date:** 2026-04-13  
 **Status:** Mono-plugin architecture — cross-platform parity, hooks aligned, terminology traceable  
 **Input:** `gse-one-spec.md`, implementation inspection and restructuration pass
 
@@ -83,7 +83,7 @@ Both platforms use separate manifests with slightly different fields. The `repos
 {
   "name": "gse",
   "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
-  "version": "0.14.0",
+  "version": "0.16.0",
   "author": {
     "name": "GSE-One Project"
   },
@@ -101,7 +101,7 @@ Both platforms use separate manifests with slightly different fields. The `repos
   "name": "gse",
   "displayName": "GSE-One",
   "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
-  "version": "0.14.0",
+  "version": "0.16.0",
   "author": {
     "name": "GSE-One Project"
   },
@@ -227,10 +227,10 @@ Read `.gse/config.yaml` → `git.strategy`.
 
 1. Create feature branch and switch to it:
    ```bash
-   git checkout -b gse/sprint-<N>/<type>/<name> gse/sprint-<N>
+   git checkout -b gse/sprint-<N>/<type>/<name> gse/sprint-<N>/integration
    ```
 
-2. All work happens on this branch. Switch back to sprint branch when done.
+2. All work happens on this branch. Switch back to integration branch when done.
 
 **If strategy is `none`:** Work directly on current branch.
 
@@ -1242,7 +1242,7 @@ If `git.post_tag_hook` is configured:
 
 Before EVERY destructive git operation:
 ```bash
-git tag gse-backup/sprint-NN-pre-merge-<feat> $(git rev-parse gse/sprint-NN)
+git tag gse-backup/sprint-NN-pre-merge-<feat> $(git rev-parse gse/sprint-NN/integration)
 ```
 
 Recovery if something goes wrong:
@@ -1714,4 +1714,6 @@ Grand total: **52 files**. Generator: ~400 lines.
 | 0.7.0 | 2026-04-11 | **44-gap alignment with spec v0.7.** Eliminated worktrees.yaml (git state per-TASK in backlog). 16 principle source files (P1-P16). Added: assess skill (5.14), orchestrator decision logic with stale sprint (5.15), deploy/rollback + safety backup tags (5.16), status.yaml/checkpoint/state-loading schemas (5.17), full pushback signal tracking (5.18), doc-as-artefact, dependency audit, framework drift, team matching algorithm, concurrent access, min project size. Spelling: artefact_type. All worktrees.yaml refs replaced. Config template now covers 11 sections (~50 keys). |
 | 0.8.0 | 2026-04-11 | **Mono-plugin architecture.** `dist/` merged into single `plugin/` directory. 9 agents (added `gse-orchestrator`). Cursor rules consolidated to 1 `.mdc`. Hooks format: official event-based with platform-specific files. Settings simplified to agent reference. TIME→COMPLEXITY: `stale_sprint_days`→`stale_sprint_sessions`. Generator rewrite (~400 lines). Body parity verification for cross-platform methodology. |
 | 0.12.0 | 2026-04-12 | Added `/gse:deploy` skill (Hetzner + Coolify). 23 commands total. |
+| 0.16.0 | 2026-04-13 | **Methodology hardening from CalcApp V03 testing.** Process discipline rule. Beginner artefact approval via plain-language summaries. Git branch check in PRODUCE. Mandatory test campaign reports. Branch naming: `gse/sprint-NN/integration`. Manual testing procedure in PRODUCE. Requirements coverage analysis in REQS (9 dimensions). Dashboard: cumulative view, nested YAML parser, health scores written by review/deliver. HUG dimension #13 (user name). Compound process deviation scan. |
+| 0.15.0 | 2026-04-13 | **Tool registry and branding.** `~/.gse-one` registry file for tool resolution. Dashboard moved to `plugin/tools/dashboard.py` with `@gse-tool` header. install.py writes/removes registry. README branding. Kanban label readability fix. |
 | 0.14.0 | 2026-04-13 | **Major methodology hardening.** LC02 order: REQS→DESIGN→PREVIEW→TESTS→PRODUCE with Hard guardrails. Test-driven requirements (acceptance criteria mandatory). Spike mode (`artefact_type: spike`, complexity-boxed, non-deliverable). Micro mode (< 3 files). Beginner output filter in orchestrator. Project dashboard (`~/.gse-one` registry + `plugin/tools/dashboard.py` → `docs/dashboard.html`). Cross-sprint regression scan. Dependency vulnerability check at session start. Sprint archival during COMPOUND. Monorepo sub_domains. Resilience (YAML validation, context overflow, graceful degradation). Supervised mode = Gate tier override. Pre-commit self-review. P16 passive acceptance signals. Installer duplicate detection. Agile Foundations section (spec §1.2). Maintainer Guide (spec Appendix B). All 3 layers fully aligned (spec, orchestrator, skills). |

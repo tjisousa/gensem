@@ -66,7 +66,7 @@ SPECIALIZED_AGENTS = [
 
 PLUGIN_DESCRIPTION = (
     "GSE-One — AI engineering companion for structured SDLC management. "
-    "22 commands, adaptive risk analysis, unified backlog, knowledge transfer, "
+    "23 commands, adaptive risk analysis, unified backlog, knowledge transfer, "
     "worktree isolation."
 )
 
@@ -141,7 +141,7 @@ def generate(clean: bool = False) -> None:
             '---\n'
             'name: gse-orchestrator\n'
             'description: "GSE-One main orchestrator agent. Manages the full '
-            'software development lifecycle with 22 commands under the /gse: prefix. '
+            'software development lifecycle with 23 commands under the /gse: prefix. '
             'Adapts language, decisions, and autonomy to the user\'s profile."\n'
             '---\n\n'
             f'{body}\n'
