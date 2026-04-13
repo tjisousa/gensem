@@ -33,7 +33,7 @@
 
 ### 3.1 Repository Structure
 
-> **Terminology mapping:** The directory structure maps to the concepts defined in the specification: `activities/` contains the 22 activity definitions (spec), each generated as a skill (`plugin/skills/`). `agents/` provides agent roles (spec). `templates/` provides templates. `hooks/` provides system hooks (spec P13).
+> **Terminology mapping:** The directory structure maps to the concepts defined in the specification: `activities/` contains the 23 activity definitions (spec), each generated as a skill (`plugin/skills/`). `agents/` provides agent roles (spec). `templates/` provides templates. `hooks/` provides system hooks (spec P13).
 
 ```
 gse-one/
@@ -41,7 +41,7 @@ gse-one/
 ├── LICENSE
 ├── src/                                 # Shared source of truth
 │   ├── principles/                      # 16 principle definitions (P1-P16)
-│   ├── activities/                      # 22 activity definitions
+│   ├── activities/                      # 23 activity definitions
 │   ├── agents/                          # 9 agent roles (8 specialized + gse-orchestrator)
 │   │   ├── gse-orchestrator.md          # Identity agent — source for both platforms
 │   │   ├── requirements-analyst.md
@@ -57,7 +57,7 @@ gse-one/
 ├── plugin/                              # Single deployable directory (both platforms)
 │   ├── .claude-plugin/plugin.json       # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json       # Cursor manifest
-│   ├── skills/                          # 22 skills (shared)
+│   ├── skills/                          # 23 skills (shared)
 │   ├── agents/                          # 9 agents (shared, incl. orchestrator)
 │   ├── templates/                       # 15 templates (shared)
 │   ├── rules/
@@ -82,8 +82,8 @@ Both platforms use separate manifests with slightly different fields. The `repos
 ```json
 {
   "name": "gse",
-  "description": "GSE-One — AI engineering companion for structured SDLC management. 22 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
-  "version": "0.7.0",
+  "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
+  "version": "0.14.0",
   "author": {
     "name": "GSE-One Project"
   },
@@ -100,8 +100,8 @@ Both platforms use separate manifests with slightly different fields. The `repos
 {
   "name": "gse",
   "displayName": "GSE-One",
-  "description": "GSE-One — AI engineering companion for structured SDLC management. 22 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
-  "version": "0.7.0",
+  "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
+  "version": "0.14.0",
   "author": {
     "name": "GSE-One Project"
   },
@@ -130,7 +130,7 @@ ONE directory (`plugin/`) serves both platforms. Shared components — skills, a
 | `hooks/hooks.claude.json` | **used** | ignored | Claude hook format (PascalCase) |
 | `hooks/hooks.cursor.json` | ignored | **used** | Cursor hook format (camelCase) |
 | `rules/000-gse-methodology.mdc` | ignored | **used** | Cursor always-on methodology rule |
-| `skills/` (22) | **shared** | **shared** | All activity skills |
+| `skills/` (23) | **shared** | **shared** | All activity skills |
 | `agents/` (9) | **shared** | **shared** | All agents incl. orchestrator |
 | `templates/` (15) | **shared** | **shared** | All artefact/config templates |
 
@@ -821,17 +821,18 @@ At start of /gse:go:
    - If < 5 files → propose lightweight mode (Inform)
    - If >= 5 files → propose full mode
 
-In lightweight mode:
-- Skip LC01 (no formal collect/assess)
-- Simplified plan: single task list, no sprint branch (use feature branch from main)
-- No worktrees: `git.strategy` forced to `branch-only`
-- No complexity budget tracking
-- Health: 3 dimensions only (test pass, review findings, git hygiene)
-- No sprint artefact directory (plan is inline in `.gse/status.yaml`)
-- Decision tiers: Auto + Gate only (no Inform — keep it simple)
+Three project modes based on file count:
 
-User can upgrade to full mode anytime via `/gse:go` — the agent scaffolds
-the missing structure.
+| Mode | Trigger | Lifecycle | Git | Health | Guardrails |
+|------|---------|-----------|-----|--------|------------|
+| **Micro** | < 3 files | PRODUCE → DELIVER | direct commit | none | Gate only (security/destructive) |
+| **Lightweight** | 3-4 files | PLAN → PRODUCE → DELIVER | branch-only from main | 3 dims | Auto + Gate |
+| **Full** | ≥ 5 files | LC01 → LC02 → LC03 | worktree isolation | 8 dims | Full P7 |
+
+Micro mode: 1 state file only (`.gse/status.yaml` with inline profile + task list).
+No REQS/TESTS guardrails. No health. No complexity budget.
+
+User can upgrade Micro → Lightweight → Full anytime via `/gse:go`.
 ```
 
 ### 5.6 Team Profile Detection (HUG Skill Extension)
@@ -1608,7 +1609,7 @@ Note: Agents now 9 (8 specialized + gse-orchestrator). Generator ~400 lines.
 | Step | Input | Output | Shared? |
 |------|-------|--------|---------|
 | 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/000-gse-methodology.mdc` | Body identical, frontmatter differs |
-| 2 | `src/activities/*.md` (22) | `plugin/skills/<name>/SKILL.md` | Shared |
+| 2 | `src/activities/*.md` (23) | `plugin/skills/<name>/SKILL.md` | Shared |
 | 3 | `src/agents/*.md` (8 specialized) | `plugin/agents/<name>.md` | Shared |
 | 4 | `src/templates/*` (15) | `plugin/templates/*` | Shared |
 | 5 | Constants | `plugin/.claude-plugin/plugin.json` + `plugin/.cursor-plugin/plugin.json` | Two manifests |
@@ -1712,3 +1713,5 @@ Grand total: **52 files**. Generator: ~400 lines.
 | 0.6.0 | 2026-04-10 | Spec v0.6 alignment. Learn, backlog, tests, P15-P16, devil-advocate agent, unified backlog, git state per-TASK. |
 | 0.7.0 | 2026-04-11 | **44-gap alignment with spec v0.7.** Eliminated worktrees.yaml (git state per-TASK in backlog). 16 principle source files (P1-P16). Added: assess skill (5.14), orchestrator decision logic with stale sprint (5.15), deploy/rollback + safety backup tags (5.16), status.yaml/checkpoint/state-loading schemas (5.17), full pushback signal tracking (5.18), doc-as-artefact, dependency audit, framework drift, team matching algorithm, concurrent access, min project size. Spelling: artefact_type. All worktrees.yaml refs replaced. Config template now covers 11 sections (~50 keys). |
 | 0.8.0 | 2026-04-11 | **Mono-plugin architecture.** `dist/` merged into single `plugin/` directory. 9 agents (added `gse-orchestrator`). Cursor rules consolidated to 1 `.mdc`. Hooks format: official event-based with platform-specific files. Settings simplified to agent reference. TIME→COMPLEXITY: `stale_sprint_days`→`stale_sprint_sessions`. Generator rewrite (~400 lines). Body parity verification for cross-platform methodology. |
+| 0.12.0 | 2026-04-12 | Added `/gse:deploy` skill (Hetzner + Coolify). 23 commands total. |
+| 0.14.0 | 2026-04-13 | **Major methodology hardening.** LC02 order: REQS→DESIGN→PREVIEW→TESTS→PRODUCE with Hard guardrails. Test-driven requirements (acceptance criteria mandatory). Spike mode (`artefact_type: spike`, complexity-boxed, non-deliverable). Micro mode (< 3 files). Beginner output filter in orchestrator. Project dashboard (`gse_dashboard.py` → `docs/dashboard.html`). Cross-sprint regression scan. Dependency vulnerability check at session start. Sprint archival during COMPOUND. Monorepo sub_domains. Resilience (YAML validation, context overflow, graceful degradation). Supervised mode = Gate tier override. Pre-commit self-review. P16 passive acceptance signals. Installer duplicate detection. Agile Foundations section (spec §1.2). Maintainer Guide (spec Appendix B). All 3 layers fully aligned (spec, orchestrator, skills). |
