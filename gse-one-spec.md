@@ -5,12 +5,67 @@
 **Status:** Conceptual framework — coding agent architecture, cross-platform parity, aligned hooks  
 **Aliases:** `gse`, `gse-one`, `gseone`
 
-> **Audience:** This document is the **technical specification** for GSE-One, intended for implementers and advanced users who want to understand the methodology in detail. If you are a **new user**, you don't need to read this — just type `/gse:go` and the agent will guide you through everything adaptively. A separate "Getting Started" guide will be available for beginners.
+> **Audience:** This document is the **technical specification** for GSE-One, intended for implementers and advanced users who want to understand the methodology in detail. If you are a **new user**, you don't need to read this — just type `/gse:go` and the agent will guide you through everything adaptively.
+
+---
+
+## 0. Getting Started
+
+### 0.1 Prerequisites
+
+GSE-One assumes the following baseline knowledge. You don't need to be an expert — basic familiarity is sufficient:
+
+- **Terminal / CLI** — You can open a terminal, navigate directories, and run commands
+- **Git basics** — You understand commits, branches, and push/pull (GSE-One handles the advanced parts for you)
+- **Text files** — You can read and edit Markdown and YAML files (GSE-One generates most of them)
+- **Agile concepts** (optional) — Knowing what a sprint, backlog, or user story is helps but is not required — GSE-One explains these progressively
+
+**No programming language knowledge is required.** GSE-One adapts to your project's language and your expertise level.
+
+### 0.2 Quickstart — Your First 20 Minutes
+
+Here is what a typical first session looks like. You type one command; the agent handles the rest:
+
+```
+You:   /gse:go
+
+Agent: I don't see a project set up yet. Let me get to know you first.
+       What language do you prefer for our conversations?
+
+You:   French
+
+Agent: [... 4-5 profiling questions: your role, experience, what you want to build ...]
+
+You:   I want to build a personal expense tracker as a web app. I'm a beginner.
+
+Agent: Great! Here's what I'll do:
+       1. I'll organize the work into a first cycle (sprint)
+       2. I'll write down what the app should do and ask you to confirm
+       3. I'll build it step by step, checking my work as I go
+       4. I'll deliver the result when everything is verified
+
+       Ready to start? I'll begin by planning the work.
+
+You:   Yes
+
+Agent: [Plans sprint → Writes requirements → Asks for confirmation →
+        Designs architecture → Creates tests → Produces code →
+        Reviews own work → Fixes issues → Delivers]
+```
+
+**Key commands you'll use:**
+- `/gse:go` — Start or continue (the agent figures out what to do next)
+- `/gse:status` — See where you are
+- `/gse:health` — Check project quality dashboard
+- `/gse:pause` — Save and stop (you can resume later with `/gse:go`)
+
+Everything else is handled by the agent based on your profile and project state. Advanced users can invoke any of the 23 commands directly (see Section 3).
 
 ---
 
 ## Table of Contents
 
+0. [Getting Started](#0-getting-started) — Prerequisites, Quickstart (your first 20 minutes)
 1. [Overview](#1-overview) — Coding agent architecture, agile foundations, platform mapping, GSE-One philosophy, key concepts, agent roles
 2. [Core Principles](#2-core-principles) — Foundations (P1-P3, P5-P6) | Risk & Communication (P4, P7–P11) | Infrastructure (P12–P14) | AI Integrity (P15–P16)
 3. [Activities (Commands)](#3-activities-commands) — 23 commands across 9 categories
@@ -934,7 +989,7 @@ The pushback mechanism is calibrated:
 | `/gse:health` | **Health** | Display the project health dashboard: coverage, debt, complexity, risks, **git hygiene** (see Section 7) |
 | `/gse:pause` | **Pause** | Auto-commit all uncommitted work in active worktrees, save session checkpoint (context, sprint state, pending tasks, review findings, decision log snapshot, **worktree map**) |
 | `/gse:resume` | **Resume** | Reload checkpoint, verify worktree integrity, brief the user on where work stopped, propose next actions |
-| `/gse:task` | **Ad-hoc Task** | Execute a task outside the standard lifecycle in a dedicated branch/worktree. The task is added to the backlog (`artefact_type` inferred from description, `sprint` set to current). It consumes complexity budget. It is reviewed during the next `/gse:review` unless trivial (complexity ≤ 1). It is delivered with the rest of the sprint. |
+| `/gse:task` | **Ad-hoc Task** | Execute a task outside the standard lifecycle in a dedicated branch/worktree. The task is added to the backlog (`artefact_type` inferred from description, `sprint` set to current). It consumes complexity budget. It is reviewed during the next `/gse:review` unless trivial (complexity ≤ 1). It is delivered with the rest of the sprint. **`--spike`**: create a **spike** — an exploratory experiment to answer a technical question. Spikes are complexity-boxed (max 3 points), non-deliverable (branch deleted after completion), and bypass REQS/TESTS guardrails. Must produce a DEC- artefact documenting the question, approach, and answer. If reusable code emerges, a normal TASK must be created to implement it properly. For beginners: Gate confirmation ("This is an experiment — the code won't be kept. Are you sure?"). |
 
 ### 3.2 Onboarding
 
@@ -1041,6 +1096,21 @@ The agent also creates backlog items **automatically** during other activities (
 |---------|----------|-------------|
 | `/gse:compound` | **Compound** | Capitalize learnings across 3 axes: **Axe 1** (project — patterns, errors, best practices → `compound.md`), **Axe 2** (methodology — what worked/didn't in GSE-One itself → propose issue on GSE-One repo, filtered: only actionable feedback observed in 2+ sprints or confirmed by user), **Axe 3** (competencies — feed P14 learning notes) |
 | `/gse:integrate` | **Integrate** | Route capitalized solutions: Axe 1 → project config/rules, Axe 2 → issue on `your-org/gse-one` repo (if user accepts), Axe 3 → `docs/learning/` + competency map |
+
+### 3.10 Commands by Lifecycle Phase
+
+For orientation, here is when each command is typically used in the lifecycle:
+
+| Phase | Commands | Purpose |
+|-------|----------|---------|
+| **LC00 — Onboarding** | `/gse:hug` | User profiling and project initialization |
+| **LC01 — Discovery & Planning** | `/gse:go`, `/gse:collect`, `/gse:assess`, `/gse:plan` | Understand context, identify gaps, plan the sprint |
+| **LC02 — Development** | `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:tests`, `/gse:produce` | Specify, design, test, and build |
+| **LC02 — Quality & Delivery** | `/gse:review`, `/gse:fix`, `/gse:deliver` | Verify, fix, and ship |
+| **LC03 — Capitalization** | `/gse:compound`, `/gse:integrate` | Learn from the sprint, route improvements |
+| **Cross-cutting** | `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:task`, `/gse:learn`, `/gse:pause`, `/gse:resume`, `/gse:deploy` | Available at any time regardless of phase |
+
+> **Note:** `/gse:go` detects the current project state and proposes the next command automatically. Users don't need to memorize this sequence — the orchestrator handles it (see Section 14).
 
 ---
 
@@ -2506,7 +2576,8 @@ Evaluate states **in order** — the first matching row wins.
 | Current state | Next action |
 |--------------|-------------|
 | No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | Enter **intent-first mode** (Step 6) |
-| No sprint + non-beginner + < 5 project files | Propose **Lightweight mode** (Gate): `PLAN` > `PRODUCE` > `DELIVER`, branch-only, Auto+Gate only, 3 health dimensions. User can upgrade anytime. |
+| No sprint + < 3 project files | Propose **Micro mode** (Gate): `PRODUCE` > `DELIVER`, direct commit (no branches), 1 state file only (`.gse/status.yaml`), Gate-only (security/destructive), no REQS/TESTS guardrails, no health, no complexity budget. For beginners: "This is a very small project — I'll keep things simple." |
+| No sprint + non-beginner + < 5 project files | Propose **Lightweight mode** (Gate): `PLAN` > `PRODUCE` > `DELIVER`, branch-only, Auto+Gate only, 3 health dimensions (test_pass_rate, review_findings, git_hygiene). User can upgrade anytime. |
 | No sprint + non-beginner | Start LC01 (`COLLECT` > `ASSESS` > `PLAN`) |
 | Sprint exists, plan not approved | Resume `PLAN` |
 | Sprint, plan approved, **no requirements** (`reqs.md` absent or empty) | Start `REQS` — begins with **conversational elicitation** (Step 0) to capture user intent in natural language, then **test-driven requirements** with testable acceptance criteria (Given/When/Then) and open technical questions, then **quality assurance checklist** (Step 7, ISO 25010 inspired) verifying NFR completeness. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
@@ -2569,6 +2640,35 @@ When `it_expertise: beginner` and `current_sprint: 0` (first time through LC01),
 
 ## 15. Glossary
 
+### Essential Concepts (Start Here)
+
+If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get started. All are defined in the full glossary below:
+
+| # | Concept | One-line summary |
+|---|---------|-----------------|
+| 1 | **Sprint** | A time-boxed work cycle with a complexity budget |
+| 2 | **Backlog** | The list of all work items (TASKs), planned or not |
+| 3 | **TASK** | A single work item in the backlog, tracked from creation to delivery |
+| 4 | **Artefact** | Any project file — code, requirements, design, tests, config |
+| 5 | **REQ (Requirement)** | A user story describing what the system should do, with testable acceptance criteria |
+| 6 | **Acceptance criteria** | Measurable conditions (Given/When/Then) that define when a requirement is met |
+| 7 | **TST (Test)** | A test derived from a requirement or design decision |
+| 8 | **DES (Design decision)** | An architectural choice documented with rationale |
+| 9 | **Traceability** | Links between artefacts: requirement → design → test → code |
+| 10 | **Guardrail** | Automatic protection that blocks risky actions (e.g., coding without requirements) |
+| 11 | **Gate decision** | A high-impact decision that requires your explicit approval |
+| 12 | **Health score** | A 0–10 quality metric across 8 dimensions (tests, coverage, debt...) |
+| 13 | **Lifecycle phases** | LC00 (onboarding) → LC01 (discovery) → LC02 (development) → LC03 (capitalization) |
+| 14 | **Worktree** | An isolated workspace for developing one task without affecting others |
+| 15 | **Feature branch** | A git branch where a single task is developed |
+| 16 | **Review** | Multi-perspective quality check of completed work, including AI self-review |
+| 17 | **Complexity budget** | A point-based limit on how much new complexity a sprint can absorb |
+| 18 | **Confidence level** | How certain the agent is about a claim: Verified, High, Moderate, or Low |
+| 19 | **HUG** | The profiling activity that teaches the agent who you are and how to work with you |
+| 20 | **Spike** | A time-boxed experiment to answer a technical question — code is thrown away |
+
+### Full Glossary
+
 | Term | Definition |
 |------|------------|
 | **GSE-One** | Generic Software Engineering One — the methodology and plugin name |
@@ -2620,6 +2720,18 @@ When `it_expertise: beginner` and `current_sprint: 0` (first time through LC01),
 | **Test evidence** | Screenshots, videos, and logs captured during test execution — visual proof that the application works |
 | **Visual testing** | Automated screenshot capture and analysis during E2E tests, leveraging multimodal AI for defect detection |
 | **Code coverage** | Percentage of code exercised by tests — tracked as a health sub-dimension |
+| **Spike** | Exploratory experiment created via `/gse:task --spike`. Complexity-boxed (max 3 points), non-deliverable (branch deleted after completion), bypasses REQS/TESTS guardrails. Must produce a DEC- artefact documenting question, approach, and answer. If reusable code emerges, a normal TASK is created |
+| **Acceptance criteria** | Measurable conditions attached to a requirement, expressed in Given/When/Then (BDD) format. These criteria ARE the specification for validation tests — each criterion generates at least one TST- artefact |
+| **Lifecycle phases (LC00–LC03)** | The four phases of a GSE-One project cycle: LC00 (onboarding — `/gse:hug`), LC01 (discovery & planning — `COLLECT` > `ASSESS` > `PLAN`), LC02 (development — `REQS` > `DESIGN` > `PREVIEW` > `TESTS` > `PRODUCE` > `REVIEW` > `FIX` > `DELIVER`), LC03 (capitalization — `COMPOUND` > `INTEGRATE`) |
+| **Intent-first mode** | Special onboarding flow for beginner users on their first project (`current_sprint: 0`). The agent elicits intent conversationally ("What would you like to build?") before introducing any technical structure |
+| **Supervised mode** | When `decision_involvement: supervised` in the profile, ALL technical choices during PRODUCE are escalated to Gate-tier decisions — the agent presents options and waits for confirmation |
+| **Micro mode** | Minimal lifecycle for very small projects (< 3 files): `PRODUCE` > `DELIVER`, direct commit, 1 state file, no REQS/TESTS guardrails, no health tracking. Suitable for quick scripts and one-off tasks |
+| **Stale sprint** | A sprint where no TASK has progressed for more than `lifecycle.stale_sprint_sessions` sessions (default: 3). Triggers a Gate decision: resume, partial delivery, discard, or discuss |
+| **Design debt** | Health sub-dimension measuring accumulated design-level issues. Computed from review findings with the architect perspective: 10 − (HIGH × 2.0 + MEDIUM × 1.0 + LOW × 0.5), floor 0 |
+| **Regression test** | A test verifying that previously passing functionality still works after new changes. During `/gse:review`, the full test suite is compared against the previous sprint's results — newly failing tests are flagged `[REGRESSION]` with severity HIGH |
+| **Quality gap** | A missing or incomplete detail in a non-functional requirement, identified by the ISO 25010-inspired quality checklist (Step 7 of `/gse:reqs`). Gaps are classified as HIGH, MEDIUM, or LOW priority and may generate corresponding tests in the test strategy |
+| **Dependency audit** | Automated vulnerability scan of project dependencies (e.g., `npm audit`, `pip-audit`), run at every session start. Critical vulnerabilities trigger a Soft guardrail |
+| **Quality coverage matrix** | Summary table in `reqs.md` showing which quality dimensions (Performance, Security, Reliability, Usability, Maintainability, Accessibility, Compatibility) are covered by requirements and where gaps exist |
 
 ---
 
