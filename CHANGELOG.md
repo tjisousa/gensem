@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] - 2026-04-14
+
+Layers impacted: **spec** (moderate), **design** (minor), **production** (minor)
+
+### Added
+- P12 rule 0: mandatory foundational commit on `main` after `git init` in HUG Step 4 — without it, all branching operations fail
+- `/gse:go` Step 2.7: git baseline verification as safety net before branching (auto-fixes missing foundational commit)
+- `/gse:plan` and `/gse:produce`: precondition check verifying `main` has at least one commit before creating branches
+- Section 14.0.1: activity ceremony table by expertise level — defines minimum ceremony for each activity at beginner/intermediate/advanced levels
+- Non-fusion rule in orchestrator Process Discipline and spec — activities MUST be executed as separate steps, adaptation is in communication not lifecycle structure
+- Section 12.4.1: required fields specification for `config.yaml` and `status.yaml` — normative schema for dashboard and tool consumers
+- Dashboard smoke test: validation warnings on stderr when required fields are missing or contain placeholder values
+
+### Changed
+- P16 passive acceptance counter: clarified increment rules (Gate decisions, single-word artefact confirmations) and reset rules (Discuss, why, modifications, rejections)
+- `status.yaml` template: simplified P16 fields to `consecutive_acceptances` + `pushback_dismissed`, removed redundant boolean signals
+- `dashboard.py`: fixed nested key lookup (`project.name`, `project.domain`, `lifecycle.mode`) for compatibility with spec-compliant config files
+
 ## [0.17.0] - 2026-04-14
 
 Layers impacted: **spec** (major), **design** (minor), **production** (moderate)
