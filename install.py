@@ -249,7 +249,7 @@ def _check_duplicate_install(platform_name, mode, project_dir=None, env=None):
     elif platform_name == "cursor":
         if mode == "plugin" and env:
             # Check for no-plugin install in current project
-            local = Path.cwd() / ".cursor" / "skills"
+            local = Path.cwd() / ".cursor" / "commands"
             if local.is_dir() and any(local.iterdir()):
                 conflicts.append(("no-plugin (project)", str(local)))
         elif mode == "no-plugin" and env:
@@ -318,18 +318,25 @@ def verify_no_plugin(location, platform_name):
     if not base.is_dir():
         return False, f"{base.name}/ not found"
 
-    skills = base / "skills"
     agents = base / "agents"
-
-    if not skills.is_dir():
-        return False, "skills/ not found"
     if not agents.is_dir():
         return False, "agents/ not found"
-
-    skill_count = sum(1 for d in skills.iterdir() if d.is_dir())
     agent_count = sum(1 for f in agents.glob("*.md"))
 
-    return True, f"{skill_count} skills, {agent_count} agents"
+    if platform_name == "cursor":
+        # Cursor uses commands/ (flat files) for activities
+        commands = base / "commands"
+        if not commands.is_dir():
+            return False, "commands/ not found"
+        cmd_count = sum(1 for f in commands.glob("*.md"))
+        return True, f"{cmd_count} commands, {agent_count} agents"
+    else:
+        # Claude Code uses skills/ (subdirectories with SKILL.md)
+        skills = base / "skills"
+        if not skills.is_dir():
+            return False, "skills/ not found"
+        skill_count = sum(1 for d in skills.iterdir() if d.is_dir())
+        return True, f"{skill_count} skills, {agent_count} agents"
 
 
 # ---------------------------------------------------------------------------
@@ -645,17 +652,16 @@ def install_cursor_no_plugin(project_dir):
     cursor_dir = Path(project_dir) / ".cursor"
     ensure_dir(cursor_dir)
 
-    # Skills
-    skills_dst = cursor_dir / "skills"
-    ensure_dir(skills_dst)
-    skills_src = PLUGIN_DIR / "skills"
+    # Commands (Cursor uses commands/ for step-by-step activities)
+    commands_dst = cursor_dir / "commands"
+    ensure_dir(commands_dst)
+    commands_src = PLUGIN_DIR / "commands"
     count = 0
-    for skill_dir in sorted(skills_src.iterdir()):
-        if skill_dir.is_dir():
-            copy_tree(skill_dir, skills_dst / skill_dir.name)
-            count += 1
-    ok(f"Copied {count} skills to {skills_dst}")
-    warn("Commands will be /name (e.g., /plan) instead of /gse:name")
+    for cmd_file in sorted(commands_src.glob("*.md")):
+        shutil.copy2(cmd_file, commands_dst / cmd_file.name)
+        count += 1
+    ok(f"Copied {count} commands to {commands_dst}")
+    info("Commands will be /gse-name (e.g., /gse-go, /gse-plan)")
 
     # Agents
     agents_dst = cursor_dir / "agents"
@@ -712,7 +718,7 @@ def uninstall_cursor_no_plugin(project_dir):
 
     cursor_dir = Path(project_dir) / ".cursor"
 
-    for subdir in ("skills", "agents", "templates", "tools"):
+    for subdir in ("commands", "agents", "templates", "tools"):
         d = cursor_dir / subdir
         if d.exists():
             shutil.rmtree(d)
