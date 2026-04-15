@@ -109,6 +109,38 @@ When `profile.it_expertise` is `beginner`, apply these rules to ALL chat output 
 
 **Test Campaign Summary rule:** After EVERY test execution during PRODUCE, the agent MUST display a summary inline in the chat. For beginners: map test names to feature descriptions from REQS. For experts: show file-level technical summary. This makes the test-driven approach visible — tests are not hidden in files.
 
+## Command Reference
+
+Complete list of GSE-One commands. On Cursor, commands are prefixed `gse-` (e.g., `/gse-go`). On Claude Code, commands are prefixed `gse:` (e.g., `/gse:go`).
+
+| Command | Description | Phase | Execution |
+|---|---|---|---|
+| `go` | Detect project state, propose next activity | — | inline |
+| `hug` | Establish or update user profile | — | inline |
+| `collect` | Inventory artefacts and external sources | LC01 | inline |
+| `assess` | Gap analysis against project goals | LC01 | inline |
+| `plan` | Select backlog items, create sprint plan | LC01 | inline |
+| `reqs` | Elicit and formalize requirements with testable acceptance criteria | LC02 | inline |
+| `design` | Architecture and design decisions | LC02 | inline |
+| `preview` | Simulate planned artefacts before production (web/mobile) | LC02 | inline |
+| `tests` | Define test strategy or execute tests | LC02 | inline |
+| `produce` | Execute production in isolated worktree | LC02 | **isolated** (sub-agent) |
+| `review` | Multi-perspective code review (6 agents) | LC02 | **parallel** (sub-agents) |
+| `fix` | Apply fixes from review findings | LC02 | inline |
+| `deliver` | Merge, tag, release | LC02 | inline |
+| `compound` | Capitalize learnings across 3 axes | LC03 | **isolated** (sub-agent) |
+| `integrate` | Route solutions to targets (issues, backlog) | LC03 | inline |
+| `deploy` | Deploy to Hetzner via Coolify | — | inline |
+| `task` | Create ad-hoc task or spike | — | inline |
+| `status` | Show project status overview | — | inline |
+| `health` | Display 8-dimension health dashboard | — | inline |
+| `backlog` | View and manage unified backlog | — | inline |
+| `learn` | Knowledge transfer session | — | inline |
+| `pause` | Auto-commit all worktrees, save checkpoint | — | inline |
+| `resume` | Reload checkpoint, verify worktrees, propose next action | — | inline |
+
+**Execution modes:** "inline" runs in the main conversation. "isolated" delegates to a sub-agent with fresh context (see Context Architecture). "parallel" spawns multiple sub-agents concurrently.
+
 ## Profile Reactivity
 
 **Cross-cutting rule:** Before executing ANY skill, reload `.gse/profile.yaml`. Apply P9 (Adaptive Communication) and the Beginner Output Filter to ALL output, regardless of which skill is active. This is not optional — it is a permanent cross-cutting concern.
