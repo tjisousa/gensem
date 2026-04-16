@@ -19,9 +19,9 @@ Generated output:
         .cursor-plugin/plugin.json    ← Cursor manifest
         skills/                       ← Claude Code activities (22 SKILL.md in subdirs)
         commands/                     ← Cursor activities (22 flat gse-<name>.md files)
-        agents/                       ← Shared (9 agents, incl. orchestrator)
+        agents/                       ← 9 agents (8 specialized + orchestrator for Claude; installer excludes orchestrator for Cursor)
         templates/                    ← Shared (15 templates)
-        rules/000-gse-methodology.mdc ← Cursor-specific (generated)
+        rules/gse-orchestrator.mdc    ← Cursor-specific (generated)
         hooks/hooks.claude.json       ← Claude-specific (generated)
         hooks/hooks.cursor.json       ← Cursor-specific (generated)
         settings.json                 ← Claude-specific (generated)
@@ -187,7 +187,7 @@ def generate(clean: bool = False) -> None:
         )
         write_file(PLUGIN / "agents" / "gse-orchestrator.md", orchestrator_content)
 
-        # Cursor: rules/000-gse-methodology.mdc
+        # Cursor: rules/gse-orchestrator.mdc
         mdc_content = (
             '---\n'
             'description: "GSE-One methodology — 16 core principles, state management, '
@@ -196,11 +196,11 @@ def generate(clean: bool = False) -> None:
             '---\n\n'
             f'{body}\n'
         )
-        write_file(PLUGIN / "rules" / "000-gse-methodology.mdc", mdc_content)
+        write_file(PLUGIN / "rules" / "gse-orchestrator.mdc", mdc_content)
 
         # Verify identical body
         agent_body = extract_body(PLUGIN / "agents" / "gse-orchestrator.md")
-        mdc_body = extract_body(PLUGIN / "rules" / "000-gse-methodology.mdc")
+        mdc_body = extract_body(PLUGIN / "rules" / "gse-orchestrator.mdc")
         status = "IDENTICAL" if agent_body == mdc_body else "DIVERGENT!"
         print(f"  Body parity check: {status}\n")
     else:
@@ -389,7 +389,7 @@ def verify() -> None:
     if commands < len(ACTIVITY_NAMES): errors.append(f"Cursor: missing {len(ACTIVITY_NAMES)-commands} commands")
     for name, path in {
         "plugin.json": PLUGIN / ".cursor-plugin" / "plugin.json",
-        "000-gse-methodology.mdc": PLUGIN / "rules" / "000-gse-methodology.mdc",
+        "gse-orchestrator.mdc": PLUGIN / "rules" / "gse-orchestrator.mdc",
         "hooks.cursor.json": PLUGIN / "hooks" / "hooks.cursor.json",
     }.items():
         ok = path.exists()
@@ -398,9 +398,9 @@ def verify() -> None:
 
     # Body parity
     print("\n  Cross-platform parity:")
-    if orchestrator and (PLUGIN / "rules" / "000-gse-methodology.mdc").exists():
+    if orchestrator and (PLUGIN / "rules" / "gse-orchestrator.mdc").exists():
         agent_body = extract_body(PLUGIN / "agents" / "gse-orchestrator.md")
-        mdc_body = extract_body(PLUGIN / "rules" / "000-gse-methodology.mdc")
+        mdc_body = extract_body(PLUGIN / "rules" / "gse-orchestrator.mdc")
         parity = agent_body == mdc_body
         print(f"    Orchestrator vs .mdc body: {'IDENTICAL' if parity else 'DIVERGENT!'}")
         if not parity: errors.append("Orchestrator and .mdc body content differ!")

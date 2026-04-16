@@ -27,9 +27,16 @@ items:
       last_commit: 2026-04-10T14:30:00
       uncommitted_changes: 0
     github_issue: null                 # GitHub issue number, null if not enabled
-    test_campaign: null                # path to test campaign report
-    test_pass_rate: null               # % passing (set after test run)
-    code_coverage: null                # % coverage (set after test run)
+    # Test evidence — single structured field, written by /gse:produce and /gse:tests --run,
+    # read by /gse:review guardrail and /gse:deliver. Replaces legacy flat fields
+    # (test_campaign / test_pass_rate / code_coverage) as of v0.21.0.
+    test_evidence:
+      status: absent                   # absent | pass | fail | skipped
+      campaign_ref: null               # path to docs/sprints/sprint-NN/test-reports/campaign-*.md
+      timestamp: null                  # ISO 8601 of last run
+      pass_rate: null                  # % of tests passing (0-100)
+      code_coverage: null              # % line coverage (0-100)
+      summary: null                    # human-readable one-liner ("24 tests, 22 passed, 2 failed")
     created: 2026-04-08
     updated: 2026-04-10
 
@@ -56,8 +63,12 @@ items:
       last_commit: null
       uncommitted_changes: 0
     github_issue: 46
-    test_campaign: null
-    test_pass_rate: null
-    code_coverage: null
+    test_evidence:
+      status: absent
+      campaign_ref: null
+      timestamp: null
+      pass_rate: null
+      code_coverage: null
+      summary: null
     created: 2026-04-10
     updated: 2026-04-10

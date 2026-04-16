@@ -24,7 +24,7 @@ GSE-One is an AI engineering companion that brings structured software developme
 ## Key Features
 
 - **23 commands** covering the full SDLC — from onboarding (`/gse:hug`) to capitalization (`/gse:compound`)
-- **3 modes** — Micro (< 3 files), Lightweight, Full — adapting to project complexity
+- **3 modes** — Micro, Lightweight, Full — auto-selected by complexity assessment, user-overridable
 - **Adaptive risk analysis** — 3-tier decision system (Auto / Gate / Hard) calibrated to user expertise
 - **Unified backlog** — single task tracking with git state per-task
 - **8-dimension health dashboard** — generated HTML with radar chart, kanban, lifecycle checklist
@@ -113,7 +113,7 @@ gse-one/
 │   ├── agents/                       # 9 agents (shared)
 │   ├── templates/                    # 19 templates (shared)
 │   ├── tools/                        # Python tools (dashboard, etc.)
-│   ├── rules/000-gse-methodology.mdc # Cursor only
+│   ├── rules/gse-orchestrator.mdc    # Cursor only
 │   ├── hooks/                        # Platform-specific hooks
 │   └── settings.json                 # Claude only
 │

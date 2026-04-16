@@ -50,12 +50,17 @@ If `--all` is specified, each TASK is delegated to its own sub-agent **sequentia
 
 Before starting ANY task, verify these conditions. If any check fails, **STOP and do not proceed**.
 
-1. **Requirements check** — Verify that `docs/sprints/sprint-{NN}/reqs.md` exists and contains at least one REQ- artefact traced to the TASK about to start. If missing: report "Requirements not defined for this task. I need to write down what the app should do first." Then run REQS. **Exception: `artefact_type: spike`** — skip this check (spikes are exploratory experiments).
-2. **Test strategy check** — Verify that a test strategy exists. Primary: `docs/sprints/sprint-{NN}/test-strategy.md`. Alternatively, if `tests` appears in `.gse/plan.yaml.workflow.completed` the strategy is already recorded. If missing: report "Test strategy not defined. I need to describe how we'll verify each feature works." Then run TESTS `--strategy`. **Exception: `artefact_type: spike`** — skip this check.
+1. **Requirements check (Full and Lightweight)** — Verify that `docs/sprints/sprint-{NN}/reqs.md` exists and contains at least one REQ- artefact traced to the TASK about to start. If missing: report "Requirements not defined for this task. I need to write down what the app should do first." Then run REQS. **Exception:** Micro mode and `artefact_type: spike` — skip this check.
+2. **Test strategy check (mode-differentiated):**
+   - **Full mode:** Verify that a test strategy exists (`docs/sprints/sprint-{NN}/test-strategy.md` or `tests` in `.gse/plan.yaml.workflow.completed`). If missing → **Hard guardrail.** Report "Test strategy not defined. I need to describe how we'll verify each feature works." Then run TESTS `--strategy`.
+   - **Lightweight mode:** If no test strategy exists → **Soft guardrail (Inform).** Auto-generate a minimal test strategy based on `config.yaml → project.domain` (default test pyramid, no formal artefact). Log in `plan.yaml.coherence` as auto-generated. Continue without blocking.
+   - **Micro mode:** Skip this check.
+   **Exception: `artefact_type: spike`** — skip this check in all modes.
 3. **Preview check (web/mobile only)** — If `config.yaml → project.domain` is `web` or `mobile` and no preview artefact exists (`docs/sprints/sprint-{NN}/preview.md` or equivalent), present a Gate: "A preview was not done for this project. For a visual project, it's recommended to validate the look before coding." Options: **Proceed without preview** / **Run preview first** / **Discuss**. For beginners: "Before I build, it's helpful to show you a sketch of what the app will look like — want me to do that first?" **Exception: `artefact_type: spike`** — skip this check.
+4. **Upstream test-review findings check** (spec §6.5) — If `docs/sprints/sprint-{NN}/review.md` exists, scan for unresolved findings tagged `[STRATEGY]` or `[TST-SPEC]` with severity HIGH. If any exist, **Hard guardrail: block production**. Report: "Tests were reviewed upstream and HIGH findings remain open. Resolve them first — writing code against an incorrect test plan wastes the sprint." List the open findings and their IDs. Redirect the user to `/gse:fix --severity HIGH --task TASK-upstream` or manual resolution of the strategy/spec. **Exception: `artefact_type: spike`** — skip this check.
 
 **Decision tier override:**
-4. **Supervised mode** — If `profile.decision_involvement` is `supervised`, ALL technical choices in this TASK are escalated to **Gate-tier** decisions. This includes: library/dependency selection, data format, folder structure, persistence strategy, API design, naming conventions. The agent MUST present options and wait for user confirmation — it MUST NOT make these choices silently.
+5. **Supervised mode** — If `profile.decision_involvement` is `supervised`, ALL technical choices in this TASK are escalated to **Gate-tier** decisions. This includes: library/dependency selection, data format, folder structure, persistence strategy, API design, naming conventions. The agent MUST present options and wait for user confirmation — it MUST NOT make these choices silently.
 
 ### Step 1 — Select Task
 
@@ -151,83 +156,27 @@ Produce the artefact according to the task specification:
 
 ### Step 4 — Test Execution (After Production)
 
-**If `--skip-tests` was specified:**
-1. Present a **Gate decision** (cannot be silently bypassed):
-   - "Skipping tests means we won't verify this task works correctly. Are you sure?"
-   - Options: **Skip tests** / **Run tests anyway** / **Discuss**
-   - For beginners: "I'd normally check that what I built works correctly. Do you want me to skip that check? I don't recommend it."
-2. If confirmed: record a DEC- artefact in the decision journal with rationale.
-3. Decrement health score: `test_pass_rate` receives a penalty for the skipped task.
-4. In `supervised` mode: require **double confirmation** ("This is unusual — please confirm again").
+PRODUCE invokes the **canonical test run** defined in spec §6.3. The seven canonical steps (execute → capture → save → TCP report → test_evidence → inline summary → health update) are never skipped and never duplicated here. This step only documents the PRODUCE-specific pre/post-conditions around that canonical call.
 
-**If `--skip-tests` was NOT specified (normal flow):**
+**Pre-condition A — `--skip-tests` flag:**
+1. Present a **Gate decision** (cannot be silently bypassed): "Skipping tests means we won't verify this task works correctly. Are you sure?" Options: **Skip tests** / **Run tests anyway** / **Discuss**. For beginners: "I'd normally check that what I built works correctly. Do you want me to skip that check? I don't recommend it."
+2. If confirmed: record a DEC- artefact in the decision journal with rationale; write `test_evidence.status: skipped` on the TASK; health score `test_pass_rate` receives a penalty for the skipped task.
+3. In `supervised` mode: require **double confirmation** ("This is unusual — please confirm again").
+4. **Do not invoke** the canonical run.
 
-1. **Check if tests exist** for the produced artefact:
-   - Look for test files matching the artefact (e.g., `test_*.py`, `*.test.ts`, `*_test.go`)
-   - Check for a test configuration (`pytest.ini`, `jest.config.*`, etc.)
+**Pre-condition B — no tests exist** and the artefact type warrants testing. Read `profile.yaml → user.it_expertise`:
+- **beginner**: Auto-generate tests, inform user ("I've created tests for this task.")
+- **intermediate**: Propose ("This task should have tests. Shall I generate them?")
+- **expert**: Propose with options ("No tests found. Options: generate unit tests / generate integration tests / skip / discuss")
 
-2. **If tests exist** — run them automatically:
-   - Execute the test suite relevant to the changed artefact
-   - Capture output as evidence
-   - If tests **pass**: record in TASK `test_evidence: { status: pass, timestamp, summary }`
-   - If tests **fail**:
-     1. Report failure details
-     2. Present Gate decision:
-        - **Fix** — Attempt to fix the failing tests (default)
-        - **Skip** — Mark tests as failing, continue
-        - **Discuss** — Explore the failure with the user
+After generation (if any), proceed to the canonical run.
 
-3. **If no tests exist** and the artefact type warrants testing:
-   - Read `profile.yaml` expertise level:
-     - **beginner**: Auto-generate tests, inform user: "I've created tests for this task."
-     - **intermediate**: Propose: "This task should have tests. Shall I generate them?"
-     - **expert**: Propose with options: "No tests found. Options: generate unit tests / generate integration tests / skip / discuss"
-   - If tests are generated, run them and capture evidence
+**Run** — invoke the canonical test run (spec §6.3). All outputs (TCP-NNN campaign, test_evidence update, inline summary, health refresh) are produced by that procedure.
 
-4. **Display Test Campaign Summary in chat** (MANDATORY after every test run):
-
-   The test results MUST be displayed inline in the chat — not hidden in files. This makes the test-driven approach visible to the user at every step.
-
-   **For beginner users** — map test names to feature descriptions (from REQS acceptance criteria):
-   ```
-   ✅ Vérification automatique — tout est OK
-
-     Fonctionnalité                          Résultat
-     ──────────────────────────────────────────────────
-     Ajouter une dépense                     ✅ vérifié
-     Filtrer par mois                        ✅ vérifié
-     Filtrer par catégorie                   ✅ vérifié
-     Tri du plus récent au plus ancien       ✅ vérifié
-
-     4 vérifications réussies, 0 échecs
-   ```
-
-   When tests fail AND are fixed, show the correction:
-   ```
-   ✅ Vérification après correction — tout est OK maintenant
-
-     Fonctionnalité                          Résultat
-     ──────────────────────────────────────────────────
-     Ajouter une dépense                     ✅ vérifié
-     Filtrer par mois                        ✅ corrigé ← était en échec
-     Filtrer par catégorie                   ✅ vérifié
-
-     3 vérifications réussies, 0 échecs
-   ```
-
-   **For intermediate/expert users** — technical summary:
-   ```
-   Tests: 18 passed, 0 failed (0.75s)
-     filters.test.ts    6/6 ✓
-     budget.test.ts     5/5 ✓
-     summary.test.ts    4/4 ✓
-   Build: OK | Lint: OK
-   ```
-
-5. **Persist campaign report** (MANDATORY after every test execution):
-   - Create a report file in `docs/sprints/sprint-{NN}/test-reports/` named `campaign-{YYYY-MM-DD}-{TASK-ID}.md` containing: date, tool used, total tests (pass/fail/skip), TASKs covered, and a brief summary. This file is what the dashboard counts — without it, the dashboard shows "0 reports" even if tests ran successfully.
-   - Attach summary to TASK in `backlog.yaml`: `test_campaign: { ... }`
-   - Coverage delta if measurable
+**Post-condition — failure handling:** if the canonical run ends with `test_evidence.status: fail`, present a Gate decision:
+- **Fix** — attempt to fix the failing tests, then re-invoke the canonical run (default)
+- **Skip** — leave `status: fail`, continue; flagged as HIGH in the next review
+- **Discuss** — explore the failure with the user
 
 ### Step 5 — Finalize
 
@@ -245,8 +194,8 @@ Produce the artefact according to the task specification:
 6. **Manual testing procedure** — After each completed task, provide the user with a step-by-step procedure to manually verify the result. Adapt to the project type: for web apps, the URL and actions to perform in the browser; for APIs, the curl commands or test tool instructions; for CLIs, the commands to run with expected output; for libraries, a usage example. For beginners, write the procedure in simple language with numbered steps. For experts, a concise summary is sufficient. The goal is to enable the user to validate the produced work themselves — complementing automated tests with human verification.
 7. Report production summary:
    - What was produced (in beginner terms: feature descriptions, not file paths)
-   - Test Campaign Summary (from Step 4)
+   - Test Campaign Summary (already shown inline during Step 4 — reiterate at summary time)
    - Manual testing procedure (from Step 6)
    - Remaining sprint budget (for intermediate/expert; hidden for beginner)
    - Next task suggestion (if any)
-8. **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with new task status, test results, and budget consumption.
+8. **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with the final task status (done) and budget consumption. Note: the dashboard was already refreshed right after the test run (step 7 of the canonical run); this second regen captures the TASK status transition.

@@ -208,7 +208,7 @@ updated: "{iso8601}"
 - Always append the current PLAN activity as completed.
 - Reset `status.yaml.activity_history` to `[]` for the new sprint (the prior sprint's history is archived in the previous `plan-summary.md`).
 
-**workflow.active:** Set to the next expected activity after PLAN — typically `reqs` in Full mode, `produce` in Lightweight mode.
+**workflow.active:** Set to the next expected activity after PLAN — `reqs` in both Full and Lightweight modes. (Micro mode does not use `plan.yaml`.)
 
 Present the plan for user approval (Gate). Set `status: active` once confirmed.
 

@@ -127,7 +127,7 @@ When `profile.it_expertise` is `beginner`, apply these translation rules to ALL 
 
 **Artefact approval for beginners:** Never present a technical artefact (reqs.md, design.md, test-strategy.md, review.md) directly to a beginner user for approval. Instead: (1) generate the artefact normally for traceability, (2) present a **plain-language summary** of the key decisions (3-5 short sentences, no jargon, no file names, no IDs), (3) ask for confirmation on the summary. The validation binds to the summary, not the file. Example: "Here's what I've planned for the app structure: data stays in the browser, 3 pages for navigation, expenses are sorted by date. Does that sound right?"
 
-**Test Campaign Summary rule:** After EVERY test execution during PRODUCE, the agent MUST display a summary inline in the chat. For beginners: map test names to feature descriptions from REQS. For experts: show file-level technical summary. This makes the test-driven approach visible — tests are not hidden in files.
+**Test Campaign Summary rule:** After EVERY canonical test run (spec §6.3) — whether invoked by `/gse:produce` (auto) or `/gse:tests --run` (explicit) — the agent MUST display a summary inline in the chat. For beginners: map test names to feature descriptions from REQS. For experts: show file-level technical summary. This makes the test-driven approach visible — tests are not hidden in files.
 
 ## Profile Reactivity
 
@@ -284,10 +284,8 @@ Evaluate states **in order** — the first matching row wins.
 
 | Current state | Next action |
 |--------------|-------------|
-| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | **Intent-First mode**: elicit intent conversationally ("What would you like to build?"), reformulate in plain language, translate to goals. No technical output, no file names, no command names. Then transition to LC01 with plain-language phase names. |
-| No sprint + < 3 project files | Propose **Micro mode** (Gate): `PRODUCE` > `DELIVER`, direct commit (no branches), 1 state file only (`.gse/status.yaml`), Gate-only (security/destructive), no REQS/TESTS guardrails. For beginners: "This is a very small project — I'll keep things simple." |
-| No sprint + 3-4 project files | Propose **Lightweight mode** (Gate): `PLAN` > `PRODUCE` > `DELIVER`, branch-only, Auto+Gate only, 3 health dimensions. User can upgrade to full mode anytime. |
-| No sprint + ≥ 5 project files | **Full mode** — LC01: `COLLECT` > `ASSESS` > `PLAN` |
+| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | **Intent-First mode**: elicit intent conversationally ("What would you like to build?"), reformulate in plain language, translate to goals. No technical output, no file names, no command names. After intent is captured, proceed to **complexity assessment** to determine the mode. |
+| No sprint (after intent-first if applicable) | **Complexity assessment** (see `/gse:go` Step 6): scan structural signals (dependencies, persistence, entry points, multi-component, CI/CD, git maturity, tests), recommend mode (Gate). Based on chosen mode: Micro → PRODUCE, Lightweight → PLAN, Full → LC01 (`COLLECT` > `ASSESS` > `PLAN`). |
 | `plan.yaml` exists, `status: draft` | Resume `PLAN` |
 | `plan.yaml.workflow.active == reqs` | Start `REQS` — begins with **conversational elicitation** (Step 0) to capture user intent in natural language, then **test-driven requirements** with testable acceptance criteria (Given/When/Then), then **quality checklist** (ISO 25010 inspired) verifying NFR completeness. For beginners: "I'll first understand what you need, then write down what the app should do, and for each feature, how we'll know it works. You'll confirm before I build anything." **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
 | `plan.yaml.workflow.active == design` | Start `DESIGN`. If tasks do not involve architecture decisions, record `design` as skipped in `plan.yaml.workflow.skipped` and advance. |
@@ -308,8 +306,8 @@ Evaluate states **in order** — the first matching row wins.
 
 These guardrails **block** progression and cannot be overridden silently:
 
-1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it, AND the quality assurance checklist (Step 7) has been run (high-priority gaps addressed or explicitly acknowledged). REQS is test-driven: acceptance criteria ARE the future validation test specifications. For beginners: "Before I start building, I need to understand what you need, write down exactly what the app should do, verify the quality requirements are complete, and have you confirm." **Exception: `artefact_type: spike`** — spikes bypass REQS and TESTS guardrails (they are complexity-boxed experiments, max 3 points, non-deliverable, must produce a DEC-).
-2. **No PRODUCE without test strategy** — The test approach (pyramid, verification from DESIGN + validation from REQS acceptance criteria, coverage targets) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW, because the architecture informs what to test and how. For beginners: "Before I build, I'll describe how we'll verify each feature works correctly."
+1. **No PRODUCE without REQS (Full and Lightweight)** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. In Full mode, the quality assurance checklist (Step 7) must also have been run. REQS is test-driven: acceptance criteria ARE the future validation test specifications. For beginners: "Before I start building, I need to understand what you need, write down exactly what the app should do, and have you confirm." **Exception:** Micro mode and `artefact_type: spike` — spikes bypass REQS and TESTS guardrails (they are complexity-boxed experiments, max 3 points, non-deliverable, must produce a DEC-).
+2. **No PRODUCE without test strategy (Full only)** — The test approach (pyramid, verification from DESIGN + validation from REQS acceptance criteria, coverage targets) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW. In Lightweight mode, a minimal test strategy is auto-generated at PRODUCE time (Soft guardrail — Inform tier). For beginners: "Before I build, I'll describe how we'll verify each feature works correctly." **Exception:** Micro mode and `artefact_type: spike`.
 
 ### Decision tier override
 
@@ -388,10 +386,12 @@ Both files are written atomically at each transition — complementary, never du
 
 ## Modes
 
-- **Full mode** (default, ≥ 5 files): LC01 > LC02 > LC03, worktree isolation, 8 health dimensions, full P7 tiers. Planning state: `.gse/plan.yaml` with full workflow tracking.
-- **Lightweight mode** (3-4 files): PLAN > PRODUCE > DELIVER, branch-only, Auto+Gate only, 3 health dimensions, no complexity budget. Planning state: `.gse/plan.yaml` with reduced workflow `[plan, produce, deliver]`. User can upgrade anytime.
-- **Micro mode** (< 3 files): PRODUCE > DELIVER, direct commit, 1 state file (`.gse/status.yaml`), Gate only (security/destructive), no health, no budget, no REQS/TESTS guardrails. Planning state: **no `plan.yaml`** — orchestrator falls back to file-existence checks. For quick scripts and one-off tasks.
-- **Adopt mode** (existing project): non-destructive scan, sprint 0 baseline, optional annotation. `plan.yaml` is created when the first sprint is planned.
+- **Full mode** (complex projects — persistence, multi-component, CI, many dependencies): LC01 > LC02 > LC03, worktree isolation, 8 health dimensions, full P7 tiers. Planning state: `.gse/plan.yaml` with full workflow tracking.
+- **Lightweight mode** (simple projects — few dependencies, single component, no persistence): PLAN > REQS > PRODUCE > DELIVER, branch-only, Auto+Gate only, 3 health dimensions, no complexity budget. REQS with reduced ceremony (no quality checklist, no coverage analysis). Test strategy auto-generated at PRODUCE time (Soft guardrail). Planning state: `.gse/plan.yaml` with reduced workflow `[plan, reqs, produce, deliver]`. User can upgrade anytime.
+- **Micro mode** (trivial projects — scripts, one-off tasks, experiments): PRODUCE > DELIVER, direct commit, 1 state file (`.gse/status.yaml`), Gate only (security/destructive), no health, no budget, no REQS/TESTS guardrails. Planning state: **no `plan.yaml`** — orchestrator falls back to file-existence checks. For quick scripts and one-off tasks.
+- **Adopt mode** (existing project): non-destructive scan, sprint 0 baseline, optional annotation. Mode is determined by complexity assessment on first `/gse:go` after adoption.
+
+**Mode selection:** Modes are determined by a **complexity assessment** (structural signal scan: dependencies, persistence, entry points, multi-component, CI/CD, git maturity, tests). The assessment recommends a mode, presented as a Gate decision — the user confirms or overrides. File count is one signal among many, not the sole criterion. See `/gse:go` Step 6 for the full protocol.
 
 ## Methodology Feedback
 

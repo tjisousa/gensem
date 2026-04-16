@@ -35,8 +35,9 @@ Before executing, read:
 1. Read `docs/sprints/sprint-{NN}/review.md` for all RVW-NNN findings
 2. Filter by arguments (severity, task, specific finding)
 3. Sort by severity (HIGH first), then by task
-4. Present fix plan: list of findings to address with estimated effort
-5. Wait for user confirmation (Gate)
+4. **Verify TASK status** — Each TASK with findings should have `status: fixing` (set by REVIEW). If a TASK is still `status: review` or `status: done`, set it to `fixing` now.
+5. Present fix plan: list of findings to address with estimated effort
+6. Wait for user confirmation (Gate)
 
 ### Step 2 — Git Setup (Per Task)
 

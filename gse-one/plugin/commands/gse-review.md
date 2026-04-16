@@ -40,7 +40,8 @@ Before reviewing any TASK, verify test execution:
 
 ### Step 1 — Identify Review Scope
 
-1. Read `backlog.yaml` and select tasks with `status: done` that have not been reviewed
+1. Read `backlog.yaml` and select tasks with `status: done` that have not been reviewed.
+   **Update each selected TASK:** set `status: review` in `backlog.yaml`. This marks them as under review and prevents `/gse:produce` from picking them up.
 2. For each task, identify the feature branch: `git.branch` field
 3. Generate the diff against the sprint branch:
    ```
@@ -101,13 +102,19 @@ Before reviewing any TASK, verify test execution:
 - Module coupling and cohesion
 - Interface contract compliance
 
-#### 2e — Test Coverage & Regression Scan (test-strategist agent)
+#### 2e — Test Implementation Review & Regression Scan (test-strategist agent — IMPL tier)
 
-- Test existence for new/changed code
-- Test quality (meaningful assertions, edge cases)
-- Coverage gaps
-- Test naming and organization
-- **Regression scan:** Execute the **full test suite** (not just tests for the current TASK). Compare pass/fail counts with the last sprint's test report in `docs/sprints/sprint-{NN-1}/test-reports/`. If tests that passed in the previous sprint now fail → create a finding with severity **HIGH** and tag `[REGRESSION]`. For beginners: "I found that something that worked before stopped working after this change."
+Findings tagged `[IMPL]`. This is the **always-on** third tier of the Test Review Layering (spec §6.5). The two upstream tiers (STRATEGY, TST-SPEC) run during `/gse:tests` under their own triggers.
+
+Focus of this pass — **alimentation** (are the written tests meaningful?):
+- Assertions that truly exercise the behavior (no tautological tests like `assert True` or `assert result == result`)
+- Fixtures realistic and isolated (no shared mutable state between tests)
+- Edge cases actually covered (empty, null, boundary values, error states)
+- Test names map cleanly to the TST- they implement (if a TST- review finding exists, flag the inconsistency)
+- Test quality (meaningful messages, descriptive names, no dead code)
+- Coverage gaps on touched files (not strategy-level — that was tier STRATEGY)
+
+**Regression scan** (unchanged, part of this step): Execute the **full test suite** (not just tests for the current TASK). Compare pass/fail counts with the last sprint's test report in `docs/sprints/sprint-{NN-1}/test-reports/`. If tests that passed in the previous sprint now fail → create a finding with severity **HIGH** and tag `[REGRESSION]`. For beginners: "I found that something that worked before stopped working after this change."
 
 #### 2f — UX Review (ux-advocate agent, for web/UI projects)
 
@@ -222,6 +229,10 @@ Report:
 - AI-INTEGRITY findings: {count}
 - Tasks reviewed: {list}
 - Health score delta
+
+**Update TASK statuses** in `backlog.yaml` based on review results:
+- If HIGH findings exist for a TASK → set `status: fixing` (requires `/gse:fix` before delivery)
+- If no HIGH findings → set `status: done` (ready for delivery)
 
 If findings with severity HIGH exist:
 - Recommend `/gse:fix` before delivery

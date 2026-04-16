@@ -39,7 +39,7 @@ This ensures rollback is always possible.
 
 Verify delivery readiness:
 
-1. **Review status** — Check that all feature branches have been reviewed (`backlog.yaml` TASK `status: done`). If any task has `status: in-progress` or `status: planned`:
+1. **Review status** — Check that all sprint TASKs are ready for delivery (`backlog.yaml` TASK `status: done`). If any task has `status: in-progress`, `status: planned`, `status: review`, or `status: fixing`:
    - Report: "Task TASK-{ID} is not complete (status: {status})."
    - Present Gate: **Wait** / **Deliver partial** / **Discuss**
 

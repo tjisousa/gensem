@@ -123,14 +123,15 @@ Evaluate states **in order** — the first matching row wins.
 **Post-activity protocol:** After each activity completes, the orchestrator updates `.gse/plan.yaml` per the **Sprint Plan Maintenance** protocol in the orchestrator (workflow transition, coherence evaluation, alerts by mode). See the orchestrator document for the full protocol.
 
 **"No sprint defined" sub-decision** (evaluated in order):
-1. If `it_expertise: beginner` and `current_sprint: 0` (first time) → start **Intent-First mode** (Step 7)
-2. If the project has < 3 actual project files → propose **Micro mode** (Gate): `PRODUCE` > `DELIVER`, direct commit, 1 state file, no REQS/TESTS guardrails
-3. If the project has 3-4 actual project files → propose **Lightweight mode** (Step 6)
-4. Otherwise (≥ 5 files) → start full **LC01**: `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`
+1. If `it_expertise: beginner` and `current_sprint: 0` (first time) → start **Intent-First mode** (Step 7). After intent is captured, proceed to step 2 (do NOT skip directly to LC01).
+2. **Complexity assessment** (Step 6) — Scan structural signals and recommend a mode (Gate). Based on chosen mode:
+   - **Micro** → start PRODUCE
+   - **Lightweight** → start PLAN
+   - **Full** → start LC01: `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`
 
-**Lifecycle guardrails (Hard — cannot be skipped):**
-1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specs. For beginners: "Before I start building, I need to write down exactly what the app should do and how we'll check it works — and have you confirm."
-2. **No PRODUCE without test strategy** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW. For beginners: "Before I build, I'll describe how we'll verify each feature works correctly."
+**Lifecycle guardrails (mode-differentiated):**
+1. **No PRODUCE without REQS (Full and Lightweight)** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. REQS is test-driven: acceptance criteria ARE the future validation test specs. For beginners: "Before I start building, I need to write down exactly what the app should do and how we'll check it works — and have you confirm." **Exception:** Micro mode and `artefact_type: spike`.
+2. **No PRODUCE without test strategy (Full only)** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW. In Lightweight mode, a minimal test strategy is auto-generated at PRODUCE time (Soft guardrail — Inform tier). For beginners: "Before I build, I'll describe how we'll verify each feature works correctly." **Exception:** Micro mode and `artefact_type: spike`.
 
 **Decision tier override:**
 3. **Supervised mode** — When `decision_involvement: supervised`, ALL technical choices during PRODUCE are escalated to **Gate-tier** decisions. The agent presents options and waits for user confirmation.
@@ -141,7 +142,7 @@ Present the proposal and wait for user confirmation before executing.
 
 Read `config.yaml → lifecycle.stale_sprint_sessions` (default: 3 sessions).
 
-Track the number of sessions (invocations of `/gse:go` or `/gse:resume`) where no TASK has progressed to a new status. A "progression" is any TASK moving from one status to the next (open→planned, planned→in-progress, in-progress→done, etc.).
+Track the number of sessions (invocations of `/gse:go` or `/gse:resume`) where no TASK has progressed to a new status. A "progression" is any TASK moving from one status to the next (open→planned, planned→in-progress, in-progress→review, review→fixing, fixing→done, done→delivered, etc.).
 
 If the session-without-progress count reaches the configured threshold:
 
@@ -164,32 +165,84 @@ If the last activity ended with an error or incomplete state:
    - **Pause** — Save state and stop (user will return later)
    - **Discuss** — Explore alternatives
 
-### Step 6 — Lightweight Mode Detection
+### Step 6 — Mode Selection (Complexity Assessment)
 
-**Trigger:** Reached from Step 3 when no sprint is defined and the project has < 5 actual project files (using Step 1 exclusion rules). At this point `.gse/` already exists (created by HUG or adopt).
+**Trigger:** Reached from Step 3 when no sprint is defined (after Intent-First if applicable). At this point `.gse/` already exists (created by HUG or adopt).
 
-1. Propose lightweight mode (Inform tier — user can override to full):
-   "This is a small project. I recommend lightweight mode — reduced overhead while preserving traceability."
-2. Operational restrictions in lightweight mode (spec Section 13.2):
+#### Step 6.1 — Scan Structural Signals
+
+Evaluate the project using these signals (each takes <1 second):
+
+| Signal | How to detect | Result |
+|--------|--------------|--------|
+| **Dependencies** | Read package manifest (`package.json` → dependencies, `pyproject.toml` → `[project.dependencies]`, `Cargo.toml`, `go.mod`) | count of direct deps |
+| **Persistence** | Search for: ORM imports (sqlalchemy, prisma, typeorm, mongoose), SQL files (`*.sql`), docker-compose with db service, `.env` with `DB_URL`/`DATABASE_URL` | yes / no |
+| **Entry points** | Scan for: route definitions, page components, CLI command registrations, main entry files | count |
+| **Multi-component** | Multiple package manifests, workspace config (`nx.json`, `turbo.json`, `pnpm-workspace.yaml`), presence of `frontend/` + `backend/` | yes / no |
+| **Existing tests** | Test directories (`tests/`, `__tests__/`, `test/`), test files (`*.test.*`, `test_*.*`) | yes / no |
+| **CI/CD** | `.github/workflows/`, `.gitlab-ci.yml`, `Dockerfile`, `Jenkinsfile` | yes / no |
+| **Git maturity** | `git rev-list --count HEAD`, `git branch --list`, `git shortlog -sn` | commits, branches, contributors |
+| **Source files** | Count files excluding deps/generated/IDE (Step 1 exclusion rules) | count |
+
+#### Step 6.2 — Determine Recommended Mode
+
+Apply these rules (first match wins):
+
+| Condition | Recommended mode |
+|-----------|-----------------|
+| No manifest AND no git history AND source files ≤ 2 | **Micro** |
+| Persistence OR multi-component OR CI/CD OR dependencies > 10 OR entry points > 10 | **Full** |
+| Existing tests AND (dependencies > 3 OR entry points > 3) | **Full** |
+| Otherwise | **Lightweight** |
+
+Confidence level:
+- **High** — 3+ signals clearly point to one mode
+- **Moderate** — signals are mixed → present both options prominently
+- **Low** — project is empty or signals are ambiguous → ask the user
+
+#### Step 6.3 — Present Mode Decision (Gate)
+
+Present the recommendation with rationale adapted to user expertise:
+
+**Beginner:**
+"I've looked at your project. It's [simple / moderately complex / complex]. I recommend working in [mode description — no mode name]. This means: [1-2 sentences describing what happens]. Does that sound right?"
+
+**Intermediate/Expert:**
+"Complexity assessment: [signal summary]. Recommended mode: [Micro/Lightweight/Full] — [rationale]."
+1. Accept [recommended]
+2. Use [alternative] instead
+3. Discuss
+
+After the user confirms, set `config.yaml → lifecycle.mode` and proceed:
+- **Micro** → start PRODUCE
+- **Lightweight** → start PLAN
+- **Full** → start LC01 (`COLLECT` > `ASSESS` > `PLAN`)
+
+#### Mode comparison
 
 | Aspect | Full Mode | Lightweight Mode | Micro Mode |
 |--------|-----------|-----------------|------------|
-| Lifecycle | LC01 > LC02 > LC03 | PLAN > PRODUCE > DELIVER | PRODUCE > DELIVER |
-| `.gse/` state | 4 files (config, profile, status, backlog) | 4 files | 1 file (`status.yaml` with inline profile + task list) |
+| Selection | Complex project (persistence, multi-component, CI, many deps) | Simple project (few deps, single component, no persistence) | Trivial project (script, one-off, experiment) |
+| Lifecycle | LC01 > LC02 > LC03 | PLAN > REQS > PRODUCE > DELIVER | PRODUCE > DELIVER |
+| `.gse/` state | 4 files (config, profile, status, backlog) + plan.yaml | 4 files + plan.yaml | 1 file (`status.yaml` with inline profile + task list) |
 | Git strategy | `worktree` (sprint + feature branches) | `branch-only` (single feature branch from main) | direct commit (no branch creation) |
-| Sprint artefacts | Full set (plan-summary, reqs, design, tests, review, compound) | `.gse/plan.yaml` only (no per-activity artefact files) | None |
-| Health dashboard | 8 dimensions | 3 only (test_pass_rate, review_findings, git_hygiene) | None |
+| Sprint artefacts | Full set (plan-summary, reqs, design, tests, review, compound) | reqs.md only | None |
+| Health dashboard | 8 dimensions | 3 (test_pass_rate, review_findings, git_hygiene) | None |
 | Complexity budget | Tracked | Not tracked | Not tracked |
 | Decision tiers | Full P7 assessment (Auto + Inform + Gate) | Simplified (Auto + Gate only) | Gate only (security/destructive) |
-| REQS/TESTS guardrails | Hard (mandatory) | Hard (mandatory) | Not enforced |
+| REQS guardrail | Hard (mandatory) | Hard (mandatory, reduced ceremony) | Not enforced |
+| TESTS guardrail | Hard (formal strategy required) | Soft (auto-generated strategy, Inform) | Not enforced |
+| REQS ceremony | Full: elicitation + REQs + quality checklist + coverage analysis | Reduced: elicitation + REQs (no quality checklist, no coverage analysis) | None |
+| DESIGN / PREVIEW | Yes (conditional) | No | No |
+| REVIEW / COMPOUND | Yes | No | No |
 
-3. User can upgrade from Micro → Lightweight → Full at any time via `/gse:go` — the agent scaffolds the missing structure.
+User can upgrade from Micro → Lightweight → Full at any time via `/gse:go` — the agent scaffolds the missing structure.
 
 ### Step 7 — Intent-First Mode (Beginner + First Sprint)
 
-**Trigger:** Reached from Step 3 when `it_expertise: beginner` and `current_sprint: 0` (first time through LC01). At this point `.gse/` exists with a profile from HUG.
+**Trigger:** Reached from Step 3 when `it_expertise: beginner` and `current_sprint: 0` (first time). At this point `.gse/` exists with a profile from HUG.
 
-The orchestrator enters a conversational mode to clarify the user's intent before starting the formal lifecycle:
+The orchestrator enters a conversational mode to clarify the user's intent before determining the project mode:
 
 1. **Elicit intent** — Ask in simple terms:
    *"Describe in a few sentences what you'd like to build or achieve."*
@@ -202,13 +255,14 @@ The orchestrator enters a conversational mode to clarify the user's intent befor
 3. **Translate to backlog** — Convert the validated intent into initial TASK items in `backlog.yaml`. Present them as concrete goals, not technical work items:
    *"Here's what we'll work on: [list of goals]. I'll guide you through each step."*
 
-4. **Transition to LC01** — Enter the normal lifecycle (`COLLECT` > `ASSESS` > `PLAN`), but present each activity in plain language:
-   - COLLECT → *"Let me look at what we have to work with"*
-   - ASSESS → *"Let me figure out what's missing"*
+4. **Transition to complexity assessment** — Proceed to **Step 6 (Mode Selection)** to determine the appropriate mode based on project complexity. The mode determines the lifecycle path:
+   - **Micro** → PRODUCE (for a quick script, the agent starts building immediately)
+   - **Lightweight** → PLAN > REQS > PRODUCE > DELIVER (for a simple app)
+   - **Full** → COLLECT > ASSESS > PLAN > ... (for a complex project)
+   Present each activity in plain language for the beginner:
    - PLAN → *"Let me organize the work into manageable steps"*
    - REQS → *"Let me write down exactly what the application should do"*
    - PRODUCE → *"Now I'll build it"*
-   - REVIEW → *"Let me check my own work for mistakes"*
    - DELIVER → *"Let me finalize and package the result"*
 
 5. **Exit condition** — The user can say *"I know the process, let's skip ahead"* at any point. The agent switches to normal orchestration immediately and updates the profile: `it_expertise: intermediate`.

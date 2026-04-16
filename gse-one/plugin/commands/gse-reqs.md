@@ -20,6 +20,26 @@ Arguments: $ARGUMENTS
 | `--validate`       | Check requirements for completeness and consistency |
 | `--help`           | Show this command's usage summary |
 
+## Mode-Specific Ceremony
+
+The depth of the REQS activity depends on the project mode (`config.yaml → lifecycle.mode`):
+
+| Step | Full mode | Lightweight mode |
+|------|-----------|-----------------|
+| Step 0 — Conversational elicitation | Yes | Yes |
+| Step 1 — Scope determination | Yes | Yes (simplified) |
+| Step 2 — Functional requirements (test-driven) | Yes | Yes (fewer REQs expected: 2-5 concise items) |
+| Step 3 — Non-functional requirements | Yes | Optional (agent proposes key NFRs, user decides) |
+| Step 4 — User story format | Yes | No (acceptance criteria from Step 2 suffice) |
+| Step 5 — Validation | Yes | Simplified (completeness + testability only) |
+| Step 6 — Coverage analysis | Yes | No |
+| Step 7 — Quality assurance checklist (ISO 25010) | Yes | No |
+| Step 8 — Persist | Yes | Yes |
+
+In Lightweight mode, the agent aims for 2-5 concise REQs with acceptance criteria. The quality checklist and coverage analysis are skipped — they add value for complex projects but are overhead for simple ones.
+
+REQS is **not executed** in Micro mode.
+
 ## Prerequisites
 
 Before executing, read:

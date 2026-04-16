@@ -20,6 +20,9 @@ Arguments: $ARGUMENTS
 | `--visual`         | Run visual/screenshot tests (web/mobile projects) |
 | `--coverage`       | Generate and display code coverage report |
 | `--evidence`       | Produce test evidence package for the current sprint |
+| `--review-strategy` | Run the strategy review pass manually (tag `[STRATEGY]`, see spec §6.5) |
+| `--review-specs`   | Run the TST- specifications review pass manually (tag `[TST-SPEC]`, see spec §6.5) |
+| `--deep-review`    | Run both strategy and TST-spec review passes, regardless of auto-triggers |
 | `--help`           | Show this command's usage summary |
 
 ## Prerequisites
@@ -45,21 +48,11 @@ Before executing, read:
 
 For beginners: "I'll take each feature description you confirmed and turn it into a checklist of things to verify. Some checks are from the user's point of view (does the app do what you want?) and some are technical (is the code structured correctly?)."
 
-Define the test pyramid calibrated by project domain:
-
-| Domain | Unit | Integration | E2E/Visual | Other |
-|--------|------|-------------|------------|-------|
-| **Web frontend** | 20% | 20% | 40% (visual) | 20% (a11y, perf) |
-| **API / backend** | 50% | 30% | 5% (smoke) | 15% (load, security) |
-| **CLI tool** | 60% | 20% | 10% (smoke) | 10% (compat) |
-| **Data pipeline** | 40% | 30% | 5% | 25% (data quality) |
-| **Mobile app** | 25% | 20% | 35% (visual) | 20% (device compat) |
-| **Library / SDK** | 70% | 20% | 0% | 10% (compat, docs) |
-| **Embedded** | 50% | 25% | 0% | 25% (hardware sim) |
+Define the test pyramid calibrated by project domain. **The canonical distribution is defined in the spec §6.1** (columns: Unit / Integration / E2E-Visual / Acceptance / Other) and covers 8 domains: Web frontend, API backend, CLI tool, Data pipeline, Mobile, Library/SDK, Embedded, Scientific. The agent reads the appropriate row from that table based on `config.yaml → project.domain`.
 
 **Monorepo sub-domains:** When `config.yaml → project.sub_domains` is defined, create a separate pyramid section per sub-domain in the test strategy. For example:
-- `frontend/` (domain: web) → web pyramid (20% unit, 20% integration, 40% visual, 20% other)
-- `backend/` (domain: api) → api pyramid (50% unit, 30% integration, 5% smoke, 15% other)
+- `frontend/` (domain: web) → web pyramid from spec §6.1
+- `backend/` (domain: api) → api pyramid from spec §6.1
 Files outside any sub-domain path use the top-level `project.domain` pyramid as fallback.
 
 The strategy document defines:
@@ -122,6 +115,17 @@ For beginners: "The quality checklist found some details we should verify with t
 
 Save to `docs/sprints/sprint-{NN}/test-strategy.md`.
 
+#### Strategy review pass (spec §6.5 — STRATEGY tier)
+
+After saving the strategy, check the auto-trigger conditions. The strategy review runs when **any** of the following is true:
+- `config.yaml → project.domain` is security-sensitive (auth / crypto / payment / PII)
+- The current sprint's `complexity_budget > 15`
+- The flag `--review-strategy` or `--deep-review` was passed
+
+When the review fires, spawn the `test-strategist` sub-agent (see `agents/test-strategist.md`, "Strategy checklist") on the just-saved `test-strategy.md`. Findings are tagged `[STRATEGY]` and written into `docs/sprints/sprint-{NN}/review.md` using the standard RVW-NNN format. HIGH findings block `/gse:produce` (Hard guardrail) until resolved; MEDIUM / LOW warn but do not block.
+
+When none of the triggers fire, skip this pass — the strategy is trusted on the fly to keep light sprints agile. The user can always force it later with `--review-strategy`.
+
 ### Risk-Based Prioritization (Spec 6.1)
 
 Not all code needs equal test coverage. Prioritize testing based on risk:
@@ -150,7 +154,7 @@ The same applies to requirements coverage:
 
 Risk coverage target: 100% of high-risk modules (security, Gate decisions, imports) must have dedicated tests.
 
-### Adaptation to User Expertise (Spec 6.5)
+### Adaptation to User Expertise (Spec 6.6)
 
 The agent's testing behavior adapts to the user's level (`profile.yaml → user.it_expertise`):
 
@@ -228,33 +232,34 @@ def test_rate_limiter_rejects_over_threshold():
     assert result.retry_after > 0
 ```
 
+#### TST specs review pass (spec §6.5 — TST-SPEC tier)
+
+After all TST- artefacts are drafted, check the auto-trigger conditions. The specs review runs when **any** of the following is true:
+- At least one TST- carries `traces.quality_gap: true`
+- The total count of TST- drafted in this sprint is ≥ 20
+- The flag `--review-specs` or `--deep-review` was passed
+
+When the review fires, spawn the `test-strategist` sub-agent (see `agents/test-strategist.md`, "Specifications checklist") on the TST- specs. The reviewer checks: exact Given/When/Then correspondence between each TST- and its source REQ-, absence of tautological tests, boundary / empty / error case coverage, coherence of `traces` fields, and that every REQ `priority: must` has at least one TST-. Findings are tagged `[TST-SPEC]` and written into `docs/sprints/sprint-{NN}/review.md`. HIGH findings block `/gse:produce` (Hard guardrail) until resolved.
+
+When none of the triggers fire, skip this pass to keep sprints with few or low-risk tests agile. The user can always force it later with `--review-specs`.
+
 ### Step 4 — Execute (`--run`)
 
-Run tests in an isolated environment:
+TESTS invokes the **canonical test run** defined in spec §6.3. Argument handling determines the scope:
 
-1. **Full suite** (`--run`): Execute all tests, capture output
-2. **Single test** (`--run TST-005`): Execute only the specified test
-3. **By level** (`--run --level unit`): Execute tests at a specific level
+| Invocation | Scope |
+|------------|-------|
+| `--run` (no arg) | Full suite |
+| `--run TST-005` | Single test identified by TST-NNN |
+| `--run --level unit` | All tests at the specified pyramid level (unit / integration / e2e / visual / performance) |
 
-Capture for each test run:
-- Pass/fail status per test
-- Execution time
-- Stdout/stderr output
-- Stack traces for failures
+Unlike PRODUCE, TESTS does **not** auto-generate missing tests — tests must already exist. If no tests exist for the requested scope, report and redirect to `--strategy` / Step 3.
+
+All outputs (TCP-NNN campaign, test_evidence update on every covered TASK, inline summary, health refresh) are produced by the canonical run — no capture logic is duplicated here.
 
 ### Step 5 — Visual Testing (`--visual`)
 
-For web and mobile projects:
-
-1. **Capture screenshots** — Use Playwright to navigate to each page/view and capture screenshots
-2. **Multimodal analysis** — Analyze screenshots for visual defects:
-   - Layout issues (overlapping elements, misalignment)
-   - Missing content (blank areas, broken images)
-   - Styling anomalies (wrong colors, font issues)
-   - Responsive issues (content overflow, hidden elements)
-3. **Best-effort caveat** — Always note: "Visual analysis is best-effort. The agent identifies obvious issues but cannot guarantee detection of all visual defects. Human review of screenshots is recommended."
-4. **Save screenshots** — Store in `docs/sprints/sprint-{NN}/test-reports/screenshots/`
-5. **Video on failure** — If a test fails, capture video of the failing interaction
+For web and mobile projects, `--visual` invokes the canonical test run (spec §6.3) **with visual testing enabled**. The canonical run's screenshot analysis sub-step is mandatory in this mode: multimodal analysis of captured screenshots, `[VISUAL]`-tagged findings in the campaign, and video on failure when configured. See spec §6.3 "Screenshot analysis (visual runs only)" for the full behavior and best-effort caveat.
 
 ### Step 6 — Coverage (`--coverage`)
 
@@ -271,50 +276,38 @@ Generate code coverage report:
 3. Compare against targets from strategy
 4. Flag files below threshold
 
-### Step 7 — Campaign Report (`--evidence`)
+### Step 7 — Sprint Evidence Package (`--evidence`)
 
-Generate a comprehensive test evidence package:
+Unlike the per-run TCP-NNN emitted by the canonical run (one per `--run` invocation, scoped to a single TASK or test), `--evidence` produces a **sprint-level aggregate** rolling up all TCPs of the current sprint.
 
-Save to `docs/sprints/sprint-{NN}/test-reports/campaign-{date}.md`:
+Save to `docs/sprints/sprint-{NN}/test-reports/sprint-evidence-{date}.md`:
 
 ```yaml
 ---
-id: RVW-{NNN}
-artefact_type: review
-title: "Sprint {NN} Test Campaign — {date}"
-sprint: {NN}
-status: done
-created: {date}
-author: agent
-traces:
-  derives_from: [TST-{NNN}, ...]
+gse:
+  id: TCP-{NNN}                      # unique campaign ID (sprint-level aggregate)
+  type: test-campaign
+  title: "Sprint {NN} Evidence Package — {date}"
+  sprint: {NN}
+  status: done
+  created: {date}
+  author: agent
+  traces:
+    derives_from: [TCP-{NNN}, TCP-{NNN}, ...]  # the per-TASK campaigns rolled up
+    implements: [REQ-{NNN}, ...]                # all REQs covered this sprint
 ---
 ```
 
 Content includes:
 - Test pyramid coverage vs targets
-- Pass/fail summary by level
-- Code coverage summary
-- Requirements coverage matrix (which REQs have passing tests)
+- Pass/fail summary by level (aggregated across all TCPs)
+- Code coverage summary (weighted or latest, as appropriate)
+- Requirements coverage matrix (which REQs have at least one passing test)
 - Visual test results with screenshot references
 - Failed tests with root cause analysis
 - Recommendations for next sprint
 
-### Step 8 — Update Health Metrics
-
-Update `.gse/status.yaml` health dimensions with test metrics:
-
-```yaml
-testing:
-  test_pass_rate: 95.2        # percentage of tests passing
-  code_coverage: 82.1          # line coverage percentage
-  requirements_coverage: 90.0  # percentage of REQs with at least one test
-  last_run: "2026-01-20T14:30:00Z"
-  tests_total: 42
-  tests_passed: 40
-  tests_failed: 2
-  tests_skipped: 0
-```
+Health dimensions and the dashboard are refreshed automatically because each underlying canonical run already updated them. `--evidence` only aggregates — it does not re-run tests.
 
 ### Framework Drift Detection
 

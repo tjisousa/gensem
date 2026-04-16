@@ -45,7 +45,7 @@ Never skip a step. Never commit without regenerating. Never push without bumping
 
 ### Files to keep in sync (all via generator)
 - `src/activities/*.md` → `plugin/skills/*/SKILL.md` (Claude Code) + `plugin/commands/gse-*.md` (Cursor)
-- `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md` + `plugin/rules/000-gse-methodology.mdc`
+- `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc`
 - Changes in spec should be reflected in design doc changelog and vice versa.
 
 ## Language

@@ -307,16 +307,17 @@ GSE-One delivers its methodology as a **single plugin directory** (`plugin/`) th
 | Artifact | Files | Claude Code | Cursor |
 |----------|-------|:-----------:|:------:|
 | Skills (23) | `skills/<name>/SKILL.md` | Loaded | Loaded |
-| Agents (9) | `agents/<name>.md` | Loaded | Loaded |
+| Specialized agents (8) | `agents/<name>.md` | Loaded | Loaded |
+| Orchestrator (identity) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Not installed (see below) |
+| Orchestrator (identity) | `rules/gse-orchestrator.mdc` | Ignored | `alwaysApply: true` |
 | Templates (15) | `templates/*` | Loaded | Loaded |
-| Always-on skill (methodology) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Via `rules/000-gse-methodology.mdc` (identical body) |
 | Hooks (3) | `hooks/hooks.claude.json` | Loaded | Ignored |
 | Hooks (3) | `hooks/hooks.cursor.json` | Ignored | Loaded |
 | Manifest | `.claude-plugin/plugin.json` | Loaded | Ignored |
 | Manifest | `.cursor-plugin/plugin.json` | Ignored | Loaded |
 | Settings | `settings.json` | Loaded | Ignored |
 
-Note: "orchestrator" is a GSE-One convention. In Claude Code, it is the session's default agent. In Cursor, it is an always-on rule. Neither platform has a formal "orchestrator" concept.
+Note: "orchestrator" is a GSE-One convention. The orchestrator body is identical on both platforms — only the delivery mechanism differs. On Claude Code, it is the session's default agent (`agents/gse-orchestrator.md` referenced by `settings.json`). On Cursor, it is an always-on rule (`rules/gse-orchestrator.mdc`). The installer excludes `gse-orchestrator.md` from Cursor's `agents/` directory to avoid loading the same content twice.
 
 ### 1.2 Agile Software Engineering Foundations
 
@@ -374,7 +375,7 @@ GSE-One inherits agile principles but adapts them for a context that standard ag
 | **Complexity budget** (P10) | Finite budget per sprint preventing scope creep via measurable cost | Agile uses velocity as a trailing indicator, not a forward constraint |
 | **Progressive knowledge transfer** (P14) | Agent teaches the user during work, with mastery tracking | Agile expects pre-existing expertise or external training |
 | **Spike mode** | Complexity-boxed experiments bypassing REQS/TESTS guardrails | XP has spikes, but without formal guardrail bypass or complexity caps |
-| **Three project modes** (Micro/Lightweight/Full) | Scale ceremony to project size | Agile methodologies are typically one-size (Scrum) or customizable but heavy (SAFe) |
+| **Three project modes** (Micro/Lightweight/Full) | Scale ceremony to project complexity (assessed from structural signals, not file count) | Agile methodologies are typically one-size (Scrum) or customizable but heavy (SAFe) |
 
 ### 1.3 GSE-One Overview
 
@@ -419,6 +420,8 @@ GSE-One is built for a fundamental asymmetry: the **user has the intent** but th
 | **Mono-repo** | GSE-One manages one repository at a time. Multi-component projects should use a mono-repo. |
 | **Confidence level** | Every agent recommendation carries a confidence tag: Verified, High, Moderate, or Low. |
 | **Devil's advocate** | During review, the agent challenges its own productions — hunting hallucinations, unverified claims, and missing alternatives. |
+| **Verification** | A test that confirms the code is built correctly — "build the thing right". Traces to DES- (design decisions, interfaces, data contracts). Typical levels: unit, integration. |
+| **Validation** | A test that confirms the code does what the user asked for — "build the right thing". Traces to REQ- (acceptance criteria). Typical levels: acceptance, E2E, visual. |
 
 ### 1.6 Agent Roles
 
@@ -526,6 +529,7 @@ Every artefact must be traceable to its origin and related artefacts. Requiremen
 | `REQ-` | Requirement | REQ-001 |
 | `DES-` | Design decision | DES-003 |
 | `TST-` | Test definition | TST-012 |
+| `TCP-` | Test campaign report (execution event) | TCP-007 |
 | `RVW-` | Review finding | RVW-005 |
 | `DEC-` | Decision | DEC-008 |
 | `TASK-` | Work item (backlog + sprint tasks — unified) | TASK-014 |
@@ -1309,14 +1313,16 @@ The `/gse:tests` activity manages the full testing lifecycle: strategy definitio
 
 #### Test types
 
-| Type | Purpose | Traces to |
-|------|---------|-----------|
-| **Unit** | Verify individual functions/modules in isolation | DES (design), code |
-| **Integration** | Verify that modules work together correctly | DES (interfaces), REQ |
-| **E2E (End-to-End)** | Simulate complete user workflows through the application | REQ (user stories) |
-| **Visual** | Verify UI rendering via screenshot comparison | REQ (UI requirements) |
-| **Acceptance** | Validate that a requirement is met (from the user's perspective) | REQ (acceptance criteria) |
-| **Regression** | Ensure that previously fixed bugs don't reappear | RVW (past review findings) |
+| Type | Kind | Purpose | Traces to |
+|------|------|---------|-----------|
+| **Unit** | verification | Check individual functions/modules in isolation | DES (design), code |
+| **Integration** | verification | Check that modules work together correctly | DES (interfaces), REQ |
+| **E2E (End-to-End)** | validation | Simulate complete user workflows through the application | REQ (user stories) |
+| **Visual** | validation | Check UI rendering via screenshot comparison | REQ (UI requirements) |
+| **Acceptance** | validation | Confirm that a requirement is met from the user's perspective | REQ (acceptance criteria) |
+| **Regression** | both | Ensure that previously fixed bugs don't reappear (verification or validation depending on what regressed) | RVW (past review findings) |
+
+The **Kind** column labels each type against the methodological distinction (see glossary §1.5): **verification** = "build the thing right" (vs DES-), **validation** = "build the right thing" (vs REQ-). Regression is `both` because a regressed bug may concern either side.
 
 **Cross-sprint regression detection:** During `/gse:review`, the agent executes the **full test suite** (not just tests for the current TASK) and compares pass/fail counts with the previous sprint's test report (`docs/sprints/sprint-{NN-1}/test-reports/`). Tests that passed in the previous sprint but now fail are flagged as `[REGRESSION]` findings with severity HIGH. This provides automatic cross-sprint regression detection without additional infrastructure — it leverages the accumulated test suite.
 
@@ -1334,14 +1340,18 @@ The `/gse:reqs` activity includes two mechanisms that feed into the test strateg
 
 The agent proposes a test distribution adapted to the project type (from `config.yaml → project.domain`):
 
-| Domain | Unit | Integration | E2E / Visual | Acceptance |
-|--------|------|-------------|-------------|------------|
-| **Web frontend** | 20% | 20% | 40% | 20% |
-| **API backend** | 50% | 30% | 5% | 15% |
-| **CLI tool** | 60% | 20% | 10% | 10% |
-| **Scientific** | 40% | 20% | 0% | 40% |
-| **Library** | 70% | 20% | 0% | 10% |
-| **Mobile** | 25% | 20% | 35% | 20% |
+| Domain | Unit | Integration | E2E / Visual | Acceptance | Other |
+|--------|------|-------------|--------------|------------|-------|
+| **Web frontend** | 20% | 20% | 30% | 20% | 10% (a11y, perf) |
+| **API backend** | 50% | 25% | 5% | 10% | 10% (load, security) |
+| **CLI tool** | 60% | 20% | 5% | 10% | 5% (compat) |
+| **Data pipeline** | 40% | 30% | 0% | 20% | 10% (data quality) |
+| **Mobile** | 25% | 20% | 30% | 15% | 10% (device compat) |
+| **Library / SDK** | 70% | 20% | 0% | 5% | 5% (compat, docs) |
+| **Embedded** | 50% | 25% | 0% | 10% | 15% (hardware sim) |
+| **Scientific** | 40% | 20% | 0% | 30% | 10% (data quality) |
+
+The **Other** column groups constraint-level tests that don't fit a pyramid level (accessibility, performance, load, compatibility, hardware simulation, data quality). They attach as additional checks on existing test levels rather than forming a new level.
 
 The pyramid is a **starting point** — the agent adjusts based on actual project needs and presents deviations as Inform-tier decisions.
 
@@ -1411,45 +1421,64 @@ If accepted, the agent:
 
 ### 6.3 Test Execution and Evidence
 
-#### During `/gse:produce`
+#### Canonical test run
 
-After producing code for a TASK, the agent automatically:
+A **canonical test run** is the single procedure executed identically whether invoked from `/gse:produce` (automatic post-production run) or `/gse:tests --run` (explicit run). Both entry points MUST produce the same artefacts and the same user-visible output — any divergence is a bug in the methodology, not a feature. Each activity adds only its own pre/post-conditions; the seven steps below are immutable.
 
-1. **Runs the test suite** in the worktree:
+1. **Execute the test suite** in the appropriate directory (task worktree under PRODUCE, project root or selected worktree under TESTS). Coverage is enabled whenever the framework supports it.
    ```bash
    cd .worktrees/sprint-03-feat-auth/
    uv run pytest --cov --cov-report=json  # or equivalent
    ```
-
-2. **Captures evidence**:
-   - Test results (pass/fail per test)
-   - Code coverage report
-   - Screenshots (if visual testing enabled)
-   - Video recording on failure (if enabled)
-
-3. **Saves evidence** to `tests/evidence/sprint-NN/TASK-NNN/`:
+2. **Capture evidence**: pass/fail per test, execution time, stdout/stderr, stack traces, coverage data, screenshots and videos (when visual testing is enabled).
+3. **Save raw evidence** to `tests/evidence/sprint-NN/TASK-NNN/`:
    ```
    tests/evidence/sprint-03/TASK-038/
    ├── results.json              # Test results (machine-readable)
    ├── coverage.json             # Coverage data
-   ├── login-page.png            # Screenshot: login page rendered
-   ├── login-error.png           # Screenshot: error state
-   ├── login-success.png         # Screenshot: after successful login
-   ├── login-flow.mp4            # Video: full login E2E test (if enabled)
-   └── report.md                 # Human-readable campaign report
+   ├── login-page.png            # Screenshot
+   ├── login-flow.mp4            # Video (if enabled)
    ```
+4. **Allocate a TCP-NNN and create the campaign report** at `docs/sprints/sprint-NN/test-reports/campaign-{YYYY-MM-DD}-{TASK-ID}.md` using the `test-campaign.md` template. The report carries the frontmatter defined in §12.2 (prefix `TCP-`, type `test-campaign`) and traces to the TASK and the covered REQs.
+5. **Write `test_evidence` on each covered TASK** in `backlog.yaml` with the structured block: `status`, `campaign_ref`, `timestamp`, `pass_rate`, `code_coverage`, `summary` (see §12.3 backlog schema).
+6. **Display the inline summary** in chat (see "Inline summary" below). This step is not optional — it makes the test-driven approach visible at every run.
+7. **Update health and dashboard**: recompute `health.dimensions.test_pass_rate` in `status.yaml` using the formula in §7.1, then run `dashboard.py` to refresh `docs/dashboard.html`.
 
-4. **Analyzes screenshots** (multimodal LLM capability):
-   - Checks for visual defects: misaligned elements, truncated text, missing images
-   - Compares with reference screenshots (visual regression)
-   - Detects accessibility issues: insufficient contrast, tiny text
-   - Reports findings as `[VISUAL]` tagged items
+#### Inline summary (mandatory at step 6)
 
-**Important: Agent visual analysis is best-effort.** The agent's multimodal analysis can detect obvious visual defects (missing images, broken layouts, text overflow) but is NOT a replacement for specialized tools. For reliable results:
-- **Accessibility:** Use dedicated tools (Axe, Lighthouse) — the agent can install and run them as part of the test campaign
-- **Visual regression:** Use pixel-diff tools (Playwright's built-in comparator, Percy, BackstopJS) — the agent can configure them
-- **The agent's role** is to orchestrate these tools, interpret their output, and present findings — not to replace them
-- Agent's own visual assessments are tagged with confidence level (P15): tool-based findings → **Verified**, agent's own analysis → **Moderate confidence**
+The summary adapts to `profile.yaml → user.it_expertise`.
+
+**For beginner users:** Map test names to feature descriptions derived from REQS acceptance criteria. Use ✅/❌ indicators. When tests fail and are then fixed, show the correction explicitly (`✅ corrigé ← était en échec`). The user sees that every feature is verified and that problems are caught and fixed — without any jargon or file names.
+
+**For intermediate/expert users:** Show a technical summary (file-level pass/fail counts, duration, build/lint status, coverage delta when relevant).
+
+**Failure → fix → verify cycle:** When tests fail mid-run and the user accepts the auto-fix, display the failure summary first, then the corrected summary — so the cycle is transparent.
+
+#### Screenshot analysis (visual runs only)
+
+When visual testing is enabled, after step 3 the agent performs a **multimodal analysis** of captured screenshots:
+- Misaligned elements, truncated text, missing images
+- Comparison against reference screenshots (visual regression)
+- Accessibility issues: insufficient contrast, tiny text
+- Findings are tagged `[VISUAL]` and attached to the campaign report
+
+**Best-effort caveat:** The agent's multimodal analysis can detect obvious visual defects but is NOT a replacement for specialized tools. For reliable results:
+- **Accessibility:** Use dedicated tools (Axe, Lighthouse) — the agent installs and runs them as part of the campaign
+- **Visual regression:** Use pixel-diff tools (Playwright comparator, Percy, BackstopJS) — the agent configures them
+- **The agent's role** is to orchestrate, interpret, and present — not to replace these tools
+- Tool-based findings → confidence **Verified**; agent's own analysis → **Moderate** (P15)
+
+#### Activity-specific invocations
+
+Each entry point invokes the canonical run with its own pre/post-conditions:
+
+| Activity | When called | Pre-conditions specific to this activity | Post-conditions specific to this activity |
+|----------|-------------|------------------------------------------|-------------------------------------------|
+| `/gse:produce` (auto) | After code is produced for a TASK | Gate on `--skip-tests` (logs DEC-); auto-generates tests if absent (per expertise); failure triggers Fix/Skip/Discuss Gate | Task `test_evidence.status` feeds the review guardrail |
+| `/gse:tests --run` | Explicit run | Tests must already exist (no generation) | Campaign report is the primary output |
+| `/gse:tests --run TST-NNN` | Explicit single-test run | TST-NNN must be defined | Scoped campaign (only the one test) |
+| `/gse:tests --run --level unit` | Explicit scoped run | Level must exist in test strategy | Scoped campaign (only the level) |
+| `/gse:tests --visual` | Visual-only run | Visual testing must be configured | Screenshot analysis is mandatory |
 
 #### Test campaign report
 
@@ -1458,6 +1487,7 @@ Each test execution produces a traceable **campaign report**:
 ```markdown
 ---
 gse:
+  id: TCP-007
   type: test-campaign
   sprint: 3
   branch: gse/sprint-03/feat/auth
@@ -1467,7 +1497,7 @@ gse:
   created: 2026-04-10
 ---
 
-# Test Campaign — Sprint 3 / TASK-038
+# Test Campaign TCP-007 — Sprint 3 / TASK-038
 
 ## Summary
 - Executed: 24 tests (12 unit, 8 integration, 4 E2E)
@@ -1494,17 +1524,7 @@ gse:
 | src/api/ | 64% | new |
 ```
 
-Campaign reports are saved in `docs/sprints/sprint-NN/test-reports/` and traced in the backlog.
-
-#### Test Campaign Summary (inline in chat)
-
-After **every** test execution during PRODUCE, the agent MUST display a summary inline in the chat — not just save it to a file. This makes the test-driven approach **visible** to the user at every step.
-
-**For beginner users:** Map test names to feature descriptions (derived from REQS acceptance criteria). Use ✅/❌ indicators. When tests fail and are fixed, show the correction explicitly ("✅ corrigé ← était en échec"). The user sees that every feature is verified and that problems are caught and fixed.
-
-**For intermediate/expert users:** Show a technical summary (file-level pass/fail counts, duration, build/lint status).
-
-**When tests fail during PRODUCE:** Display the failure summary, then after fixing, display the corrected summary showing which tests went from fail to pass. This makes the fix-verify cycle transparent.
+Campaign reports are saved in `docs/sprints/sprint-NN/test-reports/` and traced in the backlog via `test_evidence.campaign_ref` on each covered TASK.
 
 ### 6.4 Coverage Model
 
@@ -1519,7 +1539,23 @@ The health dashboard tracks three coverage dimensions:
 When coverage drops below the configured minimum, a **Hard guardrail** triggers:
 "Code coverage is 45% (minimum: 60%). Add tests before proceeding to DELIVER."
 
-### 6.5 Adaptation to User Expertise
+### 6.5 Test Review Layering
+
+Reviewing tests happens at **three distinct moments**, each targeting a different class of defect. Only the implementation review is systematic; the two pre-production reviews are agile-by-default and fire only when project risk warrants them.
+
+| Tier | Question answered | When it runs | Activated automatically when | Always available via |
+|------|-------------------|--------------|------------------------------|---------------------|
+| **Strategy review** (tag `[STRATEGY]`) | Is the test approach calibrated correctly? (pyramid, risk coverage, quality-gap coverage, CI integration plan) | At the end of `/gse:tests --strategy`, before the strategy file is finalised | `project.domain` is security-sensitive (auth/crypto/payments) OR `complexity_budget > 15` | `/gse:tests --review-strategy` |
+| **TST specs review** (tag `[TST-SPEC]`) | Does each TST- spec encode the right scenario? (exact conditions, boundaries, quality-gap tests) | At the end of `/gse:tests` Step 3 (Write Tests), before production starts | ≥ 1 TST- carries `quality_gap: true` OR the total TST- count ≥ 20 | `/gse:tests --review-specs` |
+| **Implementation review** (tag `[IMPL]`) | Are the written tests meaningful? (assertions, fixtures, edge cases, no tautological tests, regression scan) | During `/gse:review`, after production | Always (systematic step 2e) | `/gse:review --perspective tests` |
+
+**Rationale:** The three tiers split "test the right thing" (STRATEGY, TST-SPEC — upstream of code) from "test it correctly" (IMPL — after code). Running the upstream tiers only conditionally keeps light sprints agile while high-risk or high-volume sprints get the full checkpoint dispositif. The `--deep-review` shortcut on `/gse:tests` activates STRATEGY + TST-SPEC together when the user wants the full treatment regardless of triggers.
+
+**Findings** from all three tiers land in the standard review report (`docs/sprints/sprint-NN/review.md`) with the matching tag, so the user sees one consolidated list. Pre-production findings use the same RVW-NNN ID space and the same severity scale (HIGH / MEDIUM / LOW) as post-production findings.
+
+**Guardrail effect:** A STRATEGY or TST-SPEC finding with severity HIGH blocks `/gse:produce` (Hard guardrail) until resolved — the user fixes the strategy or the TST- spec before writing code against it. MEDIUM / LOW findings warn but do not block.
+
+### 6.6 Adaptation to User Expertise
 
 | Level | Agent's testing behavior |
 |-------|------------------------|
@@ -2050,9 +2086,13 @@ items:
       last_commit: 2026-04-10T14:30
       uncommitted_changes: 0
     github_issue: 42                 # null if GitHub not enabled
-    test_campaign: null              # optional — path to test campaign report
-    test_pass_rate: null             # optional — % passing (set after test run)
-    code_coverage: null              # optional — % coverage (set after test run)
+    test_evidence:                   # single structured field (see §6.3 Test Execution and Evidence)
+      status: pass                   # absent | pass | fail | skipped
+      campaign_ref: docs/sprints/sprint-03/test-reports/campaign-2026-04-10-TASK-038.md
+      timestamp: 2026-04-10T14:30:00Z
+      pass_rate: 91.7                # % of tests passing (0-100)
+      code_coverage: 78              # % line coverage (0-100), null if not measured
+      summary: "24 tests, 22 passed, 2 failed"
     created: 2026-04-08
     updated: 2026-04-10
 
@@ -2410,23 +2450,30 @@ lifecycle:
   mode: micro | lightweight | full     # auto-detected, user can override
 ```
 
-**Auto-detection:** Based on project file count (using Step 1 exclusion rules):
-- < 3 project files → propose **Micro mode**
-- 3-4 project files → propose **Lightweight mode**
-- ≥ 5 project files → **Full mode** (default)
+**Auto-detection:** The orchestrator scans structural signals (package manifests, persistence, entry points, multi-component structure, CI/CD, git maturity, test presence) and recommends a mode based on project complexity — not file count. The recommendation is presented as a Gate decision — the user confirms or overrides. See Section 14.3 Step 6 for the full assessment protocol.
 
-The user can always override the proposed mode (Gate decision). Upgrading from Micro → Lightweight → Full is possible at any time via `/gse:go` — the agent scaffolds the missing structure.
+Complexity-to-mode mapping:
+- **Micro** — No manifest, no git history, ≤ 2 source files. Scripts, one-off tasks.
+- **Lightweight** — Simple project: few dependencies, single component, no persistence, no CI.
+- **Full** — Complex project: persistence, multi-component, CI/CD, >10 dependencies, or >10 entry points.
+
+Upgrading from Micro → Lightweight → Full is possible at any time via `/gse:go` — the agent scaffolds the missing structure.
 
 | Aspect | Full mode | Lightweight mode | Micro mode |
 |--------|-----------|-----------------|------------|
-| Lifecycle | LC01 → LC02 → LC03 | PLAN → PRODUCE → DELIVER | PRODUCE → DELIVER |
-| `.gse/` state | 4 files (config, profile, status, backlog) | 4 files | 1 file only (`status.yaml` with inline profile + task list) |
+| Selection | Complex project (persistence, multi-component, CI, many deps) | Simple project (few deps, single component, no persistence) | Trivial project (script, one-off, experiment) |
+| Lifecycle | LC01 → LC02 → LC03 | PLAN → REQS → PRODUCE → DELIVER | PRODUCE → DELIVER |
+| `.gse/` state | 4 files (config, profile, status, backlog) + plan.yaml | 4 files + plan.yaml | 1 file only (`status.yaml` with inline profile + task list) |
 | Git strategy | worktree (sprint + feature branches) | branch-only (single feature branch, no sprint branch) | direct commit (no branch creation) |
-| Sprint artefacts | Full set (plan-summary, reqs, design, tests, review, compound) | `.gse/plan.yaml` only (no per-activity artefact files) | None |
+| Sprint artefacts | Full set (plan-summary, reqs, design, tests, review, compound) | reqs.md only | None |
 | Health dashboard | 8 dimensions | 3 of 8 (test_pass_rate, review_findings, git_hygiene) | None |
 | Complexity budget | Tracked | Not tracked | Not tracked |
 | Decision tiers | Full P7 assessment | Simplified (Auto + Gate only, no Inform) | Gate only (security/destructive actions) |
-| REQS/TESTS guardrails | Hard (mandatory) | Hard (mandatory) | Not enforced (project too small for formal process) |
+| REQS guardrail | Hard (mandatory) | Hard (mandatory, reduced ceremony) | Not enforced |
+| TESTS guardrail | Hard (formal strategy required) | Soft (auto-generated strategy, Inform) | Not enforced |
+| REQS ceremony | Full: elicitation + REQs + quality checklist + coverage analysis | Reduced: elicitation + REQs (no quality checklist, no coverage analysis) | None |
+| DESIGN / PREVIEW | Yes (conditional) | No | No |
+| REVIEW / COMPOUND | Yes | No | No |
 
 ### 13.3 Team Usage
 
@@ -2664,10 +2711,8 @@ Evaluate states **in order** — the first matching row wins.
 
 | Current state | Next action |
 |--------------|-------------|
-| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | Enter **intent-first mode** (Step 6) |
-| No sprint + < 3 project files | Propose **Micro mode** (Gate): `PRODUCE` > `DELIVER`, direct commit (no branches), 1 state file only (`.gse/status.yaml`), Gate-only (security/destructive), no REQS/TESTS guardrails, no health, no complexity budget. For beginners: "This is a very small project — I'll keep things simple." |
-| No sprint + non-beginner + < 5 project files | Propose **Lightweight mode** (Gate): `PLAN` > `PRODUCE` > `DELIVER`, branch-only, Auto+Gate only, 3 health dimensions (test_pass_rate, review_findings, git_hygiene). User can upgrade anytime. |
-| No sprint + non-beginner | Start LC01 (`COLLECT` > `ASSESS` > `PLAN`) |
+| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | Enter **intent-first mode** (Step 5). After intent captured → proceed to **complexity assessment** (Step 6) to determine mode. |
+| No sprint (after intent-first if applicable) | **Complexity assessment** (Step 6): scan structural signals (dependencies, persistence, entry points, multi-component, CI/CD, git maturity, tests), recommend mode (Gate). Based on chosen mode: Micro → PRODUCE, Lightweight → PLAN, Full → LC01 (`COLLECT` > `ASSESS` > `PLAN`). |
 | `plan.yaml` exists, `status: draft` | Resume `PLAN` |
 | `plan.yaml.workflow.active == reqs` | Start `REQS` — begins with **conversational elicitation** (Step 0) to capture user intent in natural language, then **test-driven requirements** with testable acceptance criteria (Given/When/Then) and open technical questions, then **quality assurance checklist** (Step 7, ISO 25010 inspired) verifying NFR completeness. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
 | `plan.yaml.workflow.active == design` | Start `DESIGN`. If tasks do not involve architecture decisions, move `design` to `workflow.skipped` and advance to PREVIEW or TESTS. |
@@ -2682,9 +2727,9 @@ Evaluate states **in order** — the first matching row wins.
 | Sprint exists, compound done | Propose next sprint → LC01 |
 | Sprint stale (> `lifecycle.stale_sprint_sessions` sessions without progress) | Stale detection (Step 3) |
 
-**Lifecycle guardrails (Hard — cannot be skipped):**
-1. **No PRODUCE without REQS** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it, AND the quality assurance checklist (Step 7) has been run with high-priority gaps addressed or explicitly acknowledged. REQS is test-driven: acceptance criteria ARE the future validation test specs.
-2. **No PRODUCE without test strategy** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW.
+**Lifecycle guardrails (mode-differentiated):**
+1. **No PRODUCE without REQS (Full and Lightweight)** — No TASK can move to `in-progress` unless at least one REQ- artefact with testable acceptance criteria is traced to it. In Full mode, the quality assurance checklist (Step 7) must also have been run. REQS is test-driven: acceptance criteria ARE the future validation test specs. **Exception:** Micro mode and `artefact_type: spike`.
+2. **No PRODUCE without test strategy (Full only)** — The test approach (verification from DESIGN + validation from REQS acceptance criteria) must be defined before coding starts. Test strategy comes AFTER DESIGN and PREVIEW. In Lightweight mode, a minimal test strategy is auto-generated at PRODUCE time (Soft guardrail — Inform tier). **Exception:** Micro mode and `artefact_type: spike`.
 
 **Decision tier override:**
 3. **Supervised mode** — When `decision_involvement: supervised`, ALL technical choices during PRODUCE are escalated to **Gate-tier** decisions. The agent presents options and waits for user confirmation.
@@ -2694,7 +2739,7 @@ Evaluate states **in order** — the first matching row wins.
 ```
 **Question:** Sprint N has had X sessions without progress. What would you like to do?
 
-> A "session" is an invocation of `/gse:go` or `/gse:resume`. A "progression" is any TASK moving from one status to the next (open→planned, planned→in-progress, in-progress→done, etc.). The counter resets when any TASK progresses.
+> A "session" is an invocation of `/gse:go` or `/gse:resume`. A "progression" is any TASK moving from one status to the next (open→planned, planned→in-progress, in-progress→review, review→fixing, fixing→done, done→delivered, etc.). The counter resets when any TASK progresses.
 
 **Options:**
 1. Resume — pick up where we left off
@@ -2717,7 +2762,7 @@ When `it_expertise: beginner` and `current_sprint: 0` (first time through LC01),
 1. Elicit intent in plain language: *"Describe what you'd like to build or achieve."*
 2. Reformulate and validate: *"If I understand correctly, you want: [list]. Correct?"*
 3. Translate to initial backlog items (no jargon)
-4. Transition to LC01, presenting each activity in plain language (e.g., COLLECT → *"Let me look at what we have to work with"*)
+4. After intent is captured and backlog items created, proceed to **Step 6 (Complexity Assessment)** to determine the appropriate mode. The mode determines the lifecycle path (Micro → PRODUCE, Lightweight → PLAN, Full → COLLECT). Present each activity in plain language for beginners.
 5. The user can exit intent-first mode at any time by saying *"I know the process"* — the agent switches to normal orchestration and updates the profile
 
 ```yaml
@@ -2790,7 +2835,7 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | **External source** | A local project or remote repository (e.g., GitHub) scanned by `/gse:collect` for reusable elements |
 | **Source registry** | Persistent log (`.gse/sources.yaml`) of all external sources evaluated, with reusability assessments and provenance links |
 | **Provenance** | Traceability link from an imported artefact back to its original external source |
-| **Lightweight mode** | Reduced lifecycle for micro-projects: PLAN → PRODUCE → DELIVER, no worktrees, minimal health tracking |
+| **Lightweight mode** | Reduced lifecycle for simple projects: PLAN → REQS → PRODUCE → DELIVER. Branch-only git, 3 health dimensions, reduced REQS ceremony (no quality checklist), auto-generated test strategy. Selected by complexity assessment, not file count |
 | **Adopt mode** | `/gse:go --adopt` — onboarding flow for existing projects, scans and initializes without destroying existing state |
 | **Backlog** | Unified, ordered list of all work items (TASK). Items are either in the pool (unplanned) or assigned to a sprint. Syncs with GitHub Issues when enabled |
 | **Planning debt** | Tracked item when planning is skipped under pressure — reviewed during next `/gse:compound` retrospective |
@@ -2805,8 +2850,8 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | **User pushback** | Mechanism that detects passive acceptance and proactively challenges the user to engage critically with decisions |
 | **AI integrity** | Health sub-dimension measuring unverified assertions, hallucination findings, and user engagement level |
 | **Test pyramid** | Distribution of test types (unit/integration/E2E/visual/acceptance) calibrated by project domain |
-| **Test campaign** | A single execution of the test suite, producing a traceable report with results, coverage, and evidence |
-| **Test evidence** | Screenshots, videos, and logs captured during test execution — visual proof that the application works |
+| **Test campaign** | A single execution of the test suite, producing a traceable report (prefix `TCP-`, type `test-campaign`) with results, coverage, and evidence references. Each campaign carries its own ID so it can be cited independently of its file path and counted on the dashboard. |
+| **Test evidence** | Two related meanings: (a) the raw artefacts produced by a test run — screenshots, videos, logs, coverage reports stored under `tests/evidence/sprint-NN/TASK-NNN/`; (b) the structured `test_evidence` field on each TASK in `backlog.yaml` that records execution status, campaign reference, pass rate, code coverage, and summary. Guardrails and reviews read the TASK field; humans consult the raw artefacts. |
 | **Visual testing** | Automated screenshot capture and analysis during E2E tests, leveraging multimodal AI for defect detection |
 | **Code coverage** | Percentage of code exercised by tests — tracked as a health sub-dimension |
 | **Spike** | Exploratory experiment created via `/gse:task --spike`. Complexity-boxed (max 3 points), non-deliverable (branch deleted after completion), bypasses REQS/TESTS guardrails. Must produce a DEC- artefact documenting question, approach, and answer. If reusable code emerges, a normal TASK is created |
@@ -2814,7 +2859,8 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | **Lifecycle phases (LC00–LC03)** | The four phases of a GSE-One project cycle: LC00 (onboarding — `/gse:hug`), LC01 (discovery & planning — `COLLECT` > `ASSESS` > `PLAN`), LC02 (development — `REQS` > `DESIGN` > `PREVIEW` > `TESTS` > `PRODUCE` > `REVIEW` > `FIX` > `DELIVER`), LC03 (capitalization — `COMPOUND` > `INTEGRATE`) |
 | **Intent-first mode** | Special onboarding flow for beginner users on their first project (`current_sprint: 0`). The agent elicits intent conversationally ("What would you like to build?") before introducing any technical structure |
 | **Supervised mode** | When `decision_involvement: supervised` in the profile, ALL technical choices during PRODUCE are escalated to Gate-tier decisions — the agent presents options and waits for confirmation |
-| **Micro mode** | Minimal lifecycle for very small projects (< 3 files): `PRODUCE` > `DELIVER`, direct commit, 1 state file, no REQS/TESTS guardrails, no health tracking. Suitable for quick scripts and one-off tasks |
+| **Micro mode** | Minimal lifecycle for trivial projects (scripts, one-off tasks): `PRODUCE` > `DELIVER`, direct commit, 1 state file, no REQS/TESTS guardrails, no health tracking. Selected by complexity assessment, not file count |
+| **Complexity assessment** | Structural analysis performed by the orchestrator during `/gse:go` to recommend a project mode (Micro/Lightweight/Full). Scans package manifests, persistence, entry points, multi-component structure, CI/CD, git maturity, and test presence. Presented as a Gate decision — the user confirms or overrides |
 | **Stale sprint** | A sprint where no TASK has progressed for more than `lifecycle.stale_sprint_sessions` sessions (default: 3). Triggers a Gate decision: resume, partial delivery, discard, or discuss |
 | **Design debt** | Health sub-dimension measuring accumulated design-level issues. Computed from review findings with the architect perspective: 10 − (HIGH × 2.0 + MEDIUM × 1.0 + LOW × 0.5), floor 0 |
 | **Regression test** | A test verifying that previously passing functionality still works after new changes. During `/gse:review`, the full test suite is compared against the previous sprint's results — newly failing tests are flagged `[REGRESSION]` with severity HIGH |

@@ -605,7 +605,12 @@ def install_cursor_plugin(env):
         remove_path(dst)
 
     copy_tree(PLUGIN_DIR, dst)
-    ok(f"Plugin copied to {dst}")
+    # Cursor loads the orchestrator via rules/gse-orchestrator.mdc (always-on).
+    # Remove it from agents/ to avoid double-loading the same content.
+    orch_agent = dst / "agents" / "gse-orchestrator.md"
+    if orch_agent.exists():
+        orch_agent.unlink()
+    ok(f"Plugin copied to {dst} (orchestrator via rules/, 8 specialized agents)")
 
     _write_registry(dst)
 
@@ -663,15 +668,17 @@ def install_cursor_no_plugin(project_dir):
     ok(f"Copied {count} commands to {commands_dst}")
     info("Commands will be /gse-name (e.g., /gse-go, /gse-plan)")
 
-    # Agents
+    # Agents (specialized only — orchestrator is delivered via rules/gse-orchestrator.mdc)
     agents_dst = cursor_dir / "agents"
     ensure_dir(agents_dst)
     agents_src = PLUGIN_DIR / "agents"
     agent_count = 0
     for agent_file in sorted(agents_src.glob("*.md")):
+        if agent_file.name == "gse-orchestrator.md":
+            continue  # Cursor loads the orchestrator via rules/, not agents/
         shutil.copy2(agent_file, agents_dst / agent_file.name)
         agent_count += 1
-    ok(f"Copied {agent_count} agents to {agents_dst}")
+    ok(f"Copied {agent_count} specialized agents to {agents_dst}")
 
     # Rules (.mdc)
     rules_dst = cursor_dir / "rules"

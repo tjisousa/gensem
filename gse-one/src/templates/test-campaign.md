@@ -1,5 +1,6 @@
 ---
 gse:
+  id: TCP-{NNN}                        # unique campaign ID, allocated sequentially per project
   type: test-campaign
   sprint: 1                            # numeric sprint number
   branch: gse/sprint-01/feat/auth      # git branch tested
@@ -9,7 +10,7 @@ gse:
   created: ""                          # ISO 8601 date
 ---
 
-# Test Campaign — Sprint {sprint} / TASK-{id}
+# Test Campaign TCP-{NNN} — Sprint {sprint} / TASK-{id}
 
 ## Summary
 - Executed: 0 tests (0 unit, 0 integration, 0 E2E)

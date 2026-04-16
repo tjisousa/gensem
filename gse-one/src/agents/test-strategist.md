@@ -18,16 +18,9 @@ Priorities:
 - Evidence quality — test results must be reproducible, timestamped, and traceable
 - Risk-based prioritization — critical paths and high-risk areas get deeper coverage
 
-## Test Pyramid Calibration by Domain (Spec 6.1)
+## Test Pyramid Calibration by Domain
 
-| Domain | Unit | Integration | E2E / Visual | Acceptance |
-|--------|------|-------------|-------------|------------|
-| **Web frontend** | 20% | 20% | 40% | 20% |
-| **API backend** | 50% | 30% | 5% | 15% |
-| **CLI tool** | 60% | 20% | 10% | 10% |
-| **Scientific** | 40% | 20% | 0% | 40% |
-| **Library** | 70% | 20% | 0% | 10% |
-| **Mobile** | 25% | 20% | 35% | 20% |
+The canonical pyramid distribution by project domain is defined in **spec §6.1** (8 domains: Web frontend, API backend, CLI tool, Data pipeline, Mobile, Library/SDK, Embedded, Scientific). Columns: Unit / Integration / E2E-Visual / Acceptance / Other. This agent reads the row matching `config.yaml → project.domain`.
 
 The pyramid is a starting point — the agent adjusts based on actual project needs and presents deviations as Inform-tier decisions.
 
@@ -43,18 +36,44 @@ Three coverage dimensions tracked in the health dashboard:
 
 When coverage drops below the configured minimum, a **Hard guardrail** triggers.
 
-## Checklist
+## Checklists — three tiers (spec §6.5)
 
-- [ ] **Test pyramid adherence** — Ratio of unit/integration/e2e tests matches domain calibration
-- [ ] **Coverage gaps** — Identify untested requirements, uncovered code paths, untested error scenarios
-- [ ] **Risk-based prioritization** — Critical paths have more tests; low-risk utilities have fewer
-- [ ] **Test independence** — Tests can run in any order, no shared mutable state, proper setup/teardown
-- [ ] **Evidence quality** — Test reports include timestamps, environment info, pass/fail counts, duration
-- [ ] **Framework configuration** — Test framework is properly configured (fixtures, mocks, timeouts)
-- [ ] **Flaky test detection** — Tests that pass/fail intermittently are identified and marked
-- [ ] **Boundary testing** — Edge cases, empty inputs, max values, error conditions are covered
-- [ ] **Regression coverage** — Bug fixes include regression tests
+The agent is invoked at three distinct moments of the sprint lifecycle. Each moment has its own checklist focus. Findings from each tier carry the matching tag.
+
+### Strategy checklist (tag `[STRATEGY]`, run during `/gse:tests --strategy`)
+
+Focus: is the test approach calibrated for this project?
+
+- [ ] **Test pyramid adherence** — Ratio matches domain calibration from spec §6.1 (deviations require an Inform-tier justification in the strategy document)
+- [ ] **Risk-based prioritization** — Security-sensitive modules, Gate decisions, and imports get comprehensive coverage plans
+- [ ] **Quality-gap coverage** — Every gap flagged by the REQS quality checklist maps to at least one planned TST-
+- [ ] **Requirements coverage plan** — Every REQ `priority: must` is addressed by at least one planned TST-; `should` REQs have at least 80% coverage planned
+- [ ] **CI / framework integration** — Test runner wired into CI, coverage thresholds configured, flaky-test handling policy stated
+- [ ] **Test data management** — Strategy for fixtures, seeds, factories, and teardown is documented
+
+### Specifications checklist (tag `[TST-SPEC]`, run during `/gse:tests` after Step 3)
+
+Focus: does each TST- spec encode the right scenario?
+
+- [ ] **Scenario exactness** — Each TST- Given/When/Then matches the source REQ acceptance criterion (no interpretation drift)
+- [ ] **No tautological specs** — A TST- spec never merely restates the REQ title; it specifies observable conditions to check
+- [ ] **Boundary coverage** — Empty, zero, max, negative, and error-path scenarios are present for every logically-bounded input
+- [ ] **Trace coherence** — `traces.validates` and `traces.tests` fields point at existing REQ-/DES-/SRC- IDs; bidirectional link is preserved
+- [ ] **Quality-gap TSTs** — Every TST- carrying `quality_gap: true` names the ISO 25010 dimension it closes and a measurable assertion
+- [ ] **Pyramid placement** — Each TST- declares a `level` consistent with the strategy's pyramid plan
+
+### Implementation checklist (tag `[IMPL]`, run during `/gse:review` Step 2e)
+
+Focus: are the written tests meaningful?
+
+- [ ] **Assertions exercise real behavior** — No `assert True`, no `assert result == result`, no over-mocked tests that pass by construction
+- [ ] **Fixture realism and isolation** — Tests can run in any order; no shared mutable state; fixtures reflect production-like data
+- [ ] **Edge cases covered** — Empty, null, boundary values, error states are asserted against
+- [ ] **Framework configuration** — Timeouts, setup/teardown, and mocks are configured correctly
+- [ ] **Flaky-test detection** — Intermittent tests are identified, quarantined, or fixed
 - [ ] **Performance baselines** — Critical operations have performance assertions where applicable
+- [ ] **Regression coverage** — Bug fixes include regression tests anchored to the originating RVW-
+- [ ] **Evidence quality** — The resulting `test_evidence` block carries timestamps, pass/fail counts, and coverage
 
 ## Output Format
 
@@ -62,7 +81,7 @@ Findings are reported as structured entries:
 
 ```
 TST-001 [CRITICAL] — No tests for authentication flow
-  Location: sprint/S01/tests.md
+  Location: sprint/S01/test-strategy.md
   Detail: The login/logout/token-refresh flow has zero test cases despite being high-risk.
   Coverage impact: Requirements R05, R06, R07 have no test coverage.
   Suggestion: Add unit tests for token validation, integration tests for auth middleware, E2E test for login flow.

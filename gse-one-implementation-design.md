@@ -51,7 +51,7 @@ gse-one/
 │   ├── agents/                          # 9 agents (shared, incl. orchestrator)
 │   ├── templates/                       # 15 templates (shared)
 │   ├── rules/
-│   │   └── 000-gse-methodology.mdc      # Cursor-only (ignored by Claude)
+│   │   └── gse-orchestrator.mdc      # Cursor-only (ignored by Claude)
 │   ├── hooks/
 │   │   ├── hooks.claude.json            # Claude Code format
 │   │   └── hooks.cursor.json            # Cursor format
@@ -119,12 +119,12 @@ ONE directory (`plugin/`) serves both platforms. Shared components — skills, a
 | `settings.json` | **used** | ignored | Agent identity reference |
 | `hooks/hooks.claude.json` | **used** | ignored | Claude hook format (PascalCase) |
 | `hooks/hooks.cursor.json` | ignored | **used** | Cursor hook format (camelCase) |
-| `rules/000-gse-methodology.mdc` | ignored | **used** | Cursor always-on methodology rule |
+| `rules/gse-orchestrator.mdc` | ignored | **used** | Cursor always-on methodology rule |
 | `skills/` (23) | **shared** | **shared** | All activity skills |
-| `agents/` (9) | **shared** | **shared** | All agents incl. orchestrator |
+| `agents/` (9 in source, 8 for Cursor) | **shared** (9: 8 specialized + orchestrator) | **shared** (8: specialized only) | Agent roles for sub-agent delegation |
 | `templates/` (15) | **shared** | **shared** | All artefact/config templates |
 
-Claude ignores the `rules/` directory silently. Cursor ignores `settings.json` silently. This means a single install (`claude --plugin-dir plugin/` or Cursor plugin install) works without any platform-specific preparation.
+Claude ignores the `rules/` directory silently. Cursor ignores `settings.json` silently. The orchestrator agent (`agents/gse-orchestrator.md`) exists in the source `plugin/` directory for Claude Code, but the installer **excludes it from Cursor** installations — Cursor loads the orchestrator identity via `rules/gse-orchestrator.mdc` instead, avoiding double-loading of the same ~400-line content.
 
 ---
 
@@ -807,23 +807,26 @@ Workflow:
 ### 5.5 Lightweight Mode (Go Skill Extension)
 
 ```markdown
-### Lightweight Mode Detection (added to go skill)
+### Mode Selection (Complexity Assessment — added to go skill)
 
-At start of /gse:go:
+At start of /gse:go, when no sprint is defined:
 
-1. If `.gse/config.yaml` exists → read `lifecycle.mode`
-2. If `.gse/` does not exist:
-   - Count project files
-   - If < 5 files → propose lightweight mode (Inform)
-   - If >= 5 files → propose full mode
+1. If `.gse/config.yaml` exists with `lifecycle.mode` → use stored mode
+2. Otherwise → run complexity assessment:
+   - Scan structural signals: dependencies (manifest), persistence (ORM/SQL/DB config), entry points, multi-component, tests, CI/CD, git maturity, source file count
+   - Apply rules: no manifest + no git + ≤2 files → Micro; persistence/multi-component/CI/deps>10/entry>10 → Full; otherwise → Lightweight
+   - Present as Gate decision with rationale
+   - Store chosen mode in `config.yaml → lifecycle.mode`
 
-Three project modes based on file count:
+3. If beginner + first sprint → Intent-First mode runs BEFORE complexity assessment (captures intent, then assesses)
 
-| Mode | Trigger | Lifecycle | Git | Health | Guardrails |
-|------|---------|-----------|-----|--------|------------|
-| **Micro** | < 3 files | PRODUCE → DELIVER | direct commit | none | Gate only (security/destructive) |
-| **Lightweight** | 3-4 files | PLAN → PRODUCE → DELIVER | branch-only from main | 3 dims | Auto + Gate |
-| **Full** | ≥ 5 files | LC01 → LC02 → LC03 | worktree isolation | 8 dims | Full P7 |
+Three project modes based on complexity assessment:
+
+| Mode | Selection | Lifecycle | Git | Health | REQS | TESTS |
+|------|-----------|-----------|-----|--------|------|-------|
+| **Micro** | Trivial (script, no manifest) | PRODUCE → DELIVER | direct commit | none | Not enforced | Not enforced |
+| **Lightweight** | Simple (few deps, no persistence) | PLAN → REQS → PRODUCE → DELIVER | branch-only | 3 dims | Hard (reduced ceremony) | Soft (auto-generated) |
+| **Full** | Complex (persistence, multi-component, CI) | LC01 → LC02 → LC03 | worktree | 8 dims | Hard (full ceremony) | Hard (formal strategy) |
 
 Micro mode: 1 state file only (`.gse/status.yaml` with inline profile + task list).
 No REQS/TESTS guardrails. No health. No complexity budget.
@@ -924,7 +927,7 @@ Arguments: $ARGUMENTS
 1. Read `.gse/config.yaml` → `testing` section
 2. Read `.gse/config.yaml` → `project.domain` (for pyramid calibration)
 3. Read `.gse/profile.yaml` → `user.it_expertise` (for interaction depth)
-4. Read latest `docs/sprints/sprint-NN/tests.md` if exists
+4. Read latest `docs/sprints/sprint-NN/test-strategy.md` if exists
 
 ## Workflow
 
@@ -932,12 +935,13 @@ Arguments: $ARGUMENTS
 
 1. Detect project domain from config
 2. Propose test pyramid calibrated to domain (see spec Section 6.1):
-   - Web frontend: 20% unit, 20% integration, 40% E2E/visual, 20% acceptance
-   - API backend: 50% unit, 30% integration, 5% E2E, 15% acceptance
+   - Web frontend: 20% unit, 20% integration, 30% E2E/visual, 20% acceptance, 10% other
+   - API backend: 50% unit, 25% integration, 5% E2E, 10% acceptance, 10% other
    - etc.
 3. Present as Inform (expert) or Gate (beginner) decision
 4. For web/mobile projects, propose visual testing setup (Gate)
-5. Save strategy in `docs/sprints/sprint-NN/tests.md`
+5. Save strategy in `docs/sprints/sprint-NN/test-strategy.md`
+6. **Conditional strategy review** (spec §6.5 — STRATEGY tier) — Runs when `project.domain` is security-sensitive OR `complexity_budget > 15` OR the flag `--review-strategy` / `--deep-review` was passed. Spawns the `test-strategist` sub-agent with the "Strategy checklist" scope. Findings `[STRATEGY]` append to `review.md`. HIGH blocks `/gse:produce` via the Hard guardrail.
 
 ### Step 2 — Environment Setup (if --setup or first time)
 
@@ -967,49 +971,25 @@ For each TASK in the sprint with testing needs:
 4. Adapt test complexity to user level:
    - Beginner: simple, readable tests with comments
    - Expert: property-based, edge-case-heavy tests
+5. **Conditional TST specs review** (spec §6.5 — TST-SPEC tier) — Runs when ≥ 1 TST carries `quality_gap: true` OR total TST count ≥ 20 OR the flag `--review-specs` / `--deep-review` was passed. Spawns the `test-strategist` sub-agent with the "Specifications checklist" scope. Findings `[TST-SPEC]` append to `review.md`. HIGH blocks `/gse:produce`.
 
-### Step 4 — Execute Campaign (if --run)
+### Step 4 — Execute (if --run)
 
-1. Run the test suite in the appropriate worktree:
-   ```bash
-   cd .worktrees/sprint-NN-feat-name/
-   uv run pytest --cov --cov-report=json -v
-   ```
-2. If visual testing enabled:
-   ```bash
-   npx playwright test --reporter=json
-   ```
-3. Capture evidence:
-   - Test results (pass/fail per test)
-   - Coverage report
-   - Screenshots (from visual tests)
-   - Video on failure (if `testing.visual.video` enabled)
-4. Save evidence to `tests/evidence/sprint-NN/TASK-NNN/`
+Invoke the **canonical test run** defined in spec §6.3. Argument handling determines scope (full suite / TST-NNN / `--level X` / visual-only). The canonical run covers: execution, evidence capture, `tests/evidence/sprint-NN/TASK-NNN/` save, TCP-NNN campaign creation, `test_evidence` write, inline chat summary, and health + dashboard refresh.
 
-### Step 5 — Analyze Screenshots (if visual tests)
+TESTS does NOT auto-generate missing tests; they must already exist. If not, redirect to `--strategy` / Step 3.
 
-Using multimodal capability:
-1. Read each captured screenshot
-2. Check for: misaligned elements, truncated text, missing images,
-   contrast issues, responsive layout problems
-3. Compare with reference screenshots (if they exist from previous sprint)
-4. Report visual findings tagged `[VISUAL]`
+### Step 5 — Screenshot analysis
 
-### Step 6 — Generate Campaign Report
+Part of the canonical run when visual testing is enabled (see spec §6.3 "Screenshot analysis").
 
-Create `docs/sprints/sprint-NN/test-reports/TASK-NNN-campaign.md` with:
-- Summary: executed, passed, failed, duration, coverage
-- Failure details with links to evidence
-- Coverage map per module
-- Visual findings (if applicable)
-- Traces to REQ and DES
+### Step 6 — Sprint evidence aggregate (--evidence only)
 
-### Step 7 — Update Health
+Only invoked by `--evidence`. Aggregates all per-run TCPs of the current sprint into a single sprint-level campaign (also TCP-prefixed), with `traces.derives_from` pointing at the rolled-up TCPs. No test execution is performed.
 
-Update `.gse/status.yaml` health dimensions:
-- test_pass_rate: % passing
-- code_coverage: % covered
-- requirements_coverage: % REQ with linked passing tests
+### Step 7 — (removed)
+
+Health dimensions and TASK `test_evidence` are updated automatically by the canonical run (spec §6.3 step 7 and step 5). No separate step needed here.
 ```
 
 ### 5.10 `/gse:produce` — Test Execution After Production
@@ -1017,26 +997,25 @@ Update `.gse/status.yaml` health dimensions:
 ```markdown
 ### Test Execution (added to produce skill, after code is written)
 
-After completing code production for a TASK:
+PRODUCE invokes the **canonical test run** (spec §6.3) as its test execution phase. This section documents only the PRODUCE-specific pre/post-conditions:
 
-1. Check if tests exist for this TASK (from `/gse:tests`)
-2. If yes: execute them automatically
-   - Run in the task's worktree
-   - Capture evidence
-   - If tests fail: report and propose fix before marking task as done
-3. If no tests exist:
-   - Check test strategy: does this TASK need tests?
-   - If yes and user is beginner: write tests automatically, then run
-   - If yes and user is expert: propose writing tests (Inform)
-   - If no (per strategy): skip, but log as Inform decision
-4. Generate campaign report
-5. Attach report and evidence to the TASK in backlog:
-   ```yaml
-   - id: TASK-038
-     test_campaign: docs/sprints/sprint-03/test-reports/TASK-038-campaign.md
-     test_pass_rate: 91.7
-     code_coverage: 78
-   ```
+**Pre-condition — `--skip-tests`:** Gate decision, DEC- logged, `test_evidence.status: skipped` on the TASK, canonical run is NOT invoked.
+
+**Pre-condition — no tests exist:** per expertise level, auto-generate (beginner), propose (intermediate), or offer options (expert). After generation, invoke the canonical run.
+
+**Post-condition — canonical run returns `status: fail`:** Gate decision (Fix / Skip / Discuss). Fix re-invokes the canonical run.
+
+The canonical run produces TCP-NNN campaign, `test_evidence` update on the TASK, inline summary in chat, and health + dashboard refresh. Example of the written `test_evidence` block on the TASK:
+```yaml
+- id: TASK-038
+  test_evidence:
+    status: pass
+    campaign_ref: docs/sprints/sprint-03/test-reports/campaign-2026-04-10-TASK-038.md
+    timestamp: 2026-04-10T14:30:00Z
+    pass_rate: 91.7
+    code_coverage: 78
+    summary: "24 tests, 22 passed, 2 failed"
+```
 ```
 
 ### 5.11 `/gse:review` — Devil's Advocate Agent (P16)
@@ -1409,7 +1388,7 @@ This causes Claude Code to load `agents/gse-orchestrator.md` at session start, m
 
 ### 6.2 Cursor: Always-On Rule
 
-Cursor uses `rules/000-gse-methodology.mdc` with `alwaysApply: true` to inject the methodology permanently into every interaction:
+Cursor uses `rules/gse-orchestrator.mdc` with `alwaysApply: true` to inject the methodology permanently into every interaction:
 
 ```yaml
 ---
@@ -1430,6 +1409,15 @@ Both files are generated from the same source: `src/agents/gse-orchestrator.md`.
 4. Verifies body parity at generation time — if the two generated bodies differ, the generator reports `DIVERGENT!`
 
 This ensures that Claude Code and Cursor users experience the exact same methodology, decision logic, and orchestration behavior.
+
+### 6.4 Installer Differentiation
+
+Although the `plugin/` source directory contains both `agents/gse-orchestrator.md` and `rules/gse-orchestrator.mdc`, the installer (`install.py`) ensures each platform only receives the appropriate file:
+
+- **Claude Code:** Receives `agents/gse-orchestrator.md` (loaded via `settings.json → "agent"`). The `.mdc` file is ignored by Claude.
+- **Cursor:** Receives `rules/gse-orchestrator.mdc` (loaded via `alwaysApply: true`). The installer **excludes** `agents/gse-orchestrator.md` from Cursor installations to prevent the orchestrator content from being loaded twice — once as an always-on rule and once as a named agent.
+
+Cursor still receives the 8 specialized agents (`code-reviewer.md`, `architect.md`, etc.) in `agents/` for sub-agent delegation during REVIEW and other activities.
 
 ---
 
@@ -1641,7 +1629,7 @@ Note: Agents now 9 (8 specialized + gse-orchestrator). Generator ~400 lines.
 
 | Step | Input | Output | Shared? |
 |------|-------|--------|---------|
-| 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/000-gse-methodology.mdc` | Body identical, frontmatter differs |
+| 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc` | Body identical, frontmatter differs |
 | 2 | `src/activities/*.md` (23) | `plugin/skills/<name>/SKILL.md` | Shared |
 | 3 | `src/agents/*.md` (8 specialized) | `plugin/agents/<name>.md` | Shared |
 | 4 | `src/templates/*` (15) | `plugin/templates/*` | Shared |
