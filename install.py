@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""GSE-One Installer — Cross-platform interactive installation for Claude Code and Cursor.
+"""GSE-One Installer — Cross-platform interactive installation for Claude Code, Cursor, and opencode.
 
 Usage:
     python3 install.py                        # Interactive mode
     python3 install.py --platform claude --mode plugin --scope project
     python3 install.py --platform cursor --mode plugin
-    python3 install.py --platform both --mode plugin --scope user
-    python3 install.py --uninstall --platform claude
+    python3 install.py --platform opencode --mode plugin
+    python3 install.py --platform opencode --mode no-plugin --project-dir /path/to/project
+    python3 install.py --platform all --mode plugin --scope user
+    python3 install.py --uninstall --platform opencode
 """
 
 import argparse
@@ -26,6 +28,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent
 VERSION_FILE = REPO_ROOT / "VERSION"
 PLUGIN_DIR = REPO_ROOT / "gse-one" / "plugin"
+OPENCODE_PLUGIN_DIR = PLUGIN_DIR / "opencode"
+OPENCODE_GLOBAL_DIR = Path.home() / ".config" / "opencode"
+
+# Markers used to surgically patch AGENTS.md on install/uninstall
+AGENTS_MD_START = "<!-- GSE-ONE START -->"
+AGENTS_MD_END = "<!-- GSE-ONE END -->"
 
 if VERSION_FILE.exists():
     VERSION = VERSION_FILE.read_text().strip()
@@ -75,7 +83,7 @@ def dim(t):     return _c("2", t)
 
 BANNER = f"""
   {bold(cyan('GSE-One Installer'))}  v{VERSION}
-  {dim('Cross-platform setup for Claude Code and Cursor')}
+  {dim('Cross-platform setup for Claude Code, Cursor, and opencode')}
   {'─' * 50}
 """
 
@@ -304,6 +312,23 @@ def _check_duplicate_install(platform_name, mode, project_dir=None, env=None):
             if global_plugin.is_dir():
                 conflicts.append(("plugin (global)", str(global_plugin)))
 
+    elif platform_name == "opencode":
+        if mode == "plugin":
+            # Global install — check for local .opencode/ in the current project
+            local = Path(project_dir or Path.cwd()) / ".opencode" / "commands"
+            if local.is_dir() and any(local.glob("gse-*.md")):
+                conflicts.append(("no-plugin (project)", str(local.parent)))
+        elif mode == "no-plugin":
+            # Local install — check for a global install that would duplicate skills
+            global_skills = OPENCODE_GLOBAL_DIR / "skills"
+            if global_skills.is_dir() and any(d.name in _get_skill_names()
+                                              for d in global_skills.iterdir() if d.is_dir()):
+                conflicts.append(("plugin (global)", str(OPENCODE_GLOBAL_DIR)))
+            # Also warn if a .claude/skills layout exists — opencode loads those too
+            claude_skills = Path(project_dir or Path.cwd()) / ".claude" / "skills"
+            if _has_gse_skills_in_dir(claude_skills):
+                conflicts.append((".claude/skills (auto-loaded by opencode)", str(claude_skills)))
+
     if conflicts:
         warn(f"Existing GSE-One installation(s) detected for {bold(platform_name)}:")
         for conflict_mode, conflict_path in conflicts:
@@ -390,25 +415,29 @@ def verify_no_plugin(location, platform_name):
 # ---------------------------------------------------------------------------
 
 def detect_environment():
-    """Detect OS, Claude Code CLI, and Cursor availability."""
+    """Detect OS, Claude Code CLI, Cursor, and opencode availability."""
     os_name = platform.system()
     os_display = {"Darwin": "macOS", "Linux": "Linux", "Windows": "Windows"}.get(os_name, os_name)
 
     has_claude = command_exists("claude")
     has_cursor = _detect_cursor(os_name)
+    has_opencode = _detect_opencode()
 
     home = Path.home()
     claude_dir = home / ".claude"
     cursor_dir = home / ".cursor"
+    opencode_dir = OPENCODE_GLOBAL_DIR
 
     return {
         "os": os_display,
         "os_raw": os_name,
         "has_claude": has_claude,
         "has_cursor": has_cursor,
+        "has_opencode": has_opencode,
         "home": home,
         "claude_dir": claude_dir,
         "cursor_dir": cursor_dir,
+        "opencode_dir": opencode_dir,
     }
 
 
@@ -427,6 +456,11 @@ def _detect_cursor(os_name):
                 or (home / ".cursor").exists())
 
 
+def _detect_opencode():
+    """Detect if opencode is installed (CLI on PATH or ~/.config/opencode/ dir)."""
+    return command_exists("opencode") or OPENCODE_GLOBAL_DIR.exists()
+
+
 def display_environment(env):
     """Print detected environment."""
     step("Environment")
@@ -434,6 +468,7 @@ def display_environment(env):
     info(f"Home directory   : {env['home']}")
     info(f"Claude Code CLI  : {green('found') if env['has_claude'] else yellow('not found')}")
     info(f"Cursor           : {green('found') if env['has_cursor'] else yellow('not found')}")
+    info(f"opencode         : {green('found') if env['has_opencode'] else yellow('not found')}")
     info(f"Plugin source    : {PLUGIN_DIR}")
     info(f"Version          : {bold(VERSION)}")
 
@@ -826,6 +861,335 @@ def uninstall_cursor_no_plugin(project_dir):
 
 
 # ---------------------------------------------------------------------------
+# opencode — Plugin mode (global, ~/.config/opencode/)
+# ---------------------------------------------------------------------------
+
+def install_opencode_plugin(env):
+    """Install GSE-One into the opencode global config dir (~/.config/opencode/).
+
+    Copies .opencode subtree content (skills, commands, agents, plugins), merges
+    AGENTS.md, and deep-merges opencode.json. Produces /gse-<name> slash commands.
+    """
+    step("opencode — Plugin install (global)")
+
+    if not OPENCODE_PLUGIN_DIR.is_dir():
+        err(f"opencode artefacts not found at {OPENCODE_PLUGIN_DIR}")
+        err("Run: cd gse-one && python3 gse_generate.py --verify")
+        tracker.add("opencode", "plugin", "global", "-", "FAIL", "artefacts missing")
+        return False
+
+    if not _check_duplicate_install("opencode", "plugin"):
+        tracker.add("opencode", "plugin", "global", "-", "FAIL", "cancelled (duplicate)")
+        return False
+
+    target = env["opencode_dir"]
+    ensure_dir(target)
+
+    counts = _opencode_copy_tree(OPENCODE_PLUGIN_DIR, target)
+    _merge_agents_md(target / "AGENTS.md", OPENCODE_PLUGIN_DIR / "AGENTS.md")
+    _merge_opencode_json(target / "opencode.json", OPENCODE_PLUGIN_DIR / "opencode.json")
+
+    _write_registry(PLUGIN_DIR)
+
+    detail = (f"{counts['skills']} skills, {counts['commands']} commands, "
+              f"{counts['agents']} agents, plugin+AGENTS.md")
+    ok(f"opencode plugin installed at {target}")
+    info("Commands available as /gse-<name> (e.g., /gse-go, /gse-plan)")
+    tracker.add("opencode", "plugin", "global", str(target), "OK", detail)
+    return True
+
+
+def uninstall_opencode_plugin(env):
+    """Remove GSE-One artefacts from the opencode global config dir."""
+    step("opencode — Plugin uninstall (global)")
+
+    target = env["opencode_dir"]
+    if not target.is_dir():
+        info("opencode global config dir not present — nothing to uninstall.")
+        tracker.add("opencode", "uninstall", "global", str(target), "WARN", "not found")
+        return True
+
+    removed = _opencode_remove_content(target)
+    _strip_agents_md_block(target / "AGENTS.md")
+    _strip_opencode_json_marker(target / "opencode.json")
+
+    _remove_registry()
+    ok(f"Removed {removed} GSE-One file(s) from {target}")
+    tracker.add("opencode", "uninstall", "global", str(target), "OK", f"{removed} files")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# opencode — Non-plugin mode (project, .opencode/)
+# ---------------------------------------------------------------------------
+
+def install_opencode_no_plugin(project_dir):
+    """Install GSE-One into a project's .opencode/ directory + root AGENTS.md."""
+    step("opencode — Non-plugin install (project)")
+
+    if not OPENCODE_PLUGIN_DIR.is_dir():
+        err(f"opencode artefacts not found at {OPENCODE_PLUGIN_DIR}")
+        err("Run: cd gse-one && python3 gse_generate.py --verify")
+        tracker.add("opencode", "no-plugin", "project", str(project_dir), "FAIL", "artefacts missing")
+        return False
+
+    if not _check_duplicate_install("opencode", "no-plugin", project_dir=project_dir):
+        tracker.add("opencode", "no-plugin", "project", str(project_dir), "FAIL", "cancelled (duplicate)")
+        return False
+
+    project_dir = Path(project_dir)
+    target = project_dir / ".opencode"
+    ensure_dir(target)
+
+    counts = _opencode_copy_tree(OPENCODE_PLUGIN_DIR, target)
+    # AGENTS.md lives at the project root in no-plugin mode (opencode convention)
+    _merge_agents_md(project_dir / "AGENTS.md", OPENCODE_PLUGIN_DIR / "AGENTS.md")
+    # opencode.json also at project root
+    _merge_opencode_json(project_dir / "opencode.json", OPENCODE_PLUGIN_DIR / "opencode.json")
+
+    _write_registry(PLUGIN_DIR)
+
+    detail = (f"{counts['skills']} skills, {counts['commands']} commands, "
+              f"{counts['agents']} agents, plugin+AGENTS.md")
+    ok(f"opencode artefacts installed at {target}")
+    info("AGENTS.md and opencode.json written at project root")
+    info("Commands available as /gse-<name> (e.g., /gse-go, /gse-plan)")
+    tracker.add("opencode", "no-plugin", "project", str(target), "OK", detail)
+    return True
+
+
+def uninstall_opencode_no_plugin(project_dir):
+    """Remove GSE-One artefacts from a project's .opencode/ + root AGENTS.md."""
+    step("opencode — Non-plugin uninstall (project)")
+
+    project_dir = Path(project_dir)
+    target = project_dir / ".opencode"
+    if not target.is_dir():
+        info("No .opencode/ directory in project — nothing to uninstall.")
+        tracker.add("opencode", "uninstall", "project", str(target), "WARN", "not found")
+        return True
+
+    removed = _opencode_remove_content(target)
+    _strip_agents_md_block(project_dir / "AGENTS.md")
+    _strip_opencode_json_marker(project_dir / "opencode.json")
+
+    _remove_registry()
+    ok(f"Removed {removed} GSE-One file(s) from {target}")
+    tracker.add("opencode", "uninstall", "project", str(target), "OK", f"{removed} files")
+    return True
+
+
+# ---------------------------------------------------------------------------
+# opencode — helpers
+# ---------------------------------------------------------------------------
+
+def _opencode_copy_tree(src, target):
+    """Copy opencode artefacts (skills/, commands/, agents/, plugins/) into target.
+
+    Overwrites existing GSE-named items. Returns counts dict.
+    """
+    counts = {"skills": 0, "commands": 0, "agents": 0, "plugins": 0}
+    # Skills (copy each subdir individually so we don't wipe user-added skills)
+    src_skills = src / "skills"
+    dst_skills = target / "skills"
+    ensure_dir(dst_skills)
+    for skill_dir in sorted(src_skills.iterdir()):
+        if skill_dir.is_dir():
+            copy_tree(skill_dir, dst_skills / skill_dir.name)
+            counts["skills"] += 1
+    # Commands (only overwrite gse-*)
+    src_cmd = src / "commands"
+    dst_cmd = target / "commands"
+    ensure_dir(dst_cmd)
+    for cmd in sorted(src_cmd.glob("gse-*.md")):
+        shutil.copy2(cmd, dst_cmd / cmd.name)
+        counts["commands"] += 1
+    # Agents
+    src_ag = src / "agents"
+    dst_ag = target / "agents"
+    ensure_dir(dst_ag)
+    for ag in sorted(src_ag.glob("*.md")):
+        shutil.copy2(ag, dst_ag / ag.name)
+        counts["agents"] += 1
+    # Plugins (TS guardrails)
+    src_pl = src / "plugins"
+    dst_pl = target / "plugins"
+    ensure_dir(dst_pl)
+    for pl in sorted(src_pl.glob("*.ts")):
+        shutil.copy2(pl, dst_pl / pl.name)
+        counts["plugins"] += 1
+    return counts
+
+
+def _opencode_remove_content(target):
+    """Remove GSE-One-owned files from an opencode target dir."""
+    removed = 0
+
+    # Skills — remove any skill dir whose name matches a known GSE skill
+    skills_dir = target / "skills"
+    if skills_dir.is_dir():
+        for name in _get_skill_names():
+            d = skills_dir / name
+            if d.is_dir():
+                shutil.rmtree(d)
+                removed += 1
+        # Clean up empty skills/ dir
+        if not any(skills_dir.iterdir()):
+            skills_dir.rmdir()
+
+    # Commands — remove only gse-*.md
+    cmd_dir = target / "commands"
+    if cmd_dir.is_dir():
+        for cmd in cmd_dir.glob("gse-*.md"):
+            cmd.unlink()
+            removed += 1
+        if not any(cmd_dir.iterdir()):
+            cmd_dir.rmdir()
+
+    # Agents — remove only the ones GSE ships
+    ag_dir = target / "agents"
+    if ag_dir.is_dir():
+        for ag_file in (OPENCODE_PLUGIN_DIR / "agents").glob("*.md"):
+            target_file = ag_dir / ag_file.name
+            if target_file.exists():
+                target_file.unlink()
+                removed += 1
+        if not any(ag_dir.iterdir()):
+            ag_dir.rmdir()
+
+    # Plugins — remove only our gse-guardrails.ts
+    pl_dir = target / "plugins"
+    if pl_dir.is_dir():
+        ts = pl_dir / "gse-guardrails.ts"
+        if ts.exists():
+            ts.unlink()
+            removed += 1
+        if not any(pl_dir.iterdir()):
+            pl_dir.rmdir()
+
+    return removed
+
+
+def _merge_agents_md(target_file, source_file):
+    """Write or surgically merge the GSE-One block into an AGENTS.md file.
+
+    - If target missing → write source as-is.
+    - If target has markers → replace block between markers.
+    - If target present without markers → append block, warn.
+    """
+    if not source_file.exists():
+        return
+    block = source_file.read_text(encoding="utf-8").rstrip() + "\n"
+
+    if not target_file.exists():
+        target_file.write_text(block, encoding="utf-8")
+        ok(f"Wrote {target_file}")
+        return
+
+    current = target_file.read_text(encoding="utf-8")
+    if AGENTS_MD_START in current and AGENTS_MD_END in current:
+        before, _, rest = current.partition(AGENTS_MD_START)
+        _, _, after = rest.partition(AGENTS_MD_END)
+        merged = before.rstrip() + "\n\n" + block.rstrip() + "\n" + after.lstrip("\n")
+        target_file.write_text(merged, encoding="utf-8")
+        ok(f"Replaced GSE-One block in {target_file}")
+    else:
+        merged = current.rstrip() + "\n\n" + block
+        target_file.write_text(merged, encoding="utf-8")
+        warn(f"Appended GSE-One block to existing {target_file} (no prior markers)")
+
+
+def _strip_agents_md_block(target_file):
+    """Remove the GSE-One block from AGENTS.md. Deletes file if it becomes empty."""
+    if not target_file.exists():
+        return
+    current = target_file.read_text(encoding="utf-8")
+    if AGENTS_MD_START not in current or AGENTS_MD_END not in current:
+        return
+    before, _, rest = current.partition(AGENTS_MD_START)
+    _, _, after = rest.partition(AGENTS_MD_END)
+    merged = (before.rstrip() + "\n" + after.lstrip("\n")).strip()
+    if merged:
+        target_file.write_text(merged + "\n", encoding="utf-8")
+        ok(f"Stripped GSE-One block from {target_file}")
+    else:
+        target_file.unlink()
+        ok(f"Removed empty {target_file}")
+
+
+def _merge_opencode_json(target_file, source_file):
+    """Deep-merge GSE-One defaults into an existing opencode.json.
+
+    Never overwrites user-set keys. Adds missing keys only.
+    """
+    if not source_file.exists():
+        return
+    source = json.loads(source_file.read_text())
+
+    if target_file.exists():
+        try:
+            target = json.loads(target_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            warn(f"Could not parse existing {target_file}; leaving it untouched.")
+            return
+    else:
+        target = {}
+
+    merged = _deep_merge(target, source)
+    # Ensure the `gse` marker reflects this install's version
+    merged["gse"] = {"version": VERSION}
+    target_file.write_text(json.dumps(merged, indent=2) + "\n", encoding="utf-8")
+    ok(f"Merged GSE-One defaults into {target_file}")
+
+
+def _deep_merge(base, overlay):
+    """Merge overlay into base without overwriting existing base values.
+
+    - Existing keys in base are preserved.
+    - Missing keys from overlay are added.
+    - Nested dicts are merged recursively under the same rule.
+    """
+    result = dict(base)
+    for k, v in overlay.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = _deep_merge(result[k], v)
+        elif k not in result:
+            result[k] = v
+    return result
+
+
+def _strip_opencode_json_marker(target_file):
+    """Remove the GSE-One `gse` marker from opencode.json; drop the file if empty."""
+    if not target_file.exists():
+        return
+    try:
+        data = json.loads(target_file.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+    if "gse" in data:
+        del data["gse"]
+    # Remove our specific bash denies only if they match exactly
+    perms = data.get("permission", {}).get("bash", {})
+    for key in ("git push --force *", "rm -rf /*"):
+        if perms.get(key) == "deny":
+            del perms[key]
+    if perms == {}:
+        data.get("permission", {}).pop("bash", None)
+    if data.get("permission", {}).get("skill") == {"*": "allow"}:
+        data["permission"].pop("skill", None)
+    if data.get("permission") == {}:
+        del data["permission"]
+    # If only the schema remains → delete the file
+    remaining_keys = [k for k in data.keys() if k != "$schema"]
+    if not remaining_keys:
+        target_file.unlink()
+        ok(f"Removed {target_file} (only GSE-One content)")
+    else:
+        target_file.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        ok(f"Stripped GSE-One content from {target_file}")
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -884,16 +1248,27 @@ def interactive_menu(env):
         platform_choices.append(("Claude Code", "claude"))
     if env["has_cursor"]:
         platform_choices.append(("Cursor", "cursor"))
-    if env["has_claude"] and env["has_cursor"]:
+    if env["has_opencode"]:
+        platform_choices.append(("opencode", "opencode"))
+    if env["has_claude"] and env["has_cursor"] and env["has_opencode"]:
+        platform_choices.append(("All three (Claude Code + Cursor + opencode)", "all"))
+    elif env["has_claude"] and env["has_cursor"]:
         platform_choices.append(("Both (Claude Code + Cursor)", "both"))
     if not env["has_claude"]:
         platform_choices.append(("Claude Code (not detected — install anyway)", "claude"))
     if not env["has_cursor"]:
         platform_choices.append(("Cursor (not detected — install anyway)", "cursor"))
+    if not env["has_opencode"]:
+        platform_choices.append(("opencode (not detected — install anyway)", "opencode"))
 
     chosen_platform = ask("Install for which platform?", platform_choices)
 
-    platforms = ["claude", "cursor"] if chosen_platform == "both" else [chosen_platform]
+    if chosen_platform == "all":
+        platforms = ["claude", "cursor", "opencode"]
+    elif chosen_platform == "both":
+        platforms = ["claude", "cursor"]
+    else:
+        platforms = [chosen_platform]
     results = []
 
     for plat in platforms:
@@ -928,6 +1303,20 @@ def interactive_menu(env):
             else:
                 results.append(install_cursor_plugin(env))
 
+        elif plat == "opencode":
+            mode = ask(
+                "Installation mode for opencode?",
+                [
+                    ("Plugin — global (copy to ~/.config/opencode/)", "plugin"),
+                    ("Non-plugin — copy artifacts to .opencode/ (project)", "no-plugin"),
+                ],
+            )
+            if mode == "no-plugin":
+                project_dir = _ask_project_dir()
+                results.append(install_opencode_no_plugin(project_dir))
+            else:
+                results.append(install_opencode_plugin(env))
+
     return all(results)
 
 
@@ -940,6 +1329,8 @@ def interactive_uninstall(env):
             ("Claude Code — non-plugin (current project)", "claude-no-plugin"),
             ("Cursor — plugin", "cursor-plugin"),
             ("Cursor — non-plugin (current project)", "cursor-no-plugin"),
+            ("opencode — plugin (global)", "opencode-plugin"),
+            ("opencode — non-plugin (current project)", "opencode-no-plugin"),
         ],
     )
 
@@ -951,6 +1342,10 @@ def interactive_uninstall(env):
         return uninstall_cursor_plugin(env)
     elif chosen == "cursor-no-plugin":
         return uninstall_cursor_no_plugin(_ask_project_dir())
+    elif chosen == "opencode-plugin":
+        return uninstall_opencode_plugin(env)
+    elif chosen == "opencode-no-plugin":
+        return uninstall_opencode_no_plugin(_ask_project_dir())
 
 
 def _ask_project_dir():
@@ -978,20 +1373,24 @@ def _ask_project_dir():
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description=f"GSE-One Installer v{VERSION} — Cross-platform setup for Claude Code and Cursor",
+        description=f"GSE-One Installer v{VERSION} — Cross-platform setup for Claude Code, Cursor, and opencode",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
   python3 install.py                                          # Interactive
   python3 install.py --platform claude --mode plugin --scope project
   python3 install.py --platform cursor --mode plugin
+  python3 install.py --platform opencode --mode plugin
+  python3 install.py --platform opencode --mode no-plugin --project-dir /path/to/project
   python3 install.py --platform both --mode plugin --scope user
-  python3 install.py --uninstall --platform claude --mode plugin
+  python3 install.py --platform all --mode plugin --scope user
+  python3 install.py --uninstall --platform opencode --mode plugin
 """,
     )
-    parser.add_argument("--platform", choices=["claude", "cursor", "both"], help="Target platform")
+    parser.add_argument("--platform", choices=["claude", "cursor", "opencode", "both", "all"],
+                        help="Target platform ('both' = claude+cursor, 'all' = all three)")
     parser.add_argument("--mode", choices=["plugin", "no-plugin"], help="Installation mode")
     parser.add_argument("--scope", choices=["project", "local", "user"], default="project",
-                        help="Plugin scope for Claude Code (default: project)")
+                        help="Plugin scope for Claude Code (default: project). Ignored for Cursor/opencode.")
     parser.add_argument("--project-dir", type=str,
                         help="Project directory for non-plugin mode (default: current directory)")
     parser.add_argument("--uninstall", action="store_true", help="Uninstall GSE-One")
@@ -1021,24 +1420,36 @@ def main():
 
     # Non-interactive mode
     project_dir = Path(args.project_dir).resolve() if args.project_dir else Path.cwd()
-    platforms = ["claude", "cursor"] if args.platform == "both" else [args.platform]
+    if args.platform == "all":
+        platforms = ["claude", "cursor", "opencode"]
+    elif args.platform == "both":
+        platforms = ["claude", "cursor"]
+    else:
+        platforms = [args.platform]
     mode = args.mode or "plugin"
     results = []
 
     for plat in platforms:
         if args.uninstall:
-            if mode == "plugin":
-                results.append(uninstall_claude_plugin() if plat == "claude" else uninstall_cursor_plugin(env))
-            else:
-                results.append(uninstall_claude_no_plugin(project_dir) if plat == "claude"
+            if plat == "claude":
+                results.append(uninstall_claude_plugin() if mode == "plugin"
+                               else uninstall_claude_no_plugin(project_dir))
+            elif plat == "cursor":
+                results.append(uninstall_cursor_plugin(env) if mode == "plugin"
                                else uninstall_cursor_no_plugin(project_dir))
+            elif plat == "opencode":
+                results.append(uninstall_opencode_plugin(env) if mode == "plugin"
+                               else uninstall_opencode_no_plugin(project_dir))
         else:
-            if mode == "plugin":
-                results.append(install_claude_plugin(args.scope) if plat == "claude"
-                               else install_cursor_plugin(env))
-            else:
-                results.append(install_claude_no_plugin(project_dir) if plat == "claude"
+            if plat == "claude":
+                results.append(install_claude_plugin(args.scope) if mode == "plugin"
+                               else install_claude_no_plugin(project_dir))
+            elif plat == "cursor":
+                results.append(install_cursor_plugin(env) if mode == "plugin"
                                else install_cursor_no_plugin(project_dir))
+            elif plat == "opencode":
+                results.append(install_opencode_plugin(env) if mode == "plugin"
+                               else install_opencode_no_plugin(project_dir))
 
     tracker.display()
     sys.exit(0 if all(results) else 1)

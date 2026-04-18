@@ -2,7 +2,7 @@
 
 ## Project overview
 
-This is the **gensem** repository — the source for the GSE-One plugin, an AI engineering companion for structured SDLC management. It produces a single plugin deployable on both Claude Code and Cursor.
+This is the **gensem** repository — the source for the GSE-One plugin, an AI engineering companion for structured SDLC management. It produces a single plugin deployable on Claude Code, Cursor, and opencode.
 
 ## Repository structure
 
@@ -10,7 +10,7 @@ This is the **gensem** repository — the source for the GSE-One plugin, an AI e
 - `gse-one/plugin/` — Generated deployable directory (NEVER edit directly)
 - `gse-one/plugin/tools/` — Python tool scripts (dashboard, etc.) with `# @gse-tool` headers
 - `gse-one/gse_generate.py` — Generator: rebuilds `plugin/` from `src/`
-- `install.py` — Cross-platform installer (Claude Code + Cursor)
+- `install.py` — Cross-platform installer (Claude Code + Cursor + opencode)
 - `gse-one-spec.md` — Methodology specification
 - `gse-one-implementation-design.md` — Implementation design document
 - `assets/images/` — Branding assets (logos, banners)
@@ -45,8 +45,11 @@ Never skip a step. Never commit without regenerating. Never push without bumping
 - Commit style: `feat:`, `fix:`, `docs:` prefixes. Check recent `git log` for conventions.
 
 ### Files to keep in sync (all via generator)
-- `src/activities/*.md` → `plugin/skills/*/SKILL.md` (Claude Code) + `plugin/commands/gse-*.md` (Cursor)
-- `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc`
+- `src/activities/*.md` → `plugin/skills/*/SKILL.md` (Claude Code) + `plugin/commands/gse-*.md` (Cursor) + `plugin/opencode/skills/*/SKILL.md` + `plugin/opencode/commands/gse-*.md`
+- `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc` + `plugin/opencode/AGENTS.md` (wrapped in `<!-- GSE-ONE START/END -->` markers)
+- `src/agents/<specialized>.md` → `plugin/agents/*.md` + `plugin/opencode/agents/*.md` (with `mode: subagent` injected)
+- `plugin/hooks/hooks.claude.json` → `plugin/opencode/plugins/gse-guardrails.ts` (transpiled)
+- The orchestrator body, the `.mdc` rule body, and the opencode `AGENTS.md` block body are all verified identical by `--verify`.
 - Changes in spec should be reflected in design doc changelog and vice versa.
 
 ### Memory policy — in-repo only

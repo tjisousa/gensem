@@ -1,7 +1,7 @@
 <h1 align="center">GSE-One</h1>
 <h2 align="center">Built by AI.<br>Governed by Humans.</h2>
 
-GSE-One is an AI engineering companion that brings structured software development lifecycle (SDLC) management to coding agents. It works as a plugin for **Claude Code** and **Cursor**, guiding projects through requirements, design, testing, production, review, and knowledge transfer — with adaptive risk analysis and methodology guardrails.
+GSE-One is an AI engineering companion that brings structured software development lifecycle (SDLC) management to coding agents. It works as a plugin for **Claude Code**, **Cursor**, and **opencode**, guiding projects through requirements, design, testing, production, review, and knowledge transfer — with adaptive risk analysis and methodology guardrails.
 
 <p align="center">
   <img src="assets/images/logo-gse-geni-with-shield-landscape_4x_slogan.png" width="700" alt="GSE-One — Built by AI, Governed by Humans">
@@ -29,7 +29,7 @@ GSE-One is an AI engineering companion that brings structured software developme
 - **Unified backlog** — single task tracking with git state per-task
 - **8-dimension health dashboard** — generated HTML with radar chart, kanban, lifecycle checklist
 - **AI integrity guardrails** — confidence levels, verification gates, devil's advocate agent
-- **Cross-platform** — one plugin, identical methodology on Claude Code and Cursor
+- **Cross-platform** — one plugin, identical methodology on Claude Code, Cursor, and opencode
 
 ---
 
@@ -77,9 +77,30 @@ In Claude Code, type: `/go`
 >
 > In `no-plugin` mode, commands are unprefixed: `/go`, `/plan`, `/reqs`... instead of `/gse:go`, `/gse:plan`, `/gse:reqs`.
 
+### Option C — opencode
+
+See [INSTALL-OPENCODE.md](INSTALL-OPENCODE.md) for the full opencode quickstart.
+
+```bash
+# Set up the workspace
+mkdir gse-quick-start && cd gse-quick-start
+mkdir my-project
+git clone https://github.com/nicolasguelfi/gensem.git
+
+# Install GSE-One into the project's .opencode/
+cd gensem
+python3 install.py --platform opencode --mode no-plugin --project-dir ../my-project
+
+# Launch opencode in the project
+cd ../my-project && git init
+opencode
+```
+
+In opencode, type: `/gse-go`.
+
 ### Plugin mode (alternative)
 
-To install via the platform's plugin system (prefixed commands `/gse:*`):
+To install via the platform's plugin system (prefixed commands `/gse:*` on Claude, `/gse-*` on Cursor/opencode):
 
 ```bash
 # Cursor (local plugin)
@@ -87,6 +108,12 @@ python3 install.py --platform cursor --mode plugin
 
 # Claude Code (user-scoped plugin)
 python3 install.py --platform claude --mode plugin --scope user
+
+# opencode (global — ~/.config/opencode/)
+python3 install.py --platform opencode --mode plugin
+
+# All three at once (user/global scope)
+python3 install.py --platform all --mode plugin --scope user
 
 # Interactive (the installer guides you)
 python3 install.py
@@ -96,7 +123,7 @@ python3 install.py
 
 ## Mono-plugin Architecture
 
-GSE-One uses a **single deployable directory** (`plugin/`) that works on both platforms:
+GSE-One uses a **single deployable directory** (`plugin/`) that works on all three platforms:
 
 ```
 gse-one/
@@ -109,19 +136,27 @@ gse-one/
 ├── plugin/                           # Deployable directory
 │   ├── .claude-plugin/plugin.json    # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json    # Cursor manifest
-│   ├── skills/                       # 23 skills (shared)
+│   ├── skills/                       # 23 skills (shared, with name: field)
+│   ├── commands/                     # 23 /gse-<name>.md (Cursor)
 │   ├── agents/                       # 9 agents (shared)
 │   ├── templates/                    # 19 templates (shared)
 │   ├── tools/                        # Python tools (dashboard, etc.)
 │   ├── rules/gse-orchestrator.mdc    # Cursor only
 │   ├── hooks/                        # Platform-specific hooks
-│   └── settings.json                 # Claude only
+│   ├── settings.json                 # Claude only
+│   └── opencode/                     # opencode subtree
+│       ├── skills/                   # 23 skills (name: injected)
+│       ├── commands/                 # 23 /gse-<name>.md
+│       ├── agents/                   # 8 specialized (mode: subagent)
+│       ├── plugins/gse-guardrails.ts # Native TS guardrails plugin
+│       ├── AGENTS.md                 # Orchestrator body (markered)
+│       └── opencode.json             # Default permissions
 │
-└── install.py                        # Cross-platform installer
+└── install.py                        # Cross-platform installer (3 platforms)
 ```
 
 **Shared files:** skills, agents, templates, tools — single copy, zero divergence.
-**Platform-specific:** manifests, hooks, settings, rules — generated as equivalent pairs.
+**Platform-specific:** manifests, hooks, settings, rules, opencode subtree — all generated from the same source.
 
 ---
 
@@ -173,9 +208,9 @@ python3 install.py
 | Option | Values | Default | Description |
 |--------|--------|---------|-------------|
 | *(no flags)* | — | — | **Interactive mode** — detects environment, guides step by step |
-| `--platform` | `claude` \| `cursor` \| `both` | *(interactive)* | Target platform |
+| `--platform` | `claude` \| `cursor` \| `opencode` \| `both` \| `all` | *(interactive)* | Target platform (`both` = claude+cursor, `all` = all three) |
 | `--mode` | `plugin` \| `no-plugin` | *(interactive)* | `plugin` (recommended) or `no-plugin` (copies artifacts directly) |
-| `--scope` | `project` \| `local` \| `user` | `project` | Claude Code plugin scope only |
+| `--scope` | `project` \| `local` \| `user` | `project` | Claude Code plugin scope only (ignored by Cursor/opencode) |
 | `--project-dir` | path | current directory | No-plugin mode only |
 | `--uninstall` | *(flag)* | `false` | Remove GSE-One |
 
@@ -188,10 +223,19 @@ python3 install.py --platform claude --mode plugin --scope project
 # Cursor — plugin (global)
 python3 install.py --platform cursor --mode plugin
 
-# Both platforms at once
+# opencode — plugin (global, ~/.config/opencode/)
+python3 install.py --platform opencode --mode plugin
+
+# opencode — non-plugin (project .opencode/)
+python3 install.py --platform opencode --mode no-plugin --project-dir /path/to/myproject
+
+# Both Claude + Cursor
 python3 install.py --platform both --mode plugin --scope user
 
-# Non-plugin mode
+# All three platforms at once
+python3 install.py --platform all --mode plugin --scope user
+
+# Non-plugin mode (Claude)
 python3 install.py --platform claude --mode no-plugin --project-dir /path/to/myproject
 
 # Uninstall
@@ -205,6 +249,7 @@ python3 install.py --uninstall --platform claude --mode plugin
 Not yet operational. After approval:
 - Claude Code: `claude plugin install gse-one`
 - Cursor: search "gse-one" in `/add-plugin`
+- opencode: installed via `install.py` (opencode uses direct filesystem loading — no marketplace step required)
 
 ---
 

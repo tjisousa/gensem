@@ -6,9 +6,10 @@
 
 ## 2. Plugin System Comparison
 
-Both environments support git operations:
+All three supported environments support git operations:
 - Claude Code: via `Bash` tool (git commands) and `EnterWorktree`/`ExitWorktree` tools
 - Cursor: via terminal commands and Composer agent (multi-file editing in worktree context)
+- opencode: via `bash` tool (git commands) and native TS plugin hooks (`tool.execute.before/after`)
 
 ---
 
@@ -37,18 +38,26 @@ gse-one/
 │   │   └── devil-advocate.md
 │   └── templates/                       # 19 templates
 │
-├── plugin/                              # Single deployable directory (both platforms)
+├── plugin/                              # Single deployable directory (Claude + Cursor + opencode)
 │   ├── .claude-plugin/plugin.json       # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json       # Cursor manifest
-│   ├── skills/                          # 23 skills (shared)
+│   ├── skills/                          # 23 skills (shared, `name:` field included)
+│   ├── commands/                        # 23 flat /gse-<name>.md (Cursor + opencode)
 │   ├── agents/                          # 9 agents (shared, incl. orchestrator)
 │   ├── templates/                       # 19 templates (shared)
 │   ├── rules/
-│   │   └── gse-orchestrator.mdc      # Cursor-only (ignored by Claude)
+│   │   └── gse-orchestrator.mdc         # Cursor-only (ignored by Claude/opencode)
 │   ├── hooks/
 │   │   ├── hooks.claude.json            # Claude Code format
 │   │   └── hooks.cursor.json            # Cursor format
-│   └── settings.json                    # Claude-only (ignored by Cursor)
+│   ├── settings.json                    # Claude-only (ignored by Cursor/opencode)
+│   └── opencode/                        # opencode-specific subtree
+│       ├── skills/                      # 23 skills with injected `name:`
+│       ├── commands/                    # 23 gse-<name>.md slash commands
+│       ├── agents/                      # 8 specialized (`mode: subagent`)
+│       ├── plugins/gse-guardrails.ts    # Native TS plugin (transpiled from hooks.claude.json)
+│       ├── AGENTS.md                    # Orchestrator body wrapped in markers
+│       └── opencode.json                # Default permissions + version marker
 │
 ├── marketplace/
 │   └── .claude-plugin/marketplace.json

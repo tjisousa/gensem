@@ -1,7 +1,7 @@
 <h1 align="center">GSE-One</h1>
 <h2 align="center">Built by AI.<br>Governed by Humans.</h2>
 
-GSE-One is an AI engineering companion that brings structured software development lifecycle (SDLC) management to coding agents. It works as a plugin for **Claude Code** and **Cursor**, guiding projects through requirements, design, testing, production, review, and knowledge transfer — with adaptive risk analysis and methodology guardrails.
+GSE-One is an AI engineering companion that brings structured software development lifecycle (SDLC) management to coding agents. It works as a plugin for **Claude Code**, **Cursor**, and **opencode**, guiding projects through requirements, design, testing, production, review, and knowledge transfer — with adaptive risk analysis and methodology guardrails.
 
 <p align="center">
   <img src="../assets/images/logo-gse-geni-with-shield-landscape_4x_slogan.png" width="700" alt="GSE-One — Built by AI, Governed by Humans">
@@ -65,18 +65,29 @@ python3 install.py --platform claude --mode plugin --scope project
 # Cursor — plugin, global
 python3 install.py --platform cursor --mode plugin
 
-# Both platforms at once
+# opencode — plugin (global, ~/.config/opencode/)
+python3 install.py --platform opencode --mode plugin
+
+# opencode — non-plugin (project .opencode/)
+python3 install.py --platform opencode --mode no-plugin --project-dir /path/to/project
+
+# Both Claude + Cursor
 python3 install.py --platform both --mode plugin --scope user
+
+# All three platforms at once
+python3 install.py --platform all --mode plugin --scope user
 
 # Uninstall
 python3 install.py --uninstall --platform claude --mode plugin
 ```
 
+For the fastest opencode onboarding (install + create project + start), see [INSTALL-OPENCODE.md](../INSTALL-OPENCODE.md) at the repo root.
+
 Run `python3 install.py --help` for all options.
 
 ### Verify
 
-Type `/gse:go` in Claude Code or Cursor. The agent should respond and detect your project state.
+Type `/gse:go` in Claude Code, `/gse-go` in Cursor or opencode. The agent should respond and detect your project state.
 
 ### Marketplace (when available)
 
@@ -86,6 +97,8 @@ Not yet operational. After approval:
 claude plugin install gse-one
 
 # Cursor — search "gse-one" in /add-plugin
+
+# opencode — no marketplace; install.py handles deployment
 ```
 
 ## Commands (23)
@@ -125,18 +138,21 @@ gse-one/
 │   ├── activities/             # 23 activity definitions
 │   ├── agents/                 # 9 agents (8 specialized + orchestrator)
 │   └── templates/              # 19 artefact & config templates
-├── plugin/                     # Single deployable directory (both platforms)
+├── plugin/                     # Single deployable directory (3 platforms)
 │   ├── .claude-plugin/         # Claude Code manifest
 │   ├── .cursor-plugin/         # Cursor manifest
-│   ├── skills/                 # 23 skills (shared)
+│   ├── skills/                 # 23 skills (shared, with name: field)
+│   ├── commands/               # 23 /gse-<name>.md (Cursor)
 │   ├── agents/                 # 9 agents (shared)
 │   ├── templates/              # 19 templates (shared)
 │   ├── tools/                  # Python tools (dashboard, etc.)
-│   ├── rules/                  # 1 .mdc (Cursor-only, ignored by Claude)
-│   ├── hooks/                  # 2 hooks files (1 per platform)
-│   └── settings.json           # Claude-only (ignored by Cursor)
+│   ├── rules/                  # 1 .mdc (Cursor-only, ignored by Claude/opencode)
+│   ├── hooks/                  # 2 hooks files (Claude + Cursor)
+│   ├── settings.json           # Claude-only
+│   └── opencode/               # opencode subtree (skills, commands, agents,
+│                               #   plugins/gse-guardrails.ts, AGENTS.md, opencode.json)
 ├── marketplace/                # Marketplace metadata
-└── gse_generate.py             # Generator: src/ → plugin/
+└── gse_generate.py             # Generator: src/ → plugin/ (incl. opencode/)
 ```
 
 ## Core Principles (16)

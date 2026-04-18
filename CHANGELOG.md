@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-04-18
+
+Layers impacted: **production** (major — new platform), **spec**, **design**
+
+### Added
+- **opencode platform support.** GSE-One now deploys natively on [opencode](https://opencode.ai) alongside Claude Code and Cursor. Installer gains `--platform opencode` and `--platform all` (all three platforms at once). Two install modes supported: `plugin` (global, `~/.config/opencode/`) and `no-plugin` (project, `.opencode/`).
+- `gse-one/plugin/opencode/` — new generated subtree assembled from existing sources. Contains: `skills/<name>/SKILL.md` (with injected `name:` frontmatter required by opencode's loader), `commands/gse-<name>.md` (identical to Cursor), `agents/<name>.md` (8 specialized, `mode: subagent`, opencode `tools` object format), `plugins/gse-guardrails.ts` (native TS plugin reproducing the 3 guardrails from `hooks.claude.json`), `AGENTS.md` (orchestrator body wrapped in `<!-- GSE-ONE START/END -->` markers for surgical merge), `opencode.json` (default permissions + version marker).
+- `install.py` — 4 new install/uninstall functions (`install_opencode_plugin`, `install_opencode_no_plugin`, and their uninstall counterparts), plus `_merge_agents_md`, `_strip_agents_md_block`, `_merge_opencode_json`, `_strip_opencode_json_marker`, `_deep_merge`, `_detect_opencode`. Interactive menu updated for opencode and "all three platforms".
+- `gse_generate.py` — `build_opencode()` phase with 6 builders. SKILL.md files now receive `name:` injection globally (harmless for Claude, required by opencode).
+- `INSTALL-OPENCODE.md` — user-facing quickstart for opencode installation and first-project setup.
+- README files updated to list opencode as a supported platform.
+
+### Changed
+- `gse_generate.py` — generator docstring and `--verify` checks extended to cover the opencode subtree (skills, commands, agents, AGENTS.md body parity with `.mdc`, guardrails pattern presence).
+- `install.py` — `--platform` choices extended to `opencode`, `all`; environment detection displays opencode status; duplicate detection warns on `.claude/skills` + `.opencode/` coexistence (opencode loads both).
+- `CLAUDE.md` — "Files to keep in sync" updated with the opencode subtree.
+
 ## [0.20.8] - 2026-04-18
 
 Layers impacted: **spec** (trivial)

@@ -5,11 +5,11 @@ GSE-One Generator — Builds plugin/ from src/
 Usage:
     python gse_generate.py [--clean] [--verify]
 
-Mono-plugin architecture: ONE directory deployable on both Claude Code and Cursor.
+Mono-plugin architecture: ONE directory deployable on Claude Code, Cursor and opencode.
 
 Source layout:
     src/principles/    → 16 principle definitions (P1-P16)
-    src/activities/    → 23 activity definitions (→ skills for Claude, commands for Cursor)
+    src/activities/    → 23 activity definitions (→ skills for Claude, commands for Cursor/opencode)
     src/agents/        → 9 agent roles (8 specialized + gse-orchestrator)
     src/templates/     → 15 artefact & config templates
 
@@ -17,21 +17,29 @@ Generated output:
     plugin/            → Single deployable directory
         .claude-plugin/plugin.json    ← Claude Code manifest
         .cursor-plugin/plugin.json    ← Cursor manifest
-        skills/                       ← Claude Code activities (22 SKILL.md in subdirs)
-        commands/                     ← Cursor activities (22 flat gse-<name>.md files)
+        skills/                       ← Claude Code activities (SKILL.md in subdirs)
+        commands/                     ← Cursor activities (flat gse-<name>.md files)
         agents/                       ← 9 agents (8 specialized + orchestrator for Claude; installer excludes orchestrator for Cursor)
         templates/                    ← Shared (15 templates)
         rules/gse-orchestrator.mdc    ← Cursor-specific (generated)
         hooks/hooks.claude.json       ← Claude-specific (generated)
         hooks/hooks.cursor.json       ← Cursor-specific (generated)
         settings.json                 ← Claude-specific (generated)
+        opencode/                     ← opencode deployable subtree (generated)
+            skills/<name>/SKILL.md    ← with injected `name:` frontmatter
+            commands/gse-<name>.md    ← identical to Cursor commands
+            agents/<name>.md          ← 8 specialized, `mode: subagent`, tools object
+            plugins/gse-guardrails.ts ← hooks transpiled to opencode TS plugin
+            AGENTS.md                 ← orchestrator body wrapped in GSE-ONE markers
+            opencode.json             ← default permissions + GSE-One metadata
 
 Activities are generated to the correct concept per platform:
   - Claude Code: skills/ (SKILL.md in subdirs) → /gse:go, /gse:plan (auto-namespaced)
   - Cursor: commands/ (flat gse-<name>.md) → /gse-go, /gse-plan (prefixed kebab-case)
+  - opencode: skills/ + commands/ → /gse-go, /gse-plan (prefixed kebab-case)
 
-The orchestrator agent and the .mdc rule are generated from the SAME
-src/principles/ content, ensuring identical methodology on both platforms.
+The orchestrator agent, the .mdc rule, and the opencode AGENTS.md block are
+generated from the SAME source, ensuring identical methodology on all platforms.
 """
 
 import argparse
@@ -93,6 +101,22 @@ def copy_file(src: Path, dst: Path) -> None:
     ensure_dir(dst.parent)
     shutil.copy2(src, dst)
 
+def copy_skill_with_name(src: Path, dst: Path, skill_name: str) -> None:
+    """Copy a source activity as SKILL.md, injecting `name:` in frontmatter.
+
+    opencode's skill loader requires both `name` and `description`. Claude Code
+    accepts extra frontmatter fields silently, so the injected `name:` is safe
+    across all targets and lets the same SKILL.md serve both platforms.
+    """
+    content = src.read_text(encoding="utf-8")
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3 and "name:" not in parts[1]:
+            fm = parts[1].rstrip("\n")
+            parts[1] = f'\nname: {skill_name}\n{fm.lstrip(chr(10))}\n'
+            content = "---".join(parts)
+    write_file(dst, content)
+
 def generate_command(src: Path, dst: Path, cmd_name: str) -> None:
     """Convert a SKILL.md source to a flat Cursor command file (gse-<name>.md).
 
@@ -144,7 +168,7 @@ def generate(clean: bool = False) -> None:
         src_file = ACTIVITIES_DIR / f"{name}.md"
         dst_file = PLUGIN / "skills" / name / "SKILL.md"
         if src_file.exists():
-            copy_file(src_file, dst_file)
+            copy_skill_with_name(src_file, dst_file, name)
         else:
             print(f"  WARNING: missing {name}.md")
     print(f"  {activity_count}/{len(ACTIVITY_NAMES)}\n")
@@ -266,6 +290,11 @@ def generate(clean: bool = False) -> None:
     generate_hooks()
     print()
 
+    # 8. opencode subtree
+    print("opencode:")
+    build_opencode()
+    print()
+
     print(f"Plugin generated: {PLUGIN.relative_to(ROOT)}/")
     total = sum(1 for _ in PLUGIN.rglob("*") if _.is_file())
     print(f"Total files: {total}\n")
@@ -349,6 +378,215 @@ def generate_hooks() -> None:
 
 
 # ---------------------------------------------------------------------------
+# opencode builder
+# ---------------------------------------------------------------------------
+
+OPENCODE_AGENTS_MD_START = "<!-- GSE-ONE START -->"
+OPENCODE_AGENTS_MD_END = "<!-- GSE-ONE END -->"
+
+
+def build_opencode() -> None:
+    """Assemble plugin/opencode/ from the already-generated plugin/ tree."""
+    oc = PLUGIN / "opencode"
+    if oc.exists():
+        shutil.rmtree(oc)
+    ensure_dir(oc)
+    _oc_build_skills(oc)
+    _oc_build_commands(oc)
+    _oc_build_agents(oc)
+    _oc_build_plugins_ts(oc)
+    _oc_build_agents_md(oc)
+    _oc_build_config_json(oc)
+
+
+def _oc_build_skills(oc: Path) -> None:
+    """Copy plugin/skills/**/SKILL.md to opencode/skills/. The `name:` field
+    was already injected during the Claude skills step, so a plain copy
+    suffices here.
+    """
+    src = PLUGIN / "skills"
+    dst = oc / "skills"
+    ensure_dir(dst)
+    count = 0
+    for skill_dir in sorted(src.iterdir()):
+        if not skill_dir.is_dir():
+            continue
+        skill_file = skill_dir / "SKILL.md"
+        if not skill_file.exists():
+            continue
+        out = dst / skill_dir.name / "SKILL.md"
+        ensure_dir(out.parent)
+        shutil.copy2(skill_file, out)
+        count += 1
+    print(f"  skills: {count}")
+
+
+def _oc_build_commands(oc: Path) -> None:
+    """Copy plugin/commands/gse-*.md verbatim — opencode uses the same format
+    as Cursor for slash commands.
+    """
+    src = PLUGIN / "commands"
+    dst = oc / "commands"
+    ensure_dir(dst)
+    count = 0
+    for cmd_file in sorted(src.glob("gse-*.md")):
+        shutil.copy2(cmd_file, dst / cmd_file.name)
+        count += 1
+    print(f"  commands: {count}")
+
+
+def _oc_build_agents(oc: Path) -> None:
+    """Copy the 8 specialized agents, adding `mode: subagent` and translating
+    any `tools:` list into opencode's object form. The orchestrator is not
+    emitted as an agent — it ships via AGENTS.md instead.
+    """
+    src = PLUGIN / "agents"
+    dst = oc / "agents"
+    ensure_dir(dst)
+    count = 0
+    for agent_file in sorted(src.glob("*.md")):
+        if agent_file.name == "gse-orchestrator.md":
+            continue
+        content = agent_file.read_text(encoding="utf-8")
+        new_content = _oc_translate_agent_frontmatter(content)
+        (dst / agent_file.name).write_text(new_content, encoding="utf-8")
+        count += 1
+    print(f"  agents: {count}")
+
+
+def _oc_translate_agent_frontmatter(content: str) -> str:
+    """Return the agent content with opencode-compatible frontmatter.
+
+    - Adds `mode: subagent` if absent.
+    - Converts `tools: [A, B]` (list) into `tools:\\n  a: true\\n  b: true` (object).
+    """
+    if not content.startswith("---"):
+        return content
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return content
+    fm = parts[1]
+    body = parts[2]
+
+    # Translate tools list → object
+    tools_match = re.search(r'^tools:\s*\[(.*?)\]\s*$', fm, re.MULTILINE)
+    if tools_match:
+        items = [t.strip().strip('"').strip("'") for t in tools_match.group(1).split(",") if t.strip()]
+        object_lines = "\n".join(f"  {item.lower()}: true" for item in items)
+        fm = fm.replace(tools_match.group(0), f"tools:\n{object_lines}")
+
+    # Add mode if missing
+    if not re.search(r'^mode:\s*', fm, re.MULTILINE):
+        fm = fm.rstrip("\n") + "\nmode: subagent\n"
+
+    return f"---{fm}---{body}"
+
+
+def _oc_build_plugins_ts(oc: Path) -> None:
+    """Write plugins/gse-guardrails.ts — a native opencode TS plugin that
+    reproduces the 3 guardrails from hooks.claude.json:
+      - block `git commit` on main
+      - block `git push --force`
+      - post-`git push` warning when .gse/status.yaml has open review findings
+    """
+    dst = oc / "plugins" / "gse-guardrails.ts"
+    ts = f'''// Generated by gse_generate.py — DO NOT EDIT
+// GSE-One version: {VERSION}
+// Reproduces hooks/hooks.claude.json guardrails as a native opencode plugin.
+import type {{ Plugin }} from "@opencode-ai/plugin"
+import {{ $ }} from "bun"
+
+export const GseGuardrails: Plugin = async () => {{
+  return {{
+    "tool.execute.before": async (input: any, output: any) => {{
+      if (input?.tool !== "bash") return
+      const cmd = String(output?.args?.command ?? "")
+
+      if (cmd.startsWith("git push --force")) {{
+        throw new Error(
+          "EMERGENCY GUARDRAIL: Force push detected. This can cause permanent data loss. Aborting."
+        )
+      }}
+
+      if (cmd.startsWith("git commit")) {{
+        const branch = (await $`git branch --show-current`.text()).trim()
+        if (branch === "main") {{
+          throw new Error(
+            "GUARDRAIL: Direct commit to main detected. Use a feature branch."
+          )
+        }}
+      }}
+    }},
+
+    "tool.execute.after": async (input: any, _output: any) => {{
+      if (input?.tool !== "bash") return
+      const cmd = String(input?.args?.command ?? "")
+      if (!cmd.startsWith("git push")) return
+
+      try {{
+        const status = await Bun.file(".gse/status.yaml").text()
+        const m = status.match(/review_findings_open:\\s*(\\d+)/)
+        const open = m ? parseInt(m[1], 10) : 0
+        if (open > 0) {{
+          console.warn(`WARNING: ${{open}} open review findings`)
+        }}
+      }} catch {{
+        // .gse/status.yaml absent — nothing to report
+      }}
+    }},
+  }}
+}}
+
+export default GseGuardrails
+'''
+    write_file(dst, ts)
+
+
+def _oc_build_agents_md(oc: Path) -> None:
+    """Assemble opencode/AGENTS.md with the orchestrator body wrapped in
+    GSE-ONE markers, so installers can do surgical merge/replace.
+    """
+    mdc = PLUGIN / "rules" / "gse-orchestrator.mdc"
+    if not mdc.exists():
+        print("  AGENTS.md: SKIPPED (rules/gse-orchestrator.mdc missing)")
+        return
+    body = extract_body(mdc)
+    content = (
+        f"{OPENCODE_AGENTS_MD_START}\n"
+        f"<!-- gse-one-version: {VERSION} -->\n"
+        f"# GSE-One Methodology (opencode edition)\n\n"
+        f"This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — "
+        f"do not hand-edit between the START/END markers.\n\n"
+        f"{body}\n\n"
+        f"{OPENCODE_AGENTS_MD_END}\n"
+    )
+    write_file(oc / "AGENTS.md", content)
+
+
+def _oc_build_config_json(oc: Path) -> None:
+    """Write a minimal opencode.json with safe defaults and GSE-One metadata.
+
+    Kept small to make installer deep-merge predictable. Unknown top-level
+    `gse` key is used for version metadata — opencode's schema validator
+    warns on unknowns but does not reject them.
+    """
+    config = {
+        "$schema": "https://opencode.ai/config.json",
+        "permission": {
+            "skill": {"*": "allow"},
+            "bash": {
+                "git push --force *": "deny",
+                "rm -rf /*": "deny"
+            }
+        },
+        "gse": {
+            "version": VERSION
+        }
+    }
+    write_file(oc / "opencode.json", json.dumps(config, indent=2) + "\n")
+
+
+# ---------------------------------------------------------------------------
 # Verification
 # ---------------------------------------------------------------------------
 
@@ -396,6 +634,49 @@ def verify() -> None:
         print(f"    {name}: {'OK' if ok else 'MISSING'}")
         if not ok: errors.append(f"Cursor: missing {name}")
 
+    # opencode-specific
+    oc = PLUGIN / "opencode"
+    print(f"\n  opencode:")
+    oc_skills = sum(1 for n in ACTIVITY_NAMES if (oc / "skills" / n / "SKILL.md").exists())
+    oc_commands = sum(1 for n in ACTIVITY_NAMES if (oc / "commands" / f"gse-{n}.md").exists())
+    oc_agents = sum(1 for f in SPECIALIZED_AGENTS if (oc / "agents" / f).exists())
+    print(f"    Skills:    {oc_skills}/{len(ACTIVITY_NAMES)}")
+    print(f"    Commands:  {oc_commands}/{len(ACTIVITY_NAMES)}")
+    print(f"    Agents:    {oc_agents}/{len(SPECIALIZED_AGENTS)} (specialized only — orchestrator via AGENTS.md)")
+    if oc_skills < len(ACTIVITY_NAMES): errors.append(f"opencode: missing {len(ACTIVITY_NAMES)-oc_skills} skills")
+    if oc_commands < len(ACTIVITY_NAMES): errors.append(f"opencode: missing {len(ACTIVITY_NAMES)-oc_commands} commands")
+    if oc_agents < len(SPECIALIZED_AGENTS): errors.append(f"opencode: missing {len(SPECIALIZED_AGENTS)-oc_agents} agents")
+
+    for name, path in {
+        "AGENTS.md": oc / "AGENTS.md",
+        "opencode.json": oc / "opencode.json",
+        "plugins/gse-guardrails.ts": oc / "plugins" / "gse-guardrails.ts",
+    }.items():
+        ok_exists = path.exists()
+        print(f"    {name}: {'OK' if ok_exists else 'MISSING'}")
+        if not ok_exists: errors.append(f"opencode: missing {name}")
+
+    # Skill frontmatter `name:` check (required by opencode loader)
+    missing_name = []
+    for n in ACTIVITY_NAMES:
+        skill_md = oc / "skills" / n / "SKILL.md"
+        if skill_md.exists():
+            fm = skill_md.read_text(encoding="utf-8").split("---", 2)
+            if len(fm) >= 3 and f"name: {n}" not in fm[1]:
+                missing_name.append(n)
+    if missing_name:
+        errors.append(f"opencode: {len(missing_name)} SKILL.md missing `name:` field ({', '.join(missing_name[:3])}...)")
+    else:
+        print(f"    SKILL.md name: all {oc_skills} skills have correct `name:`")
+
+    # Guardrails content check
+    ts = oc / "plugins" / "gse-guardrails.ts"
+    if ts.exists():
+        ts_text = ts.read_text(encoding="utf-8")
+        for needle in ("git commit", "git push --force", "review_findings_open"):
+            if needle not in ts_text:
+                errors.append(f"opencode: gse-guardrails.ts missing pattern '{needle}'")
+
     # Body parity
     print("\n  Cross-platform parity:")
     if orchestrator and (PLUGIN / "rules" / "gse-orchestrator.mdc").exists():
@@ -404,6 +685,19 @@ def verify() -> None:
         parity = agent_body == mdc_body
         print(f"    Orchestrator vs .mdc body: {'IDENTICAL' if parity else 'DIVERGENT!'}")
         if not parity: errors.append("Orchestrator and .mdc body content differ!")
+
+        # opencode AGENTS.md body parity (strip markers + header)
+        agents_md = oc / "AGENTS.md"
+        if agents_md.exists():
+            md_text = agents_md.read_text(encoding="utf-8")
+            inside = md_text.split(OPENCODE_AGENTS_MD_START, 1)[-1].split(OPENCODE_AGENTS_MD_END, 1)[0]
+            # Strip the header lines we injected and compare the remainder against the .mdc body
+            oc_body = inside
+            if mdc_body.strip() in oc_body:
+                print(f"    AGENTS.md vs .mdc body:    IDENTICAL")
+            else:
+                print(f"    AGENTS.md vs .mdc body:    DIVERGENT!")
+                errors.append("opencode AGENTS.md body differs from .mdc body")
 
     if errors:
         print(f"\n  ERRORS ({len(errors)}):")

@@ -301,22 +301,26 @@ A plugin and a project directory deliver the same types of artifacts. The plugin
 
 #### 1.1.4 GSE-One: Mono-Plugin Architecture
 
-GSE-One delivers its methodology as a **single plugin directory** (`plugin/`) that works on both Claude Code and Cursor. Shared artifacts (skills, agents, templates) are identical across platforms. Platform-specific artifacts coexist in the same directory — each platform loads only the files it recognizes and silently ignores the rest.
+GSE-One delivers its methodology as a **single plugin directory** (`plugin/`) that works on Claude Code, Cursor, and opencode. Shared artifacts (skills, agents, templates) are identical across platforms. Platform-specific artifacts coexist in the same directory — each platform loads only the files it recognizes and silently ignores the rest.
 
-| Artifact | Files | Claude Code | Cursor |
-|----------|-------|:-----------:|:------:|
-| Skills (23) | `skills/<name>/SKILL.md` | Loaded | Loaded |
-| Specialized agents (8) | `agents/<name>.md` | Loaded | Loaded |
-| Orchestrator (identity) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Not installed (see below) |
-| Orchestrator (identity) | `rules/gse-orchestrator.mdc` | Ignored | `alwaysApply: true` |
-| Templates (15) | `templates/*` | Loaded | Loaded |
-| Hooks (3) | `hooks/hooks.claude.json` | Loaded | Ignored |
-| Hooks (3) | `hooks/hooks.cursor.json` | Ignored | Loaded |
-| Manifest | `.claude-plugin/plugin.json` | Loaded | Ignored |
-| Manifest | `.cursor-plugin/plugin.json` | Ignored | Loaded |
-| Settings | `settings.json` | Loaded | Ignored |
+| Artifact | Files | Claude Code | Cursor | opencode |
+|----------|-------|:-----------:|:------:|:--------:|
+| Skills (23) | `skills/<name>/SKILL.md` | Loaded | Loaded | Via `opencode/skills/` |
+| Specialized agents (8) | `agents/<name>.md` | Loaded | Loaded | Via `opencode/agents/` (`mode: subagent`) |
+| Orchestrator (identity) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Not installed | Not installed |
+| Orchestrator (identity) | `rules/gse-orchestrator.mdc` | Ignored | `alwaysApply: true` | Ignored |
+| Orchestrator (identity) | `opencode/AGENTS.md` | Ignored | Ignored | Loaded (always-on, worktree root) |
+| Commands (23) | `commands/gse-<name>.md` | Ignored | Loaded | Via `opencode/commands/` |
+| Templates (15) | `templates/*` | Loaded | Loaded | Shared via registry tools |
+| Hooks (3) | `hooks/hooks.claude.json` | Loaded | Ignored | Ignored |
+| Hooks (3) | `hooks/hooks.cursor.json` | Ignored | Loaded | Ignored |
+| Hooks (3) | `opencode/plugins/gse-guardrails.ts` | Ignored | Ignored | Native TS plugin |
+| Manifest | `.claude-plugin/plugin.json` | Loaded | Ignored | Ignored |
+| Manifest | `.cursor-plugin/plugin.json` | Ignored | Loaded | Ignored |
+| Config | `opencode/opencode.json` | Ignored | Ignored | Deep-merged by installer |
+| Settings | `settings.json` | Loaded | Ignored | Ignored |
 
-Note: "orchestrator" is a GSE-One convention. The orchestrator body is identical on both platforms — only the delivery mechanism differs. On Claude Code, it is the session's default agent (`agents/gse-orchestrator.md` referenced by `settings.json`). On Cursor, it is an always-on rule (`rules/gse-orchestrator.mdc`). The installer excludes `gse-orchestrator.md` from Cursor's `agents/` directory to avoid loading the same content twice.
+Note: "orchestrator" is a GSE-One convention. The orchestrator body is identical on all three platforms — only the delivery mechanism differs. On Claude Code, it is the session's default agent (`agents/gse-orchestrator.md` referenced by `settings.json`). On Cursor, it is an always-on rule (`rules/gse-orchestrator.mdc`). On opencode, it is the `AGENTS.md` body at the worktree root (or `~/.config/opencode/AGENTS.md` in plugin mode), wrapped between `<!-- GSE-ONE START -->` / `<!-- GSE-ONE END -->` markers so the installer can merge/replace surgically without disturbing user content. The installer excludes `gse-orchestrator.md` from Cursor's and opencode's `agents/` directories to avoid double-loading.
 
 ### 1.2 Agile Software Engineering Foundations
 
