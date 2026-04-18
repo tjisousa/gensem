@@ -170,6 +170,11 @@ Replace the model ID with whatever LM Studio reports for your loaded model (see 
 - **Temperature low.** `0.0–0.3` for deterministic tool calls. Most local engines respect `options.temperature` in the provider block.
 - **Tool calling must be on.** Ollama exposes it by default for compatible models; LM Studio exposes it when you tick "Function Calling" in the server panel.
 - **Watch VRAM.** The orchestrator + 1-2 open files + a long conversation can push past 32 GB on the 70B models. If the model starts hallucinating, check you're not being silently evicted to disk swap.
+- **`websearch` needs a key when running local.** opencode's built-in `websearch` tool is only active when you use opencode's own cloud provider, **or** when you export `OPENCODE_ENABLE_EXA=1` plus an [Exa](https://exa.ai) API key (`EXA_API_KEY`). With Ollama or LM Studio alone, `websearch` is silently unavailable. `webfetch` (direct HTTP) works in all cases, so GSE-One activities that need to read a specific URL still run. Example shell setup:
+  ```bash
+  export OPENCODE_ENABLE_EXA=1
+  export EXA_API_KEY=xxx   # from https://exa.ai
+  ```
 
 ---
 

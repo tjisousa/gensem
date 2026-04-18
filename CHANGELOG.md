@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.2] - 2026-04-18
+
+Layers impacted: **spec** (docs, trivial)
+
+### Added
+- `INSTALL-OPENCODE.md` §6.4 — clarification that opencode's built-in `websearch` tool requires `OPENCODE_ENABLE_EXA=1` + an Exa API key when running on a local provider (Ollama, LM Studio). `webfetch` stays available in all cases.
+
 ## [0.21.1] - 2026-04-18
 
 Layers impacted: **spec** (docs)
