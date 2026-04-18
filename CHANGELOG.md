@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.1] - 2026-04-18
+
+Layers impacted: **spec** (docs)
+
+### Changed
+- `INSTALL-OPENCODE.md` — slimmed to opencode-specific content only (prerequisites, install/upgrade/uninstall, troubleshooting). Duplicated GSE-One background, command reference, and lifecycle moved to references to `README.md` and `gse-one-spec.md`.
+
+### Added
+- `INSTALL-OPENCODE.md` §6 — "Run opencode with a local model (Ollama / LM Studio)" with curated list of 2026-current local coding models (Qwen3-Coder-Next, Qwen 2.5 Coder 32B, Llama 3.3 70B, DeepSeek R1 14B, GPT-OSS 20B, Devstral Small 2), exact `opencode.json` provider snippets for Ollama and LM Studio, and agentic-flow tuning notes (context ≥ 64k, tool-calling on, temperature low). Model choices backed by April 2026 benchmarks — see references list in the doc.
+
 ## [0.21.0] - 2026-04-18
 
 Layers impacted: **production** (major — new platform), **spec**, **design**

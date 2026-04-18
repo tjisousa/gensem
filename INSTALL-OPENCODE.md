@@ -1,43 +1,34 @@
-# GSE-One — opencode Quickstart
+# GSE-One — opencode Install Guide
 
-> **Goal:** install GSE-One on opencode and start working on a new project — in under 5 minutes.
-
-This guide is the fastest path. For the full reference (Claude Code and Cursor too), see the main [README.md](README.md).
+This document covers **only the opencode-specific install, upgrade, uninstall, and local-model setup**. For what GSE-One is, the list of commands, the architecture, and the full lifecycle, see [README.md](README.md) and [gse-one-spec.md](gse-one-spec.md).
 
 ---
 
 ## 1. Prerequisites
 
-You need:
+- **opencode** on your `PATH` — check with `opencode --version`. Install: https://opencode.ai
+- **Python 3** — ships with macOS and Linux; on Windows use `python`.
+- **git** — to clone this repo.
 
-- **opencode** installed and on your `PATH`. Check with `opencode --version`. Install instructions: https://opencode.ai
-- **Python 3** (`python3 --version`). Ships with macOS and Linux; on Windows use the `python` command.
-- **git** — used to clone this repo and to track your project.
-
-That's it. No Node.js, no Bun install, no npm packages — opencode handles the TS plugin runtime itself.
+No Node.js, npm, or Bun install required — opencode runs the TS guardrails plugin itself.
 
 ---
 
-## 2. Install (60 seconds)
+## 2. Install
 
-Choose **one** of the two modes below. Non-plugin is simplest for a single project; plugin is better if you want GSE-One available in every project.
+Pick one mode. **Mode A** is simplest for a single project; **Mode B** gives every project access to GSE-One.
 
-### Mode A — Non-plugin (per-project, recommended for your first try)
-
-Copies GSE-One into `<project>/.opencode/` plus an `AGENTS.md` and `opencode.json` at the project root. Nothing touches your home directory except a 1-line registry (`~/.gse-one`) used to resolve tools at runtime.
+### Mode A — Non-plugin (per-project)
 
 ```bash
-# 1. Clone this repo somewhere (does NOT need to be inside your project)
 git clone https://github.com/nicolasguelfi/gensem.git
 cd gensem
-
-# 2. Install GSE-One into your project's .opencode/
 python3 install.py --platform opencode --mode no-plugin --project-dir /path/to/your-project
 ```
 
-### Mode B — Plugin (global, ~/.config/opencode/)
+Writes `<project>/.opencode/` + `AGENTS.md` + `opencode.json` at the project root. The only file outside the project is a 1-line `~/.gse-one` registry.
 
-Installs once; every opencode session on any project sees GSE-One.
+### Mode B — Plugin (global, `~/.config/opencode/`)
 
 ```bash
 git clone https://github.com/nicolasguelfi/gensem.git
@@ -45,139 +36,164 @@ cd gensem
 python3 install.py --platform opencode --mode plugin
 ```
 
-### Interactive alternative
+### Interactive (auto-detects everything)
 
 ```bash
 python3 install.py
 ```
 
-The installer auto-detects opencode, Claude Code, and Cursor, and walks you through the choices.
+After install, launch `opencode` in your project and type `/gse-go`.
 
 ---
 
-## 3. Start a new project and work (2 minutes)
+## 3. Files written
 
-### From scratch
-
-```bash
-# 1. Create your project directory
-mkdir ~/my-project && cd ~/my-project
-git init
-
-# 2. Install GSE-One into it (skip if you picked Mode B above)
-cd /path/to/gensem
-python3 install.py --platform opencode --mode no-plugin --project-dir ~/my-project
-cd ~/my-project
-
-# 3. Launch opencode
-opencode
-```
-
-### First command — let GSE-One drive
-
-In opencode, type:
-
-```
-/gse-go
-```
-
-That's the entry point. GSE-One will:
-
-1. Detect that this is a fresh project and ask a few profiling questions (your role, your goals, your preferred language).
-2. Propose the first activity — usually `/gse-plan` (define what to build) or `/gse-hug` (onboarding interview).
-3. From there, it orchestrates the full lifecycle (`PLAN → REQS → DESIGN → PREVIEW → TESTS → PRODUCE → REVIEW → FIX → DELIVER`) — you just confirm or redirect at each step.
-
-You never need to memorize commands. `/gse-go` picks the next activity based on the project state.
-
----
-
-## 4. What gets installed, exactly
-
-| File | Mode A (no-plugin) | Mode B (plugin) |
-|------|:------------------:|:---------------:|
-| `<project>/.opencode/skills/<name>/SKILL.md` × 23 | ✓ | — |
-| `<project>/.opencode/commands/gse-<name>.md` × 23 | ✓ | — |
-| `<project>/.opencode/agents/<name>.md` × 8 | ✓ | — |
-| `<project>/.opencode/plugins/gse-guardrails.ts` | ✓ | — |
-| `<project>/AGENTS.md` (GSE-One block between markers) | ✓ | — |
+| File | Mode A | Mode B |
+|------|:------:|:------:|
+| `<project>/.opencode/{skills,commands,agents,plugins}/` | ✓ | — |
+| `<project>/AGENTS.md` (GSE block between `<!-- GSE-ONE START -->` / `<!-- GSE-ONE END -->`) | ✓ | — |
 | `<project>/opencode.json` (deep-merged) | ✓ | — |
-| `~/.config/opencode/skills/...` etc. | — | ✓ |
+| `~/.config/opencode/{skills,commands,agents,plugins}/` | — | ✓ |
 | `~/.config/opencode/AGENTS.md` | — | ✓ |
-| `~/.config/opencode/opencode.json` | — | ✓ |
-| `~/.gse-one` (1-line registry for Python tools) | ✓ | ✓ |
+| `~/.config/opencode/opencode.json` (deep-merged) | — | ✓ |
+| `~/.gse-one` (1-line path registry) | ✓ | ✓ |
 
-**All GSE-One content in `AGENTS.md` sits between `<!-- GSE-ONE START -->` and `<!-- GSE-ONE END -->` markers.** Your own content outside those markers is preserved on reinstall and fully restored on uninstall. `opencode.json` is deep-merged — your custom keys are never overwritten.
-
----
-
-## 5. Command reference (abridged)
-
-Type any of these in opencode:
-
-| Command | What it does |
-|---------|--------------|
-| `/gse-go` | **Start here.** Detects project state, proposes next activity. |
-| `/gse-status` | Sprint state, artefact inventory, git state. |
-| `/gse-health` | 8-dimension project health dashboard. |
-| `/gse-plan` | Select backlog items for the next sprint. |
-| `/gse-reqs` | Define requirements with test-driven acceptance criteria. |
-| `/gse-design` | Architecture decisions, component decomposition. |
-| `/gse-produce` | Execute production in an isolated worktree. |
-| `/gse-review` | Code review + devil's advocate pass. |
-| `/gse-deliver` | Merge, tag, cleanup branches. |
-| `/gse-pause` / `/gse-resume` | Save and restore session state. |
-
-Full list: 23 commands. Type `/gse-` and your completion should surface all of them. Details per command: [gse-one-spec.md](gse-one-spec.md) §3.
+User content outside the GSE-ONE markers is preserved on reinstall and fully restored on uninstall. `opencode.json` deep-merge never overwrites your keys.
 
 ---
 
-## 6. Upgrading
+## 4. Upgrade
 
 ```bash
-cd /path/to/gensem
-git pull
+cd /path/to/gensem && git pull
 cd gse-one && python3 gse_generate.py --verify
-cd ..
-# Reinstall — the existing install is overwritten cleanly
-python3 install.py --platform opencode --mode no-plugin --project-dir /path/to/your-project
+cd .. && python3 install.py --platform opencode --mode <your-mode> [--project-dir /path/to/your-project]
 ```
 
-Reinstall is idempotent: the GSE-One block in `AGENTS.md` is surgically replaced; GSE-managed keys in `opencode.json` are updated without touching your custom keys.
+Reinstall is idempotent (surgical block replace + deep merge).
 
 ---
 
-## 7. Uninstalling
+## 5. Uninstall
 
 ```bash
-# Mode A (non-plugin)
-python3 install.py --uninstall --platform opencode --mode no-plugin --project-dir /path/to/your-project
-
-# Mode B (plugin, global)
-python3 install.py --uninstall --platform opencode --mode plugin
+python3 install.py --uninstall --platform opencode --mode <your-mode> [--project-dir /path/to/your-project]
 ```
 
-After uninstall:
-
-- `.opencode/` is emptied of GSE-One content (user-added files kept).
-- `AGENTS.md` has its GSE-One block removed; if nothing else remains, the file is deleted.
-- `opencode.json` loses the `gse` marker and the GSE-added bash denies; if only the `$schema` remains, the file is deleted.
-- `~/.gse-one` registry is removed.
+`AGENTS.md` loses its GSE block (file deleted if empty); `opencode.json` loses the GSE-added keys (file deleted if only `$schema` remains); `~/.gse-one` is removed.
 
 ---
 
-## 8. Troubleshooting
+## 6. Run opencode with a local model (Ollama / LM Studio)
 
-- **`/gse-*` commands don't appear in opencode** — verify `.opencode/commands/gse-*.md` exists (Mode A) or `~/.config/opencode/commands/gse-*.md` exists (Mode B). Restart opencode after install.
-- **`/gse-go` runs but the agent doesn't apply GSE-One methodology** — `AGENTS.md` is missing or its GSE-ONE block was corrupted. Reinstall.
-- **"Skill skipped: missing name/description"** — the generator must be re-run: `cd gse-one && python3 gse_generate.py --verify`. The `name:` field is required by opencode's loader.
-- **Guardrails not firing on `git commit` on main** — ensure `.opencode/plugins/gse-guardrails.ts` exists. opencode auto-loads every `.ts` file under `plugins/`.
-- **Both `.claude/skills/` and `.opencode/skills/` in the same project** — opencode scans both and duplicates commands. The installer warns at install time and offers to abort; if you hit this, remove one of the two directories.
+opencode talks to any OpenAI-compatible endpoint, so Ollama and LM Studio both work out of the box. Use this if you want **privacy**, **zero API cost**, or **offline** operation.
+
+### 6.1 Recommended local coding models (April 2026)
+
+opencode runs an agentic loop with tool calls. A model that can't reliably call tools will silently fail. Pick from this short list — all have been observed to work for opencode-style workflows. **Context window ≥ 64k tokens** is strongly recommended by the opencode docs.
+
+| Model (Ollama tag) | Params | Min VRAM/RAM | Notes |
+|---|---|---|---|
+| `qwen3-coder` (a.k.a. Qwen3-Coder-Next) | 80B MoE (3B active) | 8 GB | Best efficiency/quality ratio in 2026; designed for agent tool-calling. |
+| `qwen2.5-coder:32b` | 32B dense | 24 GB | Python-first, strong code completion; the default "big local" option. |
+| `llama3.3:70b` | 70B dense | 32 GB (Apple Silicon 48 GB+) | GPT-4-class generalist; slower but very strong on full-file edits. |
+| `deepseek-r1:14b` | 14B dense | 16 GB | Chain-of-thought; excellent for debugging and code review. |
+| `gpt-oss:20b` | 20B dense | 16 GB | OpenAI open-source; enable high-thinking mode for agent reliability. |
+| `devstral-small-2:24b` | 24B dense | 16 GB | Good fallback when VRAM is tight; lighter than Qwen Coder 32B. |
+
+**What to avoid for opencode:** Qwen 3 14B (plain), Devstral Small 2 in agent mode, GPT-OSS 20B in default (non-thinking) mode — reports of tool-call failures and instruction drift. Pick a larger or MoE variant if you have the VRAM.
+
+Ollama tags evolve; run `ollama search coder` to see what's current.
+
+### 6.2 Option A — Ollama
+
+```bash
+# Install Ollama (macOS example)
+brew install ollama
+ollama serve &                       # background server on :11434
+
+# Pull one of the recommended models
+ollama pull qwen2.5-coder:32b        # or qwen3-coder, llama3.3:70b, etc.
+```
+
+Then add an Ollama provider to your opencode config. In **Mode A** edit `<project>/opencode.json`, in **Mode B** edit `~/.config/opencode/opencode.json`:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": { "baseURL": "http://localhost:11434/v1" },
+      "models": {
+        "qwen2.5-coder:32b": { "name": "Qwen 2.5 Coder 32B" }
+      }
+    }
+  }
+}
+```
+
+Launch opencode and type `/models` → pick **Qwen 2.5 Coder 32B**. To make it the default, add `"model": "ollama/qwen2.5-coder:32b"` at the top level of `opencode.json`.
+
+> **Shortcut:** if you're on Ollama ≥ 0.5, `ollama launch opencode` passes a ready-made config via `OPENCODE_CONFIG_CONTENT` and deep-merges with your existing `opencode.json`.
+
+### 6.3 Option B — LM Studio
+
+1. Install LM Studio: https://lmstudio.ai
+2. Download a recommended model from the Models tab (Qwen Coder, DeepSeek R1, etc.).
+3. Open the **Developer** tab → **Start Server** (default port `1234`). Ensure the model is loaded.
+
+Add the provider to `opencode.json`:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "lmstudio": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM Studio (local)",
+      "options": { "baseURL": "http://127.0.0.1:1234/v1" },
+      "models": {
+        "qwen2.5-coder-32b-instruct": { "name": "Qwen 2.5 Coder 32B (LM Studio)" }
+      }
+    }
+  }
+}
+```
+
+Replace the model ID with whatever LM Studio reports for your loaded model (see its "Local Server" panel). In opencode: `/models` → LM Studio → pick it. No real API key is required; if prompted, enter any non-empty string.
+
+### 6.4 Tuning for GSE-One agentic flow
+
+- **Context ≥ 64k.** GSE-One loads the orchestrator body (~400 lines of methodology) into every session via `AGENTS.md`. Smaller contexts truncate it.
+- **Temperature low.** `0.0–0.3` for deterministic tool calls. Most local engines respect `options.temperature` in the provider block.
+- **Tool calling must be on.** Ollama exposes it by default for compatible models; LM Studio exposes it when you tick "Function Calling" in the server panel.
+- **Watch VRAM.** The orchestrator + 1-2 open files + a long conversation can push past 32 GB on the 70B models. If the model starts hallucinating, check you're not being silently evicted to disk swap.
 
 ---
 
-## 9. Cross-reference
+## 7. Troubleshooting
 
-- Main README (all platforms): [README.md](README.md)
-- Full methodology spec: [gse-one-spec.md](gse-one-spec.md)
-- Implementation & design: [gse-one-implementation-design.md](gse-one-implementation-design.md)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- **`/gse-*` commands missing** — check the `commands/` dir exists at the install target. Restart opencode.
+- **Model ignores GSE-One methodology** — `AGENTS.md` lost its GSE block; reinstall. Or context window too small (try ≥ 64k).
+- **"Skill skipped: missing name/description"** — regenerate: `cd gse-one && python3 gse_generate.py --verify`.
+- **Guardrails don't fire on `git commit` on main** — `plugins/gse-guardrails.ts` missing or opencode version doesn't support `tool.execute.before`. Upgrade opencode.
+- **Local model makes tool calls but never finishes the loop** — model is too weak for agentic work. Swap for a larger variant or one from §6.1.
+- **`.claude/skills/` + `.opencode/skills/` coexist** — opencode loads both → duplicate commands. Installer warns at install time; remove one of the two.
+
+---
+
+## 8. References
+
+- [README.md](README.md) — what GSE-One is, all three platforms, quickstart
+- [gse-one-spec.md](gse-one-spec.md) — full methodology & 23-command reference
+- [CHANGELOG.md](CHANGELOG.md)
+
+**Model research sources (April 2026):**
+- [opencode — Providers](https://opencode.ai/docs/providers/)
+- [opencode — Models](https://opencode.ai/docs/models/)
+- [Ollama × opencode integration](https://docs.ollama.com/integrations/opencode)
+- [Best Local AI Coding Models 2026](https://localaimaster.com/models/best-local-ai-coding-models)
+- [Best LLMs for opencode — Tested Locally](https://dev.to/rosgluk/best-llms-for-opencode-tested-locally-499l)
+- [OpenCode CLI Guide 2026 — Local LLMs](https://yuv.ai/learn/opencode-cli)
