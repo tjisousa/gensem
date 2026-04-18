@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-04-18
+
+Layers impacted: **spec** (docs, major refactor)
+
+### Changed
+- `INSTALL-OPENCODE.md` §6.1 restructured into **three unified tables** sorted descending by SWE-bench Verified (April 2026):
+  - §6.1.1 **Recommended local coding models** — merges the previous commodity (8–32 GB) and high-RAM (≥ 128 GB) tiers into a single 15-row table; adds `qwen3.6:35b-a3b` (73.4 % SWE-V) as the new top local pick, plus `qwen3.5:27b` (72.4 %), `qwen3.5:122b-a10b` (72.0 %), `qwen3.5:35b-a3b` (69.2 %), `qwen3:235b-a22b`.
+  - §6.1.2 **Frontier open-weight models (via a cloud endpoint)** — 12 rows topped by MiniMax M2.5 (80.2 %), MiMo-V2-Pro (78.0 %), GLM-5 (77.8 %); adds the full MiMo V2 family (Pro / Omni / Flash), Qwen3.5-397B-A17B, Step-3.5-Flash.
+  - §6.1.3 **Best SWE/coding models on OpenRouter** — 15 rows topped by Claude Opus 4.7 (87.6 %), Opus 4.6 (80.8 %), Gemini 3.1 Pro (80.6 %); new additions: Gemini 3.1/3 Pro Preview, GPT-5.2, Qwen3.6 Plus, Grok 4.20 (2 M context, multi-agent), Z.AI GLM-5 (replaces GLM-4.5), Xiaomi MiMo-V2-Flash.
+- All three tables share a **9-column schema** (Model, Org, Params, Min VRAM/RAM, SWE-bench V., Context, GSE-One fit, Features, Best for/Notes). New **Features** column codes tool-calling, vision, thinking mode, agentic capabilities, websearch, FIM, long-ctx, multi-agent.
+
+### Added
+- §6.1 intro — legend for the Features column and explanation of the three-source sourcing strategy (local / open-weight cloud / OpenRouter).
+- §8 references — added SWE-bench.com, LLM-Stats, BenchLM leaderboards.
+
 ## [0.21.7] - 2026-04-18
 
 Layers impacted: **spec** (docs)

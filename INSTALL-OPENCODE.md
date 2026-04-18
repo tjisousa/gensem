@@ -88,75 +88,62 @@ python3 install.py --uninstall --platform opencode --mode <your-mode> [--project
 
 opencode talks to any OpenAI-compatible endpoint, so Ollama and LM Studio both work out of the box. Use this if you want **privacy**, **zero API cost**, or **offline** operation.
 
-### 6.1 Recommended local coding models (April 2026)
+### 6.1 Recommended coding models (April 2026)
 
-opencode runs an agentic loop with tool calls. A model that can't reliably call tools will silently fail. Pick from this short list — all have been observed to work for opencode-style workflows. **Context window ≥ 64k tokens** is strongly recommended by the opencode docs.
+opencode runs an agentic loop with tool calls. A model that can't reliably call tools will silently fail. **Context window ≥ 64 k tokens** is strongly recommended by the opencode docs (GSE-One loads the orchestrator body into every session via `AGENTS.md`).
 
-#### 6.1.1 Commodity hardware (8–32 GB)
+The three tables below cover the three realistic sourcing options: run it **locally** on your machine, pull it from an **open-weight cloud endpoint** (when self-hosting isn't practical), or go through **OpenRouter** (one account, any model). All three tables are sorted descending by SWE-bench Verified.
 
-| Model (Ollama tag) | Params | Min VRAM/RAM | Notes |
-|---|---|---|---|
-| `qwen3-coder` (a.k.a. Qwen3-Coder-Next) | 80B MoE (3B active) | 8 GB | Best efficiency/quality ratio in 2026; designed for agent tool-calling. |
-| `qwen2.5-coder:32b` | 32B dense | 24 GB | Python-first, strong code completion; the default "big local" option. |
-| `llama3.3:70b` | 70B dense | 32 GB (Apple Silicon 48 GB+) | GPT-4-class generalist; slower but very strong on full-file edits. |
-| `deepseek-r1:14b` | 14B dense | 16 GB | Chain-of-thought; excellent for debugging and code review. |
-| `gpt-oss:20b` | 20B dense | 16 GB | OpenAI open-source; enable high-thinking mode for agent reliability. |
-| `devstral-small-2:24b` | 24B dense | 16 GB | Good fallback when VRAM is tight; lighter than Qwen Coder 32B. |
+**Features column legend:** `tools` = function/tool calling · `vision` = image input · `thinking` = explicit reasoning mode · `agentic` = optimized for multi-turn agent workflows · `websearch` = built-in search tool · `FIM` = fill-in-the-middle (inline completion) · `long-ctx` = context ≥ 500 k · `multi-agent` = runs parallel sub-agents.
 
-**What to avoid for opencode:** Qwen 3 14B (plain), Devstral Small 2 in agent mode, GPT-OSS 20B in default (non-thinking) mode — reports of tool-call failures and instruction drift. Pick a larger or MoE variant if you have the VRAM.
+#### 6.1.1 Recommended local coding models
 
-Ollama tags evolve; run `ollama search coder` to see what's current.
+Covers the full range from laptop (8 GB VRAM) to workstation (≥ 128 GB). All tags are available on Ollama; `ollama pull <tag>` fetches them. On Apple Silicon prefer the **MLX** runtime (via LM Studio) — 20–30 % faster than llama.cpp on 30 B+ models.
 
-#### 6.1.2 High-RAM workstations (≥ 128 GB)
+| Model (Ollama tag) | Org | Params | Min VRAM/RAM | SWE-bench V. | Context | GSE-One fit | Features | Best for / Notes |
+|---|---|---|---|---|---|:---:|---|---|
+| `qwen3.6:35b-a3b` | Alibaba | 35 B MoE (3 B active) | 20 GB (Q4) | **73.4 %** | 256 k | ★★★★★ | tools, vision, thinking, agentic | **New top local pick.** Frontier-class SWE score on mid-range hardware. Default for most GSE-One users. |
+| `qwen3.5:27b` | Alibaba | 27 B dense | 17 GB (Q4) / 24 GB (Q6) | 72.4 % | 256 k | ★★★★★ | tools, thinking | Best dense model that fits 24 GB VRAM. No MoE overhead — predictable latency. |
+| `qwen3.5:122b-a10b` | Alibaba | 122 B MoE (10 B active) | 81 GB (Q4) | 72.0 % | 256 k | ★★★★☆ | tools, thinking, agentic | **128 GB tier.** Highest local SWE score before you need cloud. |
+| `qwen3.5:35b-a3b` | Alibaba | 35 B MoE (3 B active) | 20 GB (Q4) | 69.2 % | 256 k | ★★★★☆ | tools, thinking | Previous generation of the top pick — still excellent if your Ollama mirror hasn't synced 3.6. |
+| `qwen3:235b-a22b` | Alibaba | 235 B MoE (22 B active) | 120 GB (Q4) | ~68 % | 262 k | ★★★★☆ | tools, thinking, agentic | **128 GB tier, very tight.** Keep context ≤ 32 k. |
+| `qwen2.5-coder:72b` | Alibaba | 72 B dense | 75 GB (Q8) | ~65 % | 128 k | ★★★★☆ | tools | **128 GB tier.** Python-first coding specialist. |
+| `llama3.3:70b` | Meta | 70 B dense | 32 GB (Q4) / 75 GB (Q8) | ~58 % | 128 k | ★★★★☆ | tools, multilingual | GPT-4-class generalist. Q8 version is a 128 GB-tier quality bump. |
+| `deepseek-r1:70b` | DeepSeek | 70 B dense (distill) | 32 GB (Q4) / 75 GB (Q8) | ~60 % | 128 k | ★★★☆☆ | thinking | Reasoner — pair with a coder model for `/gse-review`, `/gse-design`. Not a primary coder. |
+| `qwen3-coder` (Qwen3-Coder-Next) | Alibaba | 80 B MoE (3 B active) | 8 GB | SWE-Pro ~39 % | 262 k | ★★★☆☆ | tools, agentic, long-ctx | Cheapest decent agentic coder. Weaker on SWE-V than Qwen 3.5/3.6 — use as a fallback. |
+| `qwen2.5-coder:32b` | Alibaba | 32 B dense | 24 GB (Q4) | ~55 % | 128 k | ★★★☆☆ | tools | Older but well-understood workhorse. |
+| `mistral-large:123b` | Mistral | 123 B dense | 85 GB (Q5) | ~55 % | 128 k | ★★★☆☆ | tools | **128 GB tier.** Long-context generalist. |
+| `llama4-scout` | Meta | 109 B MoE (17 B active) | 85 GB (Q6) | — | **10 M** | ★★★☆☆ | tools, vision, long-ctx | **128 GB tier.** Extreme context for whole-repo analysis. |
+| `devstral-small:24b` | Mistral | 24 B dense | 16 GB (Q4) | ~55 % | 128 k | ★★★☆☆ | tools, agentic | Lightweight agentic option. Degrades on multi-file edits. |
+| `gpt-oss:20b` | OpenAI (OSS) | 20 B dense | 16 GB (Q4) | ~55 % | 128 k | ★★★☆☆ | tools, thinking | Enable high-thinking mode for agentic reliability. |
+| `codestral:22b` | Mistral | 22 B dense | 16 GB (Q4) | SWE-Pro ~2 % | 256 k | ★★☆☆☆ | FIM | **Autocomplete only** — not for full agentic flows. 86.6 % HumanEval. |
 
-With 128 GB of unified memory (Apple Silicon M3/M4 Max/Ultra) or a PC with 128 GB DDR5 + a capable GPU, you can run the frontier-class open models at quality-preserving quantization. On Apple Silicon, prefer the **MLX** runtime (LM Studio has a toggle; with Ollama stick to its default): it's consistently 20–30 % faster than llama.cpp on large models.
+**Out of local reach even at 128 GB** (for reference): `qwen3-coder:480b-a35b` (~240 GB Q4, ≥ 180 GB RAM required), `deepseek-v3.2` / `deepseek-r1:671b` full (~400 GB). Use Table 6.1.2 instead.
 
-| Model (Ollama tag) | Total / Active | Recommended quant | RAM footprint | Notes |
-|---|---|---|---|---|
-| `qwen2.5-coder:72b` | 72B dense | Q8 | ~75 GB | **Best coding specialist at this tier.** Solid tool-calling, Python-first. |
-| `llama3.3:70b` at Q8 | 70B dense | Q8 | ~75 GB | Bumping the 32 GB-tier pick to Q8 meaningfully improves complex reasoning and multi-file edits. |
-| `deepseek-r1:70b` (distill) | 70B dense | Q8 | ~75 GB | R1-style chain-of-thought at 70B; pair with a coder model for best review/debug results. |
-| `mistral-large:123b` | 123B dense | Q5 | ~85 GB | 128k context, strong generalist, well-behaved on tool calls. |
-| `llama4-scout` | 109B MoE (17B active) | Q6 | ~85 GB | 10M-token context, multimodal, fast thanks to MoE — leave ~30 GB headroom for context. |
-| `qwen3:235b-a22b` | 235B MoE (22B active) | Q4 | ~120 GB | Frontier-class general model; tight on 128 GB — keep context ≤ 32k and close other heavy apps. |
+#### 6.1.2 Frontier open-weight models (via a cloud endpoint)
 
-**Still out of reach at 128 GB** (for reference — don't try these without ≥ 180 GB):
-- `qwen3-coder:480b-a35b` (Qwen3-Coder-480B) — ~240 GB at Q4, the current best open coding model but needs a multi-GPU rig or a 256 GB Mac Studio.
-- `deepseek-v3` / `deepseek-r1:671b` (full 671B MoE) — ~400 GB at Q4; same story.
+Open-weight models too large to self-host on consumer hardware. opencode reaches them through any OpenAI-compatible endpoint (vendor API, Together.ai, Groq, DeepInfra, SiliconFlow, etc.). "Min VRAM/RAM" below is the figure to self-host at Q4; you'll almost always want the hosted API.
 
-**Tips for 128 GB setups:**
-- Budget 15–25 % of RAM for the KV cache (context) — a 32k context on a 70B model can add 6–10 GB on top of the weights.
-- Running two models side-by-side (e.g. Qwen Coder for code + DeepSeek R1 for review) only works up to the combined footprint; unload one with `ollama stop <tag>` or LM Studio's "Eject" button before loading the other if you hit OOM.
-- Expect 5–15 tok/s on an M3 Ultra 128 GB with a 70B model at Q8, 3–8 tok/s with a 120 B+ model.
+| Model | Org | Params | Min VRAM/RAM | SWE-bench V. | Context | GSE-One fit | Features | Best for / Notes |
+|---|---|---|---|---|---|:---:|---|---|
+| **MiniMax M2.5** | MiniMax | undisclosed MoE | cloud-only | **80.2 %** | 192 k | ★★★★★ | tools, agentic, thinking | Current open-weight leader on SWE-bench Verified. |
+| **MiMo-V2-Pro** | Xiaomi | 1 T MoE (42 B active) | ~500 GB | 78.0 % | **1 M** | ★★★★★ | tools, vision, agentic, long-ctx | Agent-first design with huge context. |
+| **GLM-5** | Z.AI (Zhipu) | undisclosed large MoE | cloud-only | 77.8 % | 128 k | ★★★★★ | tools, agentic, thinking | Top scorer on SWE-bench Pro and Terminal Bench among open weights. |
+| **Kimi K2.5** | Moonshot AI | ~1 T MoE | ~500 GB | 76.8 % | 256 k | ★★★★☆ | tools, agentic | 85 % LiveCodeBench; strong front-end / competitive programming. |
+| **Qwen3.5-397B-A17B** | Alibaba | 397 B MoE (17 B active) | 222 GB (Q4) | 76.4 % | 256 k | ★★★★☆ | tools, thinking, agentic | Largest MoE in Qwen3.5 lineup. |
+| **MiMo-V2-Omni** | Xiaomi | large MoE (undisclosed) | cloud-only | 74.8 % | 256 k | ★★★★☆ | tools, vision, audio, agentic | Omnimodal — voice/image inputs in addition to text. |
+| **Step-3.5-Flash** | StepFun | undisclosed | cloud-only | 74.4 % | 128 k | ★★★★☆ | tools, agentic | Balanced all-rounder; cheaper/faster than 1 T-class models. |
+| **GLM-4.7** | Z.AI (Zhipu) | undisclosed | cloud-only | 73.8 % | 128 k | ★★★★☆ | tools, thinking, agentic | "Cleanest all-around coding profile" per community reviews; 94.2 HumanEval. |
+| **MiMo-V2-Flash** | Xiaomi | 309 B MoE (15 B active) | 180 GB (Q4) | 73.4 % | 256 k | ★★★★☆ | tools, thinking, agentic | Cheapest to host in the 300 B class; strong on SWE-Multilingual. |
+| **DeepSeek V3.2** | DeepSeek | 671 B MoE (37 B active) | 370 GB (Q4) | 73.1 % | 128 k | ★★★★★ | tools, thinking | **Workhorse:** 90 % of frontier quality for a tiny fraction of cost. Default for `/gse-produce`. |
+| **Qwen3-Coder-480B-A35B** | Alibaba | 480 B MoE (35 B active) | 240 GB (Q4) | SWE-Pro 38.7 % | 256 k | ★★★☆☆ | tools, agentic | Best **pure** open coding specialist; pair with a stronger SWE-V reviewer. |
+| **DeepSeek R1** (full) | DeepSeek | 671 B MoE (37 B active) | 400 GB (Q4) | 49.2 % | 128 k | ★★★☆☆ | thinking, agentic | Reviewer model: chain-of-thought catches issues coder models miss. |
 
-#### 6.1.3 Frontier open-weight models (via a cloud endpoint)
+**How to wire opencode** — add a provider block to `opencode.json` with the `@ai-sdk/openai-compatible` adapter, and point `baseURL` at the host of your choice (e.g. `https://api.deepseek.com/v1`, `https://api.together.xyz/v1`, `https://api.moonshot.cn/v1`). Put the API key in `options.apiKey` (prefer `{env:VAR}`).
 
-When you need the best open-source quality but don't have the RAM, use opencode's OpenAI-compatible provider config to point at a hosted endpoint (the vendor's API, Together.ai, Groq, OpenRouter, DeepInfra, etc.). These are the current top open-weight models on software-engineering benchmarks (April 2026):
+#### 6.1.3 Best SWE / coding models on OpenRouter
 
-| Model | Org | License | Total / Active | SWE-bench V. | Context | GSE-One fit | Notes for opencode |
-|---|---|---|---|---|---|:---:|---|
-| **MiniMax M2.5** | MiniMax | open-weight | undisclosed | **80.2 %** | 192 k | ★★★★★ | Current open-weight leader on SWE-bench; strong agentic tool use. |
-| **GLM-5** | Zhipu AI | open-weight | undisclosed | 77.8 % | 128 k | ★★★★★ | Top scorer on SWE-bench Pro and Terminal Bench among open models. |
-| **Kimi K2.5** | Moonshot AI | open-weight | ~1 T MoE | 76.8 % | 256 k | ★★★★☆ | Excellent on competitive programming and front-end work; longest context of the table. |
-| **Step-3.5-Flash** | StepFun | open-weight | undisclosed | 74.4 % | 128 k | ★★★☆☆ | Balanced all-rounder; faster/cheaper than the 1 T-class models. |
-| **GLM-4.7** | Zhipu AI | open-weight | undisclosed | 73.8 % | 128 k | ★★★★☆ | "Cleanest all-around coding profile" in community reviews; 94.2 HumanEval. |
-| **DeepSeek V3.2** | DeepSeek | open-weight | 671 B MoE (37 B active) | ~72–74 % | 128 k | ★★★★★ | Workhorse: 90 % of frontier quality at a fraction of the cost. Strong multilingual (SWE-Multilingual 70 %). |
-| **Qwen3-Coder-480B-A35B** | Alibaba | Apache-2.0 | 480 B MoE (35 B active) | SWE-Pro 38.7 % | 256 k | ★★★☆☆ | Best **pure** open coding specialist; weaker on full SWE-Verified → pair with a reviewer model. |
-| **DeepSeek R1** (full) | DeepSeek | MIT | 671 B MoE | 49.2 % | 128 k | ★★★☆☆ | Not a coder — use as the "reviewer" model for `/gse-review` / `/gse-design`: its chain-of-thought catches issues coder models miss. |
-
-**How to point opencode at any of these:** add a provider block to `opencode.json` using the same `@ai-sdk/openai-compatible` pattern shown in §6.2, but replace `baseURL` with the endpoint URL of your chosen host (e.g. `https://api.deepseek.com/v1`, `https://api.together.xyz/v1`, `https://api.moonshot.cn/v1`). Put the API key in the hosted-provider's way (usually `options.apiKey` or an env variable). Once configured, `/models` in opencode lets you switch between local and cloud endpoints on the fly.
-
-**Recommendations for GSE-One users:**
-
-- **Solo development / cost-sensitive:** pair a strong local coder (e.g. Qwen 2.5 Coder 32B from §6.1.1 or 72B from §6.1.2) for `/gse-produce`, `/gse-fix`, with a cloud reasoner (DeepSeek V3.2 or R1) for `/gse-review`, `/gse-design`. The `opencode` `variant_cycle` keybind makes switching fast.
-- **Privacy-critical / offline:** stick to §6.1.1 or §6.1.2 entirely — no data leaves the machine.
-- **Best agentic quality, don't care about cost:** use MiniMax M2.5 or GLM-5 via their hosted API. The GSE-One guardrails still work identically since they're enforced by the opencode TS plugin, not the model.
-
-Scores above come from vendor reports and community benchmarks as of April 2026; numbers evolve fast — recheck the [Scale SWE-Bench Pro Leaderboard](https://labs.scale.com/leaderboard/swe_bench_pro_public) and [SWE-bench.com](https://www.swebench.com/) before committing to a stack.
-
-#### 6.1.4 Via OpenRouter (unified gateway)
-
-[OpenRouter](https://openrouter.ai) aggregates 300+ models behind a single OpenAI-compatible endpoint, so you only manage one API key and can switch between models with `/models` in opencode. Especially handy when you want to A/B a coder against a reviewer, or try a model for a session without opening another vendor account.
+[OpenRouter](https://openrouter.ai) gives you a single API key, a single endpoint, and `/models` in opencode for switching. Prices reflect April 2026. `Min VRAM/RAM` below shows what's needed *to self-host* the underlying weights — irrelevant for day-to-day OpenRouter use.
 
 **Config snippet** — add to `opencode.json`:
 
@@ -172,55 +159,60 @@ Scores above come from vendor reports and community benchmarks as of April 2026;
         "apiKey": "{env:OPENROUTER_API_KEY}"
       },
       "models": {
-        "anthropic/claude-opus-4.7":    { "name": "Claude Opus 4.7" },
-        "anthropic/claude-sonnet-4.6":  { "name": "Claude Sonnet 4.6" },
-        "anthropic/claude-haiku-4.5":   { "name": "Claude Haiku 4.5" },
-        "mistralai/codestral-2508":     { "name": "Codestral 25.08 (Mistral)" },
-        "mistralai/devstral-2512":      { "name": "Devstral 2512 (Mistral)" },
-        "qwen/qwen3-coder":             { "name": "Qwen3 Coder 480B" },
-        "deepseek/deepseek-v3.2":       { "name": "DeepSeek V3.2" },
-        "minimax/minimax-m2.5":         { "name": "MiniMax M2.5" },
-        "z-ai/glm-4.5":                 { "name": "GLM-4.5 (Zhipu)" },
-        "moonshotai/kimi-k2.5":         { "name": "Kimi K2.5 (Moonshot)" }
+        "anthropic/claude-opus-4.7":       { "name": "Claude Opus 4.7" },
+        "anthropic/claude-opus-4.6":       { "name": "Claude Opus 4.6" },
+        "google/gemini-3.1-pro-preview":   { "name": "Gemini 3.1 Pro" },
+        "minimax/minimax-m2.5":            { "name": "MiniMax M2.5" },
+        "openai/gpt-5.2":                  { "name": "GPT-5.2" },
+        "anthropic/claude-sonnet-4.6":     { "name": "Claude Sonnet 4.6" },
+        "qwen/qwen3.6-plus":               { "name": "Qwen3.6 Plus" },
+        "z-ai/glm-5":                      { "name": "GLM-5 (Z.AI)" },
+        "moonshotai/kimi-k2.5":            { "name": "Kimi K2.5" },
+        "x-ai/grok-4.20":                  { "name": "Grok 4.20" },
+        "xiaomi/mimo-v2-flash":            { "name": "MiMo-V2-Flash" },
+        "anthropic/claude-haiku-4.5":      { "name": "Claude Haiku 4.5" },
+        "deepseek/deepseek-v3.2":          { "name": "DeepSeek V3.2" },
+        "mistralai/devstral-medium":       { "name": "Devstral Medium" },
+        "mistralai/codestral-2508":        { "name": "Codestral 25.08 (FIM)" }
       }
     }
   }
 }
 ```
 
-Then `export OPENROUTER_API_KEY=sk-or-...` before launching opencode, or put the literal key in `apiKey` (less safe).
+Then `export OPENROUTER_API_KEY=sk-or-…` before launching opencode.
 
-**Best SWE / coding models on OpenRouter (April 2026):**
-
-| OpenRouter ID | License | SWE-bench V. | Context | Input $/M | Output $/M | GSE-One fit | Best for |
-|---|---|---|---|---|---|:---:|---|
-| `anthropic/claude-opus-4.7` | proprietary | **87.6 %** | 1 M | $5.00 | $25.00 | ★★★★★ | **Highest SWE-bench Verified of any model in this table.** Built for long-running async agents; default when quality > cost (`/gse-review`, `/gse-design`, complex `/gse-fix`). |
-| `minimax/minimax-m2.5` | open-weight | 80.2 % | 197 k | $0.12 | $0.99 | ★★★★★ | Best open-weight SWE score × best price — the default "good and cheap" pick. |
-| `anthropic/claude-sonnet-4.6` | proprietary | 79.6 % | 1 M | $3.00 | $15.00 | ★★★★★ | The best quality/price in the Claude line; 1 M context avoids chunking. Strong default coder for the full GSE-One lifecycle. |
-| `anthropic/claude-haiku-4.5` | proprietary | > 73 % | 200 k | $1.00 | $5.00 | ★★★★☆ | Near-frontier quality at Haiku price; ideal for fast iteration (`/gse-status`, `/gse-go`, routine `/gse-produce`). 200 k context is a minor limitation vs Sonnet/Opus. |
-| `z-ai/glm-4.5` | open-weight | ~74 % (4.5) / **77.8 %** (GLM-5) | 128 k | $0.60 | $2.20 | ★★★★☆ | Top open-weight on SWE-bench Pro and Terminal Bench. Check for `z-ai/glm-5` when listed — same ID pattern. |
-| `deepseek/deepseek-v3.2` | open-weight (MIT) | ~72–74 % | 164 k | $0.26 | $0.42 | ★★★★★ | Workhorse: 90 % of Sonnet quality for 2 % of the cost. Ideal default for `/gse-produce`. |
-| `mistralai/devstral-medium` | proprietary | 61.6 % | 128 k | $0.40 | $2.00 | ★★★★☆ | Mistral's dedicated agentic coder. Beats Gemini 2.5 Pro and GPT-4.1 on SWE-bench. |
-| `mistralai/devstral-2512` | open-weight (Apache-2.0) | ~60 % | 256 k | $0.40 | $2.00 | ★★★★☆ | **State-of-the-art open agentic coding model.** Long context, strong tool use. |
-| `qwen/qwen3-coder` | Apache-2.0 | SWE-Pro ~39 % | 262 k | $0.22 | $1.00 | ★★★☆☆ | Cheapest frontier open coding model; 480 B MoE / 35 B active. Weak on full SWE — good for `/gse-produce`, not `/gse-review`. Free tier (`qwen/qwen3-coder:free`) with tighter rate limits. |
-| `moonshotai/kimi-k2.5` | open-weight | 76.8 % | 256 k | ~$0.30 | ~$1.20 | ★★★★☆ | Front-end specialist; 85 % on LiveCodeBench; 256 k context is comfortable for GSE-One's AGENTS.md overhead. |
-| **`mistralai/codestral-2508`** | proprietary | ~2 % (SWE-Pro) | 256 k | $0.30 | $0.90 | ★★☆☆☆ | **Fill-in-the-middle specialist.** Not for full agentic flows — niche use only (inline completion inside an existing file). 86.6 % HumanEval, 91.2 % MBPP. |
-| `mistralai/mistral-large-2512` | proprietary | ~65 % | 262 k | $0.50 | $1.50 | ★★★☆☆ | General-purpose strong all-rounder with very long context; less specialized than Devstral Medium for coding agents. |
-| `mistralai/devstral-small` | open-weight (Apache-2.0) | ~55 % | 128 k | $0.10 | $0.30 | ★★★☆☆ | Cheapest agentic coder on OpenRouter; degrades on multi-file edits — fine for small projects only. |
+| OpenRouter ID | Org | Params | Min VRAM/RAM | SWE-bench V. | Context | GSE-One fit | Features | Best for / Notes |
+|---|---|---|---|---|---|:---:|---|---|
+| `anthropic/claude-opus-4.7` | Anthropic | undisclosed | cloud-only | **87.6 %** | 1 M | ★★★★★ | tools, vision, thinking, agentic | **Highest SWE-V of any model here.** Default for `/gse-review`, `/gse-design`. $5 / $25 per M. |
+| `anthropic/claude-opus-4.6` | Anthropic | undisclosed | cloud-only | 80.8 % | 1 M | ★★★★★ | tools, vision, thinking, agentic | Previous Opus — use if 4.7 unavailable. $5 / $25. |
+| `google/gemini-3.1-pro-preview` | Google | undisclosed | cloud-only | 80.6 % | ~1 M | ★★★★★ | tools, vision, thinking, websearch | Google's frontier; built-in websearch helps `/gse-collect`. |
+| `minimax/minimax-m2.5` | MiniMax | undisclosed MoE | cloud-only | 80.2 % | 197 k | ★★★★★ | tools, agentic, thinking | **Best open-weight / price ratio.** $0.12 / $0.99. |
+| `openai/gpt-5.2` | OpenAI | undisclosed | cloud-only | 80.0 % | 400 k | ★★★★★ | tools, vision, thinking, websearch, agentic | Strong all-rounder; 400 k context. $1.75 / $14. |
+| `anthropic/claude-sonnet-4.6` | Anthropic | undisclosed | cloud-only | 79.6 % | 1 M | ★★★★★ | tools, vision, thinking, agentic | Best Claude quality/price. Default coder for full GSE-One cycle. $3 / $15. |
+| `qwen/qwen3.6-plus` | Alibaba | undisclosed MoE | cloud-only | 78.8 % | 1 M | ★★★★☆ | tools, vision, thinking | Hybrid linear + sparse MoE; aggressively priced. $0.325 / $1.95. |
+| `z-ai/glm-5` | Z.AI (Zhipu) | undisclosed large | cloud-only | 77.8 % | 80 k | ★★★★☆ | tools, agentic, thinking | Top open-weight on SWE-Pro. $0.72 / $2.30. Short context is the main tradeoff. |
+| `moonshotai/kimi-k2.5` | Moonshot AI | ~1 T MoE | cloud-only | 76.8 % | 256 k | ★★★★☆ | tools, agentic | Front-end specialist; 85 % LiveCodeBench. |
+| `x-ai/grok-4.20` | xAI | undisclosed | cloud-only | 76.7 % | **2 M** | ★★★★☆ | tools, vision, multi-agent, long-ctx | 2 M context; runs 4 parallel sub-agents. $2 / $6. |
+| `google/gemini-3-pro-preview` | Google | undisclosed | cloud-only | 76.2 % | ~1 M | ★★★★☆ | tools, vision, thinking, websearch | Previous-gen Gemini Pro; solid fallback when 3.1 rate-limited. |
+| `xiaomi/mimo-v2-flash` | Xiaomi | 309 B MoE (15 B active) | 180 GB (self-host) | 73.4 % | 256 k | ★★★★☆ | tools, thinking, agentic | **Cheapest in the table.** $0.09 / $0.29. |
+| `anthropic/claude-haiku-4.5` | Anthropic | undisclosed | cloud-only | 73.3 % | 200 k | ★★★★☆ | tools, vision, agentic | Near-frontier at Haiku price. Ideal for `/gse-status`, `/gse-go`, routine `/gse-produce`. $1 / $5. |
+| `deepseek/deepseek-v3.2` | DeepSeek | 671 B MoE (37 B active) | 370 GB (self-host) | 73.1 % | 164 k | ★★★★★ | tools, thinking | **Best cost/quality** on the entire table. $0.26 / $0.42. Default for `/gse-produce`. |
+| `mistralai/devstral-medium` | Mistral | undisclosed | cloud-only | 61.6 % | 128 k | ★★★★☆ | tools, agentic | Dedicated agentic coder; beats Gemini 2.5 Pro and GPT-4.1 on SWE-bench. $0.40 / $2. |
 
 > **Legend — GSE-One fit stars:** ★★★★★ excellent across all 23 activities (default pick) · ★★★★☆ strong, minor tradeoff (e.g. shorter context, one weaker activity) · ★★★☆☆ works for a subset of activities (pair with a complementary model) · ★★☆☆☆ niche only — not recommended as primary · ★☆☆☆☆ avoid for GSE-One. Ratings weight **tool-calling reliability**, **context ≥ 128 k**, **SWE-bench Verified**, and **multi-step reasoning** — the four capabilities GSE-One relies on for its full lifecycle.
 
-Prices are per 1 M tokens; "proprietary" models may offer free tiers or OpenRouter credits — recheck on the provider page.
+**Also worth knowing on OpenRouter (below the top 15):** `mistralai/devstral-2512` (~60 % SWE-V, open Apache-2.0, 256 k), `mistralai/mistral-large-2512` (~65 %), `mistralai/codestral-2508` (SWE-Pro ~2 % — FIM specialist, not agentic), `qwen/qwen3-coder` (Apache-2.0, often available on a free tier with rate limits), `mistralai/devstral-small` (cheapest agentic).
 
-**Picking for GSE-One:**
+**Picking for GSE-One (cross-table):**
 
-- **Absolute top quality, cost no object:** `anthropic/claude-opus-4.7` — 87.6 % SWE-Verified leads the table by ~7 points. Use for `/gse-review`, `/gse-design`, and any architectural/long-running work.
-- **Best quality/price on Claude:** `anthropic/claude-sonnet-4.6` — 79.6 % SWE with 1 M context; strong default coder that also handles review well.
-- **Best open-weight, cheap:** `minimax/minimax-m2.5` — 80.2 % SWE at < $1 per 1 M output; the default "good and cheap" pick.
-- **Workhorse for `/gse-produce`:** `deepseek/deepseek-v3.2` — 90 % of Sonnet quality for ~5 % of the cost. Pair it with Opus or Sonnet for review.
-- **Fast & cheap for routine flow:** `anthropic/claude-haiku-4.5` (`/gse-status`, `/gse-go`, simple `/gse-produce`).
-- **If you specifically want Mistral:** `mistralai/devstral-medium` for agentic work; reserve `mistralai/codestral-2508` for inline completions (it's not a full agentic model).
-- **Per-activity split (advanced):** use opencode's `variant_cycle` keybind to jump between a cheap coder for `/gse-produce` (DeepSeek V3.2 or Haiku 4.5) and a strong reviewer for `/gse-review` (Opus 4.7 or Sonnet 4.6).
+- **Absolute top quality, cost no object:** `anthropic/claude-opus-4.7` (87.6 %) or `openai/gpt-5.3-codex` if it appears on OpenRouter (85 %, not yet listed at the time of writing).
+- **Best balance for the full 23-activity lifecycle:** `anthropic/claude-sonnet-4.6` or `minimax/minimax-m2.5`.
+- **Cheapest frontier quality:** `deepseek/deepseek-v3.2` or `xiaomi/mimo-v2-flash`.
+- **All local, privacy-first:** `qwen3.6:35b-a3b` (20 GB VRAM, 73.4 % SWE-V) — no data leaves your machine.
+- **Per-activity split (advanced):** cheap local coder for `/gse-produce` (e.g. `qwen3.5:27b`) + cloud reviewer for `/gse-review` (e.g. `claude-opus-4.7`). Switch with opencode's `variant_cycle` keybind.
+
+Scores above come from vendor reports, [Scale SWE-Bench Pro Leaderboard](https://labs.scale.com/leaderboard/swe_bench_pro_public), [SWE-bench.com](https://www.swebench.com/), [BenchLM](https://benchlm.ai/benchmarks/sweVerified) and [LLM-Stats](https://llm-stats.com/benchmarks/swe-bench-verified) as of April 2026; numbers shift monthly — recheck the leaderboards before committing to a stack.
 
 ### 6.2 Option A — Ollama
 
@@ -328,6 +320,9 @@ Replace the model ID with whatever LM Studio reports for your loaded model (see 
 - [SWE-bench Leaderboards](https://www.swebench.com/)
 - [Best Open Source LLM 2026 (BenchLM)](https://benchlm.ai/blog/posts/best-open-source-llm)
 - [Open Source LLM Leaderboard 2026 (Vellum)](https://www.vellum.ai/open-llm-leaderboard)
+- [SWE-bench.com leaderboards](https://www.swebench.com/)
+- [LLM-Stats — SWE-bench Verified](https://llm-stats.com/benchmarks/swe-bench-verified)
+- [BenchLM — SWE-bench Verified rankings 2026](https://benchlm.ai/benchmarks/sweVerified)
 - [OpenRouter — Best AI Models for Coding](https://openrouter.ai/collections/programming)
 - [OpenRouter — Mistral models](https://openrouter.ai/mistralai)
 - [OpenRouter rankings (April 2026)](https://www.digitalapplied.com/blog/openrouter-rankings-april-2026-top-ai-models-data)
