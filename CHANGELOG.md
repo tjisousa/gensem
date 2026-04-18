@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.8] - 2026-04-18
+
+Layers impacted: **spec** (trivial)
+
+### Added
+- `CLAUDE.md` — new "Memory policy — in-repo only" section: any convention, rule, or preference Claude must remember across sessions for this project MUST live in a versioned file in the repo, never in Claude's per-machine auto-memory under `$HOME`. Rationale: the user works on this project from multiple machines via Dropbox; only the repo travels.
+
 ## [0.20.7] - 2026-04-18
 
 Layers impacted: **spec** (trivial)

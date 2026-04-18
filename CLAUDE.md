@@ -49,6 +49,13 @@ Never skip a step. Never commit without regenerating. Never push without bumping
 - `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc`
 - Changes in spec should be reflected in design doc changelog and vice versa.
 
+### Memory policy — in-repo only
+Any project convention, rule, preference, or decision that Claude must remember across sessions for this project MUST be recorded in a versioned file in this repo — typically this `CLAUDE.md`, or another markdown doc under source control. Do NOT write such information to Claude's per-machine auto-memory (`~/.claude/projects/<hash>/memory/`).
+
+**Why:** The user works on this project from multiple machines via Dropbox. Files under `$HOME` do not travel; only the git-versioned repo does. Auto-memory entries are invisible to collaborators, lost on a fresh machine, and fragment the source of truth.
+
+**How to apply:** When the user gives durable feedback or establishes a convention, update `CLAUDE.md` (or the appropriate in-repo doc) via the full build pipeline. Never silently save to auto-memory. If auto-memory entries are found for this project on any machine, they should be migrated into `CLAUDE.md` and deleted.
+
 ## Language
 
 The user communicates in French. Respond in French for conversation, English for code/commits.
