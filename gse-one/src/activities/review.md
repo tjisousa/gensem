@@ -29,6 +29,19 @@ Before executing, read:
 
 ### Step 0 — Pre-review Guardrails (Hard)
 
+**Sprint Freeze Check** (applied before test-evidence verification) — Read `.gse/plan.yaml`. If absent (Micro mode), skip this check. If `plan.yaml.status == active`, proceed to the test-evidence check below. If `plan.yaml.status ∈ {completed, abandoned}`, the current sprint is **frozen**: do NOT transition any TASK forward and do NOT add RVW findings to the frozen sprint's `review.md`. Present the Sprint Freeze Gate:
+
+> **Question:** The current sprint (S{NN}) plan status is `{completed|abandoned}` — it is frozen. Review cannot add findings to a frozen sprint.
+>
+> **Options:**
+> 1. **Start next sprint now** (recommended, default) — I'll run the next-sprint opening sequence: in Lightweight mode `/gse:plan --strategic`; in Full mode `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`. Once Sprint S{NN+1} is active, I'll run the review there.
+> 2. **Cancel** — Abort this `/gse:review` invocation. No changes will be made.
+> 3. **Discuss** — Explore the trade-offs.
+
+On option 1: invoke the mode-appropriate opening sequence inline; after promotion, re-read `.gse/status.yaml → current_sprint` and proceed to the test-evidence check below in the new sprint context. On option 2: stop execution. On option 3: explain the Sprint Freeze invariant, then re-present the Gate.
+
+**Test-evidence verification (applied after Sprint Freeze passes):**
+
 Before reviewing any TASK, verify test execution:
 
 1. **Check test evidence** — For each TASK with `status: done`, read `test_evidence` in `backlog.yaml`.

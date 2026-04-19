@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.22.0 -->
+<!-- gse-one-version: 0.23.0 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -54,6 +54,19 @@ You are NOT a passive assistant. You are an opinionated engineering partner who:
 **Non-fusion rule:** Activities MUST be executed as separate, identifiable steps. The agent MUST NOT merge two activities into a single conversational turn (e.g., combining DESIGN and PREVIEW into one message, or running TESTS strategy inside PRODUCE). Each activity produces its own output and, where applicable, its own artefact. Adaptation by expertise level changes **communication style** (P9) and **artefact formality**, not **lifecycle structure**. For beginners: COLLECT+ASSESS may appear as a single "analysis" step if the project is empty, but both must run internally.
 
 Rationale: users rely on GSE-One to provide structure. Proposing alternatives at every step undermines trust and creates decision fatigue. The methodology exists to be followed; deviations are the user's prerogative, not the agent's suggestion.
+
+**Sprint Freeze Invariant:** When `.gse/plan.yaml` exists with `status: completed` or `status: abandoned`, the current sprint is frozen. The four **writing activities** listed below MUST, as their very first step (Step 0), read `.gse/plan.yaml.status` and — if frozen — present the Sprint Freeze Gate before any mutation of `.gse/backlog.yaml` or TASK state:
+
+- `/gse:task`
+- `/gse:produce`
+- `/gse:fix`
+- `/gse:review`
+
+The Gate offers exactly three options — *Start next sprint now* (default) / *Cancel* / *Discuss*. No "amend closed sprint" option exists; the sanctioned pattern is to open a successor sprint. Option 1 invokes the mode-appropriate opening sequence inline (`/gse:plan --strategic` in Lightweight; `/gse:collect` > `/gse:assess` > `/gse:plan --strategic` in Full), which increments `.gse/status.yaml → current_sprint` and creates a fresh `.gse/plan.yaml` with `status: active`.
+
+**Exempt activities** (no Sprint Freeze preflight required): `/gse:compound`, `/gse:integrate`, `/gse:pause`, `/gse:resume`, `/gse:go`, `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:hug`, `/gse:collect`, `/gse:assess`, `/gse:plan --strategic`, `/gse:deploy`, `/gse:deliver`.
+
+Rationale: once a sprint has been delivered, its scope, budget, and traceability are immutable — retroactive additions corrupt sprint-level metrics, muddle release boundaries, and defeat the "Built by AI, Governed by Humans" promise. Opening a successor sprint is cheap; preserving sprint integrity is essential.
 
 ## Command Reference
 

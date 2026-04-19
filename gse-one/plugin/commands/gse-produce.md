@@ -50,6 +50,19 @@ If `--all` is specified, each TASK is delegated to its own sub-agent **sequentia
 
 Before starting ANY task, verify these conditions. If any check fails, **STOP and do not proceed**.
 
+**Sprint Freeze Check** (applied before all other Step 0 guardrails) — Read `.gse/plan.yaml`. If absent (Micro mode), skip this check. If `plan.yaml.status == active`, proceed to the numbered guardrails below. If `plan.yaml.status ∈ {completed, abandoned}`, the current sprint is **frozen**: do NOT transition any TASK forward and do NOT write to `backlog.yaml`. Present the Sprint Freeze Gate:
+
+> **Question:** The current sprint (S{NN}) plan status is `{completed|abandoned}` — it is frozen. Production work cannot continue in a frozen sprint.
+>
+> **Options:**
+> 1. **Start next sprint now** (recommended, default) — I'll run the next-sprint opening sequence: in Lightweight mode `/gse:plan --strategic`; in Full mode `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`. Once Sprint S{NN+1} is active, I'll carry the planned production work into it.
+> 2. **Cancel** — Abort this `/gse:produce` invocation. No changes will be made.
+> 3. **Discuss** — Explore the trade-offs.
+
+On option 1: invoke the mode-appropriate opening sequence inline; after promotion, re-read `.gse/status.yaml → current_sprint` and `.gse/plan.yaml → status`, then proceed to the numbered guardrails below in the new sprint context. On option 2: stop execution. On option 3: explain the Sprint Freeze invariant, then re-present the Gate.
+
+**Standard guardrails (applied after Sprint Freeze passes):**
+
 1. **Requirements check (Full and Lightweight)** — Verify that `docs/sprints/sprint-{NN}/reqs.md` exists and contains at least one REQ- artefact traced to the TASK about to start. If missing: report "Requirements not defined for this task. I need to write down what the app should do first." Then run REQS. **Exception:** Micro mode and `artefact_type: spike` — skip this check.
 2. **Test strategy check (mode-differentiated):**
    - **Full mode:** Verify that a test strategy exists (`docs/sprints/sprint-{NN}/test-strategy.md` or `tests` in `.gse/plan.yaml.workflow.completed`). If missing → **Hard guardrail.** Report "Test strategy not defined. I need to describe how we'll verify each feature works." Then run TESTS `--strategy`.

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-04-19
+
+Layers impacted: **spec**, **design**, **implementation** (activities task/produce/fix/review + orchestrator)
+
+### Added
+- **Sprint Freeze guardrail** (AMÉL-01 from training feedback) — Once a sprint has been delivered, its plan transitions to *completed* and the sprint is frozen. Four writing activities (`/gse:task`, `/gse:produce`, `/gse:fix`, `/gse:review`) now present a Hard Sprint Freeze Gate when invoked on a frozen sprint, with default option to open the successor sprint via the mode-appropriate opening sequence. Three Gate options only: *Start next sprint now* / *Cancel* / *Discuss* — no "amend closed sprint" escape hatch. Complementary work is captured by opening a new sprint (e.g. titled *"Sprint N+1 — Complementary tasks"*).
+- New *Sprint Freeze Invariant* section in the orchestrator (`src/agents/gse-orchestrator.md`) listing writing activities, exempt activities, Gate semantics, and promotion mechanics.
+- New *Sprint Freeze — Design Mechanics* subsection in `gse-one-implementation-design.md` bridging spec-level concepts (*sprint plan status*, *the number of the sprint in progress*) to concrete implementation artefacts (`.gse/plan.yaml.status`, `.gse/status.yaml → current_sprint`).
+
+### Changed
+- `/gse:task` description in spec (§3.1) no longer fuit les noms de champs YAML (`artefact_type`, `sprint`) — vocabulaire conceptuel only, avec renvoi explicite au garde-fou Sprint Freeze.
+- Decision tree in spec (§12) clarifies when the *number of the sprint in progress* advances: only `/gse:plan --strategic` increments it. The window between `/gse:integrate` and the next `/gse:plan --strategic` is naturally frozen and now handled by the Sprint Freeze Gate.
+
+### Fixed
+- Sprint closure is no longer silently violated by ad-hoc tasks / production / fix / review activities invoked post-delivery (bug observed during training session learner02).
+
 ## [0.22.0] - 2026-04-18
 
 Layers impacted: **spec** (docs, major refactor)

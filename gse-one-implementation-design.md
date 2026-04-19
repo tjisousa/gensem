@@ -1290,6 +1290,34 @@ sessions_without_progress: 0
 review_findings_open: 0
 ```
 
+**Sprint Freeze — Design Mechanics (spec §3.1 / lifecycle guardrail 3):**
+
+The spec-level *Sprint Freeze* guardrail materializes as follows:
+
+- **Conceptual trigger:** *the sprint plan status is completed* → **Concrete realization:** `.gse/plan.yaml` contains `status: completed`
+- **Conceptual state:** *the number of the sprint in progress* → **Concrete realization:** `.gse/status.yaml` → `current_sprint: N`
+
+**Writeable window:** a sprint is writeable by activities only while `.gse/plan.yaml` exists with `status: active`. When `/gse:deliver` Step 9 sets `status: completed`, the sprint becomes frozen for write operations.
+
+**Activities that MUST consult `.gse/plan.yaml.status` before any write to `.gse/backlog.yaml` or transition of a TASK:**
+
+- `/gse:task` (creates a new TASK)
+- `/gse:produce` (transitions TASK `planned` → `in-progress` → `review`)
+- `/gse:fix` (transitions TASK `review` → `fixing` → `done`)
+- `/gse:review` (adds RVW findings, transitions TASK `in-progress` → `review`)
+
+**Activities exempt from the Sprint Freeze preflight** (operate only on closed sprints or do not mutate TASK state within a frozen sprint): `/gse:compound`, `/gse:integrate`, `/gse:pause`, `/gse:resume`, `/gse:go`, `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:hug`, `/gse:collect`, `/gse:assess`, `/gse:plan --strategic`, `/gse:deploy`, `/gse:deliver`.
+
+**Promotion sequence for option 1 of the Sprint Freeze Gate:**
+
+1. The agent invokes the mode-appropriate opening sequence inline:
+   - **Lightweight mode:** `/gse:plan --strategic`
+   - **Full mode:** `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`
+2. `/gse:plan --strategic` increments `.gse/status.yaml → current_sprint` from N to N+1 and creates a fresh `.gse/plan.yaml` with `status: active` and a clean `workflow` array.
+3. Once the new sprint is active, the originally-invoked activity (`/gse:task`, `/gse:produce`, `/gse:fix`, or `/gse:review`) resumes its normal Step 1 in the new sprint context.
+
+**Persistence:** no new field is added to `.gse/status.yaml`. The source of truth for sprint freeze is `.gse/plan.yaml.status`. `current_sprint` in `.gse/status.yaml` continues to hold the number of the sprint in progress, whether frozen or active.
+
 **Checkpoint schema (spec §12.5):**
 ```yaml
 timestamp: 2026-04-11T16:30:00

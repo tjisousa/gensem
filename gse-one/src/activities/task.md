@@ -27,6 +27,28 @@ Before executing, read:
 
 ## Workflow
 
+### Step 0 — Sprint Freeze Check (Hard guardrail)
+
+Before any other work, verify the current sprint is writeable. This preflight implements the **Sprint Freeze** invariant defined in the orchestrator and the spec.
+
+1. Read `.gse/plan.yaml`. If absent (Micro mode or pre-v0.20 projects), **skip this step** — proceed to Step 1.
+2. If `plan.yaml.status == active`, proceed to Step 1.
+3. If `plan.yaml.status ∈ {completed, abandoned}`, the current sprint is **frozen**. Do NOT write anything to `backlog.yaml` or `status.yaml`. Present the Sprint Freeze Gate:
+
+   > **Question:** The current sprint (S{NN}) plan status is `{completed|abandoned}` — it is frozen. New ad-hoc tasks cannot be added to a frozen sprint.
+   >
+   > **Options:**
+   > 1. **Start next sprint now** (recommended, default) — I'll run the next-sprint opening sequence: in Lightweight mode `/gse:plan --strategic`; in Full mode `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`. Once Sprint S{NN+1} is active, I'll execute your task there.
+   > 2. **Cancel** — Abort this `/gse:task` invocation. No changes will be made.
+   > 3. **Discuss** — Explore the trade-offs of opening a new sprint vs. cancelling.
+
+4. On option 1:
+   - Invoke the mode-appropriate opening sequence inline (read `config.yaml → lifecycle.mode` to decide).
+   - After `/gse:plan --strategic` completes, re-read `.gse/status.yaml → current_sprint` (it now holds `{NN+1}`) and re-read `.gse/plan.yaml → status` (it now holds `active`).
+   - Proceed to Step 1 in the new sprint context.
+5. On option 2: stop execution. No state change.
+6. On option 3: explain the Sprint Freeze invariant briefly (*"A delivered sprint is immutable — complementary work goes into a successor sprint, often named 'Sprint N+1 — Complementary tasks'."*), then re-present the Gate (options 1-3 only).
+
 ### Step 1 — Task Analysis
 
 1. Parse the task description from `$ARGUMENTS`

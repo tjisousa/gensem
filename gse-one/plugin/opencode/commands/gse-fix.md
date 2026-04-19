@@ -30,6 +30,25 @@ Before executing, read:
 
 ## Workflow
 
+### Step 0 — Sprint Freeze Check (Hard guardrail)
+
+Before applying any fix, verify the current sprint is writeable. This preflight implements the **Sprint Freeze** invariant defined in the orchestrator and the spec.
+
+1. Read `.gse/plan.yaml`. If absent (Micro mode or pre-v0.20 projects), **skip this step** — proceed to Step 1.
+2. If `plan.yaml.status == active`, proceed to Step 1.
+3. If `plan.yaml.status ∈ {completed, abandoned}`, the current sprint is **frozen**. Do NOT transition any TASK forward and do NOT write to `backlog.yaml`. Present the Sprint Freeze Gate:
+
+   > **Question:** The current sprint (S{NN}) plan status is `{completed|abandoned}` — it is frozen. Fixes cannot be applied to a frozen sprint.
+   >
+   > **Options:**
+   > 1. **Start next sprint now** (recommended, default) — I'll run the next-sprint opening sequence: in Lightweight mode `/gse:plan --strategic`; in Full mode `/gse:collect` > `/gse:assess` > `/gse:plan --strategic`. Once Sprint S{NN+1} is active, I'll carry the fix there.
+   > 2. **Cancel** — Abort this `/gse:fix` invocation. No changes will be made.
+   > 3. **Discuss** — Explore the trade-offs.
+
+4. On option 1: invoke the mode-appropriate opening sequence inline; after promotion, re-read `.gse/status.yaml → current_sprint` and proceed to Step 1 in the new sprint context.
+5. On option 2: stop execution.
+6. On option 3: explain the Sprint Freeze invariant, then re-present the Gate.
+
 ### Step 1 — Identify Findings to Fix
 
 1. Read `docs/sprints/sprint-{NN}/review.md` for all RVW-NNN findings
