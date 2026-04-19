@@ -1738,6 +1738,66 @@ For each resolved question, the agent:
 
 **Scope-resolve as Step 0 of `/gse:plan`:** the transversal activity-entry scan IS the scope-resolve mechanism. `/gse:plan --strategic` Step 0 scans for `resolves_in: PLAN` questions; if any have `impact: scope-shaping`, the Gate explicitly frames them as "scope-shaping questions — resolve before sprint selection". No separate `/gse:scope` skill is introduced.
 
+**Config Application Transparency — Design Mechanics (spec P7 Config Application Transparency):**
+
+The discipline surfaces every materialization of a `config.yaml` field with user-visible consequences as a one-line Inform message. No Gate, no new state — just a disciplined label at the moment of action.
+
+**Standard format:**
+
+```
+Config applied: <field_path> = <value> (<origin> — to change: /gse:hug --update or edit .gse/config.yaml)
+```
+
+Where:
+- `<field_path>` is the full dotted path (e.g., `git.strategy`, `testing.coverage.minimum`).
+- `<value>` is the current applied value.
+- `<origin>` is either *methodology default* or *user choice*, determined at display time by comparing the current value to the canonical default in `gse-one/src/templates/config.yaml`.
+
+**Beginner adaptation (per P9):**
+
+For `it_expertise: beginner`, the field path is translated to plain language and the technical "to change" command is replaced with a soft hint:
+
+```
+Config applied: I'm using separate workspaces for each task (default — say "I'd prefer a simpler setup" if you want to change)
+```
+
+**Origin classification algorithm:**
+
+```python
+# pseudo
+default_value = read_template_field("git.strategy")      # e.g., "worktree"
+current_value = read_config_field("git.strategy")         # e.g., "worktree" or "branch-only"
+origin = "methodology default" if current_value == default_value else "user choice"
+```
+
+No persistent state is needed — the classification is computed fresh at each materialization.
+
+**Fields covered in v0.30:**
+
+| Activity | Field | Materialization point |
+|----------|-------|----------------------|
+| `/gse:produce` | `git.strategy` | Step 2 (Git Setup) — creates feature branch and optionally worktree |
+| `/gse:task` | `git.strategy` | Step 4 (Git Setup) — same as produce |
+
+**Extension pattern for future fields:**
+
+When a new field with user-visible consequences is added (e.g., `testing.coverage.minimum` enforced at `/gse:tests`, or `git.tag_on_deliver` at `/gse:deliver`), the concerned activity's spec adds an Inform line using the standard format at the relevant step. No change to the orchestrator or spec P7 (the rule is already general). Each activity's SKILL.md documents which fields it materializes in a dedicated note.
+
+**Scope of "user-visible consequences":**
+
+Not every config field triggers the Inform line — only those that cause a concrete action the user might notice:
+- Creates files or directories (e.g., worktree directories)
+- Modifies git state (branches, tags)
+- Enforces a hard threshold (coverage minimum)
+- Changes delivery behavior (tag, cleanup)
+
+Fields that only affect internal agent behavior (e.g., `interaction.verbosity`, `decisions.tier_bias`) do NOT trigger the Inform — they are transparent by design.
+
+**Failure modes:**
+
+- Template file not found (cannot compute origin) → skip the origin classification, emit the note without it: *"Config applied: `<field>` = `<value>` (to change: /gse:hug --update or edit .gse/config.yaml)"*
+- Config field missing from config.yaml (should not happen — HUG always fills defaults) → agent emits a warning and falls back to the methodology default value before proceeding.
+
 
 
 **Exempt / skip conditions:**

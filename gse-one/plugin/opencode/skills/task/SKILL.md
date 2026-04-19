@@ -130,6 +130,8 @@ Create a dedicated branch and worktree following the same logic as `/gse:produce
 
 The git strategy (worktree/branch-only/none) is read from `config.yaml`.
 
+**Config Application Transparency (Inform, spec P7):** before creating the first branch or worktree of this ad-hoc task, emit a one-line Inform note labelling the applied `git.strategy` value and its origin (methodology default vs. user choice), using the same format as `/gse:produce` Step 2 Config Application Transparency block. Emit ONCE per task invocation — do not repeat if `/gse:task` was already invoked earlier in the same sprint (deduplicate via `status.yaml → last_activity` trail).
+
 **Record activity start SHA** — after the branch/worktree is ready, run `git rev-parse HEAD` and save the result to `.gse/status.yaml → activity_start_sha`. This will be used in Step 5.5 (Scope Reconciliation) to compute the task's file-level contribution. Skip in Micro mode or `git.strategy: none` with empty history.
 
 ### Step 5 — Execute Task

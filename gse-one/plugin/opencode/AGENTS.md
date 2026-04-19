@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.29.0 -->
+<!-- gse-one-version: 0.30.0 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -148,6 +148,8 @@ Rationale: the two mechanisms close the loop between agent autonomy and human go
 **Activities concerned:** `/gse:assess`, `/gse:plan`, `/gse:reqs`, `/gse:design`. Other activities do not scan — open questions targeting them are a configuration error (the agent flags a parse warning at Step 0 of any concerned activity that encounters an unsupported `resolves_in` value).
 
 **Rationale:** before v0.29, scope-shaping questions raised during Intent Capture or ASSESS had no formal consumption slot between ASSESS and PLAN (learner05 training feedback: had to treat as DEC-003 deviation and elicit 9 questions ad-hoc). Integrating the scan as a transversal activity-entry rule — with scope-resolve absorbed as Step 0 of `/gse:plan` — preserves P5 (planning transversality) without introducing a new skill, and ensures open questions are resolved at their logical home regardless of when they were raised.
+
+**Config Application Transparency Discipline:** whenever an activity materializes a `config.yaml` field whose value has **user-visible consequences** (creates files or directories, modifies git state, enforces a hard threshold, changes delivery behavior), the activity MUST emit a **one-line Inform note** at the moment of materialization. Format: *"Config applied: `<field>` = `<value>` (<origin> — to change: `/gse:hug --update` or edit `.gse/config.yaml`)"*. Origin is computed at display time: if the current value equals the methodology default (from `gse-one/src/templates/config.yaml`), origin = *methodology default*; otherwise *user choice*. Adapted to P9 for beginners (plain-language translation of technical field names). This is pure **Inform-tier** discipline (P7) — no Gate, no new state, no interruption. Fields without user-visible consequences (e.g., verbosity, tier biases) do NOT trigger the Inform. **Covered in v0.30:** `git.strategy` materialized by `/gse:produce` Step 2 and `/gse:task` Step 4. Future extensions follow the same pattern by adding the Inform line to each activity's relevant step. Rationale: many config defaults are chosen by the methodology during HUG and never explicitly validated by the user. Silent materialization leads to surprise (learner05: unexpected worktree directories). A single labelled line at the moment of action makes the choice visible without imposing a decision point.
 
 ## Command Reference
 

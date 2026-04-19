@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-04-19
+
+Layers impacted: **spec**, **design**, **implementation** (orchestrator + activities produce/task)
+
+### Added
+- **Config Application Transparency** (AMÉL-12 from training feedback) — Every activity that materializes a `config.yaml` field with user-visible consequences (creates files/directories, modifies git state, enforces hard thresholds, changes delivery behavior) MUST emit a one-line Inform note at the moment of materialization. Format: `"Config applied: <field> = <value> (<origin> — to change: /gse:hug --update or edit .gse/config.yaml)"`. Origin computed at display time by comparing current value to the methodology default. Adapted to P9 for beginners (plain-language translation). Pure Inform-tier discipline — no Gate, no new state, no interruption. Prevents the surprise pattern where users discover unexpected behavior (e.g., worktree directories) after the fact.
+- New paragraph in spec P7 (Risk-Based Decision Classification) documenting the general discipline.
+- New *Config Application Transparency — Design Mechanics* subsection in `gse-one-implementation-design.md` with the standard format, origin classification algorithm, beginner adaptation, and extension pattern.
+- New *Config Application Transparency Discipline* section in the orchestrator.
+
+### Changed
+- `/gse:produce` Step 2 (Git Setup) — adds the Inform note before creating the first branch or worktree, covering the three `git.strategy` values (worktree / branch-only / none) with appropriate wording for each.
+- `/gse:task` Step 4 (Git Setup) — same pattern, deduplicated within a sprint via `status.yaml → last_activity` trail.
+
+### Scope for v0.30
+- Covered: `git.strategy` materialized by `/gse:produce` and `/gse:task`. Directly addresses the training feedback (learner05: surprise worktree creation).
+- Extension path documented — future materializations (e.g., `testing.coverage.minimum` at `/gse:tests`, `git.tag_on_deliver` at `/gse:deliver`) follow the same pattern by adding the Inform line to their relevant step.
+
+### Fixed
+- Silent application of `git.strategy` default observed during training session learner05 (pragmatic deviation from config logged as DEC-015 after the fact). The Inform note now surfaces the choice and its origin at the moment of action, without requiring a Gate.
+
 ## [0.29.0] - 2026-04-19
 
 Layers impacted: **spec**, **design**, **implementation** (orchestrator + 5 activities + intent template)

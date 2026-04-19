@@ -92,7 +92,20 @@ If no tasks are pending:
 
 **Git branch check:** Before starting work on any TASK, verify that the current branch is NOT `main`. If on `main`, remind the user that the methodology recommends working on a dedicated branch and create one per the convention below. If the user explicitly chooses to stay on `main`, respect the choice and note it as a known process deviation in the sprint review.
 
-Read `config.yaml` field `git.strategy` and branch accordingly:
+Read `config.yaml` field `git.strategy` and branch accordingly.
+
+**Config Application Transparency (Inform, spec P7):** before creating the first branch or worktree of this TASK, emit a one-line Inform note labelling the applied config value. Compare the current `git.strategy` value against the methodology default (`worktree` per `gse-one/src/templates/config.yaml`) to compute the origin:
+
+- If `git.strategy == worktree` (methodology default):
+  *"Config applied: `git.strategy` = `worktree` (methodology default — to change: `/gse:hug --update` or edit `.gse/config.yaml`). I will create a separate workspace directory for each task."*
+- If `git.strategy == branch-only`:
+  *"Config applied: `git.strategy` = `branch-only` (user choice — to change: `/gse:hug --update` or edit `.gse/config.yaml`). I will create feature branches and switch between them in the main checkout."*
+- If `git.strategy == none`:
+  *"Config applied: `git.strategy` = `none` (user choice — to change: `/gse:hug --update` or edit `.gse/config.yaml`). I will commit directly on the current branch without creating dedicated branches."*
+
+**Beginner adaptation (P9):** replace the technical note with plain language — e.g., *"I'm using separate folders for each task (default setup — say 'I'd prefer a simpler setup' if you want to change)."*
+
+Emit the note ONCE per activity invocation, before the first branch/worktree creation. Do not repeat on subsequent TASKs of the same sprint.
 
 #### Strategy: `worktree` (default)
 
