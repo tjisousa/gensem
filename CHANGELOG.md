@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2026-04-19
+
+Layers impacted: **spec**, **design**, **implementation** (activities go/collect + orchestrator + new template)
+
+### Added
+- **Intent Capture for greenfield projects** (AMÉL-07 from training feedback) — When `/gse:go` detects a greenfield project (no source files after standard exclusions) AND no existing intent artefact, it now enters Intent Capture BEFORE the complexity assessment. Produces a formal `INT-001` artefact at the canonical path `docs/intent.md` with four mandatory sections (Description verbatim, Reformulated understanding, Users, Boundaries) + optional Open questions tagged with their natural resolution home. Applies to **all expertise levels** — tone and cadence adapted via P9. Seeded backlog items carry `traces.derives_from: [INT-001]` preserving intent-to-backlog provenance.
+- New artefact type `intent` with prefix `INT-` added to spec P6 (Traceability) table.
+- New template file `gse-one/src/templates/intent.md` with standardized structure.
+- New `/gse:collect` Step 0 "Verify Intent Exists" — preflight check on greenfield that redirects to Intent Capture if no intent artefact is present.
+- New *Intent Capture for Greenfield Projects* section in the orchestrator.
+- New *Intent Capture — Design Mechanics* subsection in `gse-one-implementation-design.md` detailing trigger detection, artefact structure, elicitation loop, integration with downstream activities (REQS, ASSESS, PLAN), and failure modes.
+
+### Changed
+- Spec §3 decision tree: previous trigger *"`it_expertise: beginner` + `current_sprint: 0`"* replaced by *"greenfield project + no intent artefact"*. The trigger is now project state, not user profile. Experts greenfield no longer bypass intent capture silently.
+- Spec §3 Step 5 "Intent-first mode" renamed to "Intent Capture" and rewritten to reflect the new trigger and formal artefact output.
+- `/gse:go` Step 7 "Intent-First Mode" renamed to "Intent Capture", trigger broadened, explicit step to write `docs/intent.md` added, existing artefact detection added.
+- Spec §15 glossary: "Intent-first mode" entry updated to "Intent Capture" with the new semantics; new "Intent artefact (`INT-`)" entry added.
+
+### Fixed
+- Greenfield experts (training session learner05) previously bypassed the agent's Intent-First flow and had to improvise an ad-hoc `docs/intent.md` file without a standard structure. The formal artefact + broadened trigger now serves all expertise levels.
+
+### Migration note
+Pre-v0.28 projects without an `INT-` artefact are unaffected — the trigger fires only on greenfield new projects. Existing projects with improvised `intent.md` files can adopt the new format manually by renaming their file to match the canonical template (frontmatter `id: INT-001` + four standard sections).
+
 ## [0.27.0] - 2026-04-19
 
 Layers impacted: **spec**, **design**, **implementation** (activities design/preview/produce/task + orchestrator + status.yaml schema)

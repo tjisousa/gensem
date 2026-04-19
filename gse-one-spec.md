@@ -536,6 +536,7 @@ Every artefact must be traceable to its origin and related artefacts. Requiremen
 | `RVW-` | Review finding | RVW-005 |
 | `DEC-` | Decision | DEC-008 |
 | `TASK-` | Work item (backlog + sprint tasks — unified) | TASK-014 |
+| `INT-` | Project intent | INT-001 |
 | `SRC-` | External source | SRC-001 |
 | `LRN-` | Learning note | LRN-003 |
 
@@ -2774,7 +2775,7 @@ Evaluate states **in order** — the first matching row wins.
 
 | Current state | Next action |
 |--------------|-------------|
-| No sprint + `it_expertise: beginner` + `current_sprint: 0` (first time) | Enter **intent-first mode** (Step 5). After intent captured → proceed to **complexity assessment** (Step 6) to determine mode. |
+| No sprint + project is **greenfield** (no source files after standard exclusions) AND no `INT-001` intent artefact exists | Enter **Intent Capture** (Step 5). After intent captured and the `intent` artefact is written → proceed to **complexity assessment** (Step 6) to determine mode. Applies to all expertise levels; tone and cadence are adapted via P9. |
 | No sprint (after intent-first if applicable) | **Complexity assessment** (Step 6): scan structural signals (dependencies, persistence, entry points, multi-component, CI/CD, git maturity, tests), recommend mode (Gate). Based on chosen mode: Micro → PRODUCE, Lightweight → PLAN, Full → LC01 (`COLLECT` > `ASSESS` > `PLAN`). |
 | `plan.yaml` exists, `status: draft` | Resume `PLAN` |
 | `plan.yaml.workflow.active == reqs` | Start `REQS` — begins with **conversational elicitation** (Step 0) to capture user intent in natural language, then **test-driven requirements** with testable acceptance criteria (Given/When/Then) and open technical questions, then **quality assurance checklist** (Step 7, ISO 25010 inspired) verifying NFR completeness. **Hard guardrail: PRODUCE MUST NOT start until REQS exist.** |
@@ -2820,14 +2821,17 @@ If an activity fails (test failure, merge conflict, tool error):
 3. Propose options (Gate): retry, skip (if skippable), pause, discuss
 4. Never silently continue after a failure
 
-**Step 5 — Intent-first mode (beginner + first sprint):**
+**Step 5 — Intent Capture (greenfield projects, all expertise levels):**
 
-When `it_expertise: beginner` and `current_sprint: 0` (first time through LC01), the orchestrator enters a conversational mode before the formal lifecycle:
-1. Elicit intent in plain language: *"Describe what you'd like to build or achieve."*
-2. Reformulate and validate: *"If I understand correctly, you want: [list]. Correct?"*
-3. Translate to initial backlog items (no jargon)
-4. After intent is captured and backlog items created, proceed to **Step 6 (Complexity Assessment)** to determine the appropriate mode. The mode determines the lifecycle path (Micro → PRODUCE, Lightweight → PLAN, Full → COLLECT). Present each activity in plain language for beginners.
-5. The user can exit intent-first mode at any time by saying *"I know the process"* — the agent switches to normal orchestration and updates the profile
+When the project is **greenfield** (no source files after standard exclusions) and **no intent artefact exists yet** (no `INT-001` in the project), the orchestrator enters a conversational capture mode before the formal lifecycle. Applies to **all expertise levels** — the trigger is project state, not user profile. Cadence and tone are adapted via P9 (one question at a time for beginners; grouped elicitation for experts).
+
+1. **Elicit intent** in plain language: *"Describe what you'd like to build or achieve."* Let the user express freely — no technical framing.
+2. **Reformulate and validate**: *"If I understand correctly, you want: [list]. Correct?"* Iterate until the user confirms.
+3. **Write the intent artefact** `INT-001` to the canonical location `docs/intent.md`. The artefact includes YAML frontmatter (`id: INT-001`, `artefact_type: intent`, `sprint: 0`, `status: approved`) and four mandatory sections: *Description (verbatim user statement)*, *Reformulated understanding*, *Users*, *Boundaries* (explicit out-of-scope items). An optional fifth section *Open questions* lists ambiguities to resolve in ASSESS / scope-lock / REQS, each tagged with its natural resolution home. The intent artefact is committed to git and becomes the traceability root — downstream REQ, TASK, and gap artefacts may carry `traces.derives_from: [INT-001]`.
+4. **Translate to initial backlog items** (no jargon): the agent converts the validated intent into concrete TASK goals in `backlog.yaml`. Each seeded TASK carries `traces.derives_from: [INT-001]` preserving the intent → backlog provenance.
+5. After intent is captured and backlog items created, proceed to **Step 6 (Complexity Assessment)** to determine the appropriate mode. The mode determines the lifecycle path (Micro → PRODUCE, Lightweight → PLAN, Full → COLLECT). Present each activity in plain language for beginners; direct technical terms for intermediate/expert.
+6. **Exit condition:** the user can skip Intent Capture at any time by saying *"I know the process"* / *"no need, let's proceed"* / equivalent. If skipped, no `intent.md` is written and the agent proceeds directly to Step 6. An Inform note is logged noting intent was declined.
+7. **Pivot / re-capture:** if at a later date the user wants to replace or evolve the intent (project pivot, scope reset), the existing `INT-001` is archived to `docs/archive/intent-vNN.md` and a new `INT-002` is created with the updated content. Downstream artefacts pointing to the old `INT-001` are not rewritten — the archive preserves the historical trace.
 
 ```yaml
 # In config.yaml → lifecycle:
@@ -2921,7 +2925,8 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | **Spike** | Exploratory experiment created via `/gse:task --spike`. Complexity-boxed (max 3 points), non-deliverable (branch deleted after completion), bypasses REQS/TESTS guardrails. Must produce a DEC- artefact documenting question, approach, and answer. If reusable code emerges, a normal TASK is created |
 | **Acceptance criteria** | Measurable conditions attached to a requirement, expressed in Given/When/Then (BDD) format. These criteria ARE the specification for validation tests — each criterion generates at least one TST- artefact |
 | **Lifecycle phases (LC00–LC03)** | The four phases of a GSE-One project cycle: LC00 (onboarding — `/gse:hug`), LC01 (discovery & planning — `COLLECT` > `ASSESS` > `PLAN`), LC02 (development — `REQS` > `DESIGN` > `PREVIEW` > `TESTS` > `PRODUCE` > `REVIEW` > `[FIX]` > `DELIVER` — where `[FIX]` is conditionally inserted if REVIEW produces HIGH/MEDIUM findings), LC03 (capitalization — `COMPOUND` > `INTEGRATE`) |
-| **Intent-first mode** | Special onboarding flow for beginner users on their first project (`current_sprint: 0`). The agent elicits intent conversationally ("What would you like to build?") before introducing any technical structure |
+| **Intent Capture** | Conversational capture flow triggered when a project is **greenfield** (no source files after standard exclusions) and no intent artefact exists. Applies to all expertise levels — tone and cadence adapted via P9. Produces `INT-001` at the canonical path `docs/intent.md` (four mandatory sections: Description verbatim, Reformulated understanding, Users, Boundaries; optional Open questions). Serves as the traceability root for downstream REQ, TASK, and gap artefacts via `traces.derives_from: [INT-001]`. Replaced the pre-v0.28 "Intent-first mode" (which was beginner-only and did not produce a formal artefact) |
+| **Intent artefact (`INT-`)** | Project-level artefact capturing the user's plain-language intent for what they want to build or achieve. Unique per project (one `INT-001` by default). On project pivot, the current artefact is archived to `docs/archive/intent-vNN.md` and a new `INT-002` is created. Referenced by downstream artefacts via `traces.derives_from: [INT-NNN]` |
 | **Supervised mode** | When `decision_involvement: supervised` in the profile, ALL technical choices during PRODUCE are escalated to Gate-tier decisions — the agent presents options and waits for confirmation |
 | **Micro mode** | Minimal lifecycle for trivial projects (scripts, one-off tasks): `PRODUCE` > `DELIVER`, direct commit, 1 state file, no REQS/TESTS guardrails, no health tracking. Selected by complexity assessment, not file count |
 | **Complexity assessment** | Structural analysis performed by the orchestrator during `/gse:go` to recommend a project mode (Micro/Lightweight/Full). Scans 7 structural complexity signals: (1) dependencies (direct dep count from manifests), (2) persistence (ORM, SQL, DB config), (3) entry points (routes, CLI commands), (4) multi-component (multiple manifests, monorepo), (5) existing tests (test directories/files), (6) CI/CD (workflow files, Docker), (7) git maturity (commits, branches, contributors). Source file count is not a complexity signal — it is used only as a trivialiy pre-filter for Micro mode detection. Presented as a Gate decision — the user confirms or overrides |

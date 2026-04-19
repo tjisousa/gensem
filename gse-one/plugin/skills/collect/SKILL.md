@@ -33,6 +33,18 @@ Before executing, read:
 
 Triggered when no arguments are provided. Inventories the current project.
 
+#### Step 0 — Verify Intent Exists (greenfield preflight)
+
+Before running the inventory, check if the project has an intent artefact:
+
+1. Run the greenfield detection (same exclusion list as `/gse:go` Step 1: `.cursor`, `.claude`, `.gse`, `.git`, `.vscode`, `.idea`, `.fleet`, `node_modules`, `__pycache__`, `.venv`, `target`, `dist`, `build`; also exclude pure-documentation files `*.md`, `*.txt`, `LICENSE`, `README`). If source file count is 0 → project is greenfield.
+2. If greenfield AND `docs/intent.md` does **not** exist:
+   - Report: *"This project is greenfield and has no project intent artefact. COLLECT expects something to inventory — for an empty project, the first step is to capture what you want to build."*
+   - Redirect: invoke `/gse:go` Step 7 (Intent Capture) inline. After the `INT-001` artefact is written, resume COLLECT at Step 1.
+   - For beginners, this happens automatically without asking — the redirection is transparent.
+3. If greenfield AND `docs/intent.md` exists → proceed to Step 1 (there is an artefact to inventory even if no code exists).
+4. If not greenfield → proceed to Step 1 normally.
+
 #### Step 1 — Scan Project Files
 
 Recursively scan the project directory, excluding `.git/`, `__pycache__/`, `node_modules/`, `.gse/local/`.

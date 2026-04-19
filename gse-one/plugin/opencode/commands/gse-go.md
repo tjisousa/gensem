@@ -124,7 +124,7 @@ Evaluate states **in order** — the first matching row wins.
 **Post-activity protocol:** After each activity completes, the orchestrator updates `.gse/plan.yaml` per the **Sprint Plan Maintenance** protocol in the orchestrator (workflow transition, coherence evaluation, alerts by mode). See the orchestrator document for the full protocol.
 
 **"No sprint defined" sub-decision** (evaluated in order):
-1. If `it_expertise: beginner` and `current_sprint: 0` (first time) → start **Intent-First mode** (Step 7). After intent is captured, proceed to step 2 (do NOT skip directly to LC01).
+1. If project is **greenfield** (0 source files after standard exclusions, see Step 7) AND no `docs/intent.md` exists → start **Intent Capture** (Step 7). Applies to all expertise levels. After the intent artefact is written, proceed to step 2 (do NOT skip directly to LC01).
 2. **Complexity assessment** (Step 6) — Scan structural signals and recommend a mode (Gate). Based on chosen mode:
    - **Micro** → start PRODUCE
    - **Lightweight** → start PLAN
@@ -238,24 +238,34 @@ After the user confirms, set `config.yaml → lifecycle.mode` and proceed:
 
 User can upgrade from Micro → Lightweight → Full at any time via `/gse:go` — the agent scaffolds the missing structure.
 
-### Step 7 — Intent-First Mode (Beginner + First Sprint)
+### Step 7 — Intent Capture (Greenfield Projects, All Expertise Levels)
 
-**Trigger:** Reached from Step 3 when `it_expertise: beginner` and `current_sprint: 0` (first time). At this point `.gse/` exists with a profile from HUG.
+**Trigger:** Reached from Step 3 when the project is **greenfield** (no source files after standard exclusions — cf. Step 1 exclusion list) AND no `INT-` intent artefact exists at `docs/intent.md`. The check is independent of `it_expertise` — tone and cadence are adapted via P9 but the trigger is project state.
 
-The orchestrator enters a conversational mode to clarify the user's intent before determining the project mode:
+The orchestrator enters a conversational capture mode to record the user's plain-language intent before determining the project mode:
 
-1. **Elicit intent** — Ask in simple terms:
-   *"Describe in a few sentences what you'd like to build or achieve."*
-   Let the user express freely. Do not ask for technical details.
+1. **Detect greenfield** — Count source files using the Step 1 exclusion list (`.cursor`, `.claude`, `.gse`, `.git`, `.vscode`, `.idea`, `.fleet`, `node_modules`, `__pycache__`, `.venv`, `target`, `dist`, `build`). Also exclude pure-documentation files (`*.md`, `*.txt`, `LICENSE`, `README`) from the source count — they don't constitute project code. If source count is 0 AND no `docs/intent.md` exists → proceed to step 2.
 
-2. **Reformulate and validate** — Translate the intent into a structured summary using the user's vocabulary (no jargon):
+2. **Elicit intent** — Ask in simple terms (adapted to profile):
+   - **Beginner:** *"Describe in a few sentences what you'd like to build or achieve."* Let the user express freely. Do not ask for technical details.
+   - **Intermediate/Expert:** same question, may batch with follow-ups on users and boundaries in the same message.
+
+3. **Reformulate and validate** — Translate the intent into a structured summary using the user's vocabulary (no jargon):
    *"If I understand correctly, you want: [bulleted list in plain language]. Is that right?"*
    Iterate until the user confirms.
 
-3. **Translate to backlog** — Convert the validated intent into initial TASK items in `backlog.yaml`. Present them as concrete goals, not technical work items:
+4. **Collect supporting fields** — If the user's statement doesn't already cover these, ask brief follow-ups:
+   - **Users** — single user / small shared pool / public / specific role
+   - **Boundaries** — what's explicitly out of scope (e.g., no sync, no server, no auth)
+
+5. **Identify open questions** — The agent lists its own remaining ambiguities (the *Open questions* section of the artefact). The user may add or dismiss. Each question is tagged with its natural resolution home (ASSESS / scope-lock / REQS / DESIGN).
+
+6. **Write the intent artefact** — Create `docs/intent.md` atomically using the template at `gse-one/src/templates/intent.md`. Frontmatter: `id: INT-001`, `artefact_type: intent`, `sprint: 0`, `status: approved`, `created: <today>`. Sections: Description (verbatim quote), Reformulated understanding, Users, Boundaries, Open questions. Commit this artefact as `gse(intent): capture initial project intent`.
+
+7. **Translate to backlog** — Convert the validated intent into initial TASK items in `backlog.yaml`. Each seeded TASK carries `traces.derives_from: [INT-001]`. Present them as concrete goals, not technical work items:
    *"Here's what we'll work on: [list of goals]. I'll guide you through each step."*
 
-4. **Transition to complexity assessment** — Proceed to **Step 6 (Mode Selection)** to determine the appropriate mode based on project complexity. The mode determines the lifecycle path:
+8. **Transition to complexity assessment** — Proceed to **Step 6 (Mode Selection)** to determine the appropriate mode based on project complexity. The mode determines the lifecycle path:
    - **Micro** → PRODUCE (for a quick script, the agent starts building immediately)
    - **Lightweight** → PLAN > REQS > PRODUCE > DELIVER (for a simple app)
    - **Full** → COLLECT > ASSESS > PLAN > ... (for a complex project)
@@ -265,7 +275,9 @@ The orchestrator enters a conversational mode to clarify the user's intent befor
    - PRODUCE → *"Now I'll build it"*
    - DELIVER → *"Let me finalize and package the result"*
 
-5. **Exit condition** — The user can say *"I know the process, let's skip ahead"* at any point. The agent switches to normal orchestration immediately and updates the profile: `it_expertise: intermediate`.
+9. **Exit / skip condition** — The user can skip Intent Capture at any time by saying *"I know the process, let's skip ahead"* / *"no need, let's proceed"* / equivalent. If skipped, **no intent.md is written** and the agent proceeds directly to Step 6. An Inform note is logged: *"Intent Capture declined — you can create `docs/intent.md` manually at any time, or trigger it by deleting any scaffolded files and re-running `/gse:go` on a greenfield tree."* If the user was `beginner`, the profile is NOT auto-updated (skipping the intent elicitation doesn't mean they're fluent with the process — it may just mean they want to move fast).
+
+10. **Existing intent artefact** — If `docs/intent.md` already exists (re-running `/gse:go` after Intent Capture was already done), skip this step entirely and proceed to Step 6. The agent may remind the user: *"I'll use the existing project intent (INT-001). If you want to revise it, edit `docs/intent.md` directly or archive it before re-running."*
 
 ### Step 8 — Adopt Mode (`--adopt`)
 

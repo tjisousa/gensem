@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.27.0 -->
+<!-- gse-one-version: 0.28.0 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -130,6 +130,8 @@ Rationale: unsystematic debugging erodes user trust and often fails because the 
 - Commits without `Traces:` trailer → unlabeled files cannot be matched to planned IDs; agent asks the user to clarify in a one-shot prompt, or treats them as ADDED by default.
 
 Rationale: the two mechanisms close the loop between agent autonomy and human governance. Scope Reconciliation catches *what* was delivered outside the plan (structural drift). Inform-Tier Summary catches *how* the delivered work was shaped (micro-decision drift). Together, they give the user a clear, low-friction override window at every creative milestone — preserving "Built by AI, Governed by Humans" without imposing ceremony on every small choice.
+
+**Intent Capture for Greenfield Projects:** when `/gse:go` is invoked on a project that is **greenfield** (no source files after standard exclusions) AND has no existing intent artefact at `docs/intent.md`, the orchestrator MUST enter **Intent Capture** (spec §3 Step 5 / `/gse:go` Step 7) before the complexity assessment. This applies to **all expertise levels** — the trigger is project state, not user profile. Tone and cadence are adapted via P9 (one question at a time for beginners; grouped elicitation for experts). Intent Capture produces `INT-001` at `docs/intent.md` with the four mandatory sections (Description verbatim / Reformulated understanding / Users / Boundaries) and an optional fifth (Open questions tagged with their natural resolution home: ASSESS / scope-lock / REQS / DESIGN). Seeded backlog items carry `traces.derives_from: [INT-001]`. The user may skip Intent Capture explicitly ("I know the process"); in that case no intent artefact is written and an Inform note is logged. `/gse:collect` internal mode includes a preflight (Step 0) that redirects to Intent Capture if greenfield + no intent artefact. Rationale: previously, greenfield experts bypassed intent capture entirely (the old Intent-First mode was beginner-only) and the agent improvised ad-hoc `intent.md` files without a standard structure. Formalizing the artefact gives downstream activities (REQS, ASSESS) a stable traceability root.
 
 ## Command Reference
 

@@ -1564,6 +1564,94 @@ Scope Reconciliation runs FIRST (material deltas), Inform-Tier Summary SECOND (d
 - Commits without `Traces:` trailer (user commited manually, or legacy commits) → agent can still enumerate files but cannot match them to planned IDs. Treats the files as unlabeled and asks the user to clarify in a one-shot prompt.
 - Plan artefacts missing (`reqs.md` or `design.md` absent — Lightweight mode, or early sprint) → skip Scope Reconciliation; Inform-Tier Summary still applies.
 
+**Intent Capture — Design Mechanics (spec §3 Step 5 Intent Capture, P6 INT- prefix):**
+
+The *Intent Capture* flow formalizes the greenfield onboarding step that precedes `/gse:collect`. It replaces the pre-v0.28 "Intent-first mode" (which was beginner-only and did not produce a formal artefact).
+
+**Trigger detection (in `/gse:go` Step 7):**
+
+1. Run the project file scan (same exclusion rules as `/gse:go` Step 1: `.cursor`, `.claude`, `.gse`, `.git`, `.vscode`, `.idea`, `.fleet`, `node_modules`, `__pycache__`, `.venv`, `target`, `dist`, `build`).
+2. Count **source files** = non-excluded files that are not pure documentation (`*.md`, `*.txt`, `LICENSE`, `README`). Greenfield = `source_files_count == 0`.
+3. Check for existing intent artefact: `os.path.isfile("docs/intent.md")` AND its frontmatter `id` starts with `INT-`. If present, skip Intent Capture (intent already captured; use existing).
+4. If greenfield AND no intent artefact → enter Intent Capture.
+
+**Artefact file (canonical template at `gse-one/src/templates/intent.md`):**
+
+```markdown
+---
+id: INT-001
+artefact_type: intent
+title: "{project_name} — Project Intent"
+sprint: 0
+status: approved
+created: {YYYY-MM-DD}
+author: pair
+---
+
+# {project_name} — Project Intent
+
+## Description (verbatim user statement)
+
+> {exact user statement, quoted literally — no paraphrasing at this step}
+
+## Reformulated understanding
+
+{agent's reformulation in plain language, validated by the user in the elicitation loop}
+
+## Users
+
+- {single user / small shared group / public / specific role — e.g., "single user, no accounts"}
+
+## Boundaries (explicit out-of-scope)
+
+- {thing 1 — e.g., "no multi-device sync"}
+- {thing 2 — e.g., "no server component"}
+- ...
+
+## Open questions
+
+_Optional section. Lists ambiguities to resolve in downstream activities, each tagged with its natural home._
+
+- {question 1} — natural home: **ASSESS** | **scope-lock** | **REQS** | **DESIGN**
+- {question 2} — natural home: ...
+```
+
+**Field semantics:**
+
+| Field | Rule |
+|-------|------|
+| `id` | `INT-001` on first capture. If the user pivots the project later (new intent), the existing artefact is renamed to `docs/archive/intent-v01.md` (preserving its original `id: INT-001`), and a new `docs/intent.md` is created with `id: INT-002`. The old `INT-001` is kept read-only for historical traceability. |
+| `status` | `draft` during elicitation, `approved` once the user has confirmed the reformulated understanding. |
+| `sprint` | Always `0` — intent precedes any sprint. |
+
+**Elicitation loop (agent behavior during Step 5):**
+
+1. Ask the intent question in the user's chosen language (from HUG profile). For beginners: one open-ended question. For intermediate/expert: may batch with follow-ups on users, boundaries, domain.
+2. Capture the user's **first verbatim response** — this becomes the *Description* section, quoted literally. Do NOT edit or paraphrase.
+3. Reformulate in plain language and present as bullet list. Ask for confirmation. Iterate until the user confirms.
+4. For **Users** and **Boundaries**: if not explicit in the user's statement, ask brief follow-ups. Don't assume.
+5. For **Open questions**: the agent lists its own remaining ambiguities. The user may add or dismiss.
+6. Write `docs/intent.md` atomically (all sections at once) when the user approves.
+
+**Integration with downstream activities:**
+
+- `/gse:collect` (internal mode) now starts with **Step 0: Verify intent exists**. If greenfield and no `docs/intent.md`, the agent inlines Intent Capture (re-runs `/gse:go` Step 7 inline) before the inventory step.
+- `/gse:assess` reads `docs/intent.md` and parses the *Open questions* section. Questions tagged `natural home: ASSESS` are surfaced as explicit gaps to resolve.
+- `/gse:plan --strategic` uses the backlog items seeded during Intent Capture (which carry `traces.derives_from: [INT-001]`).
+- `/gse:reqs` reads the intent artefact to cross-check that all user-stated goals are covered by at least one REQ. Requirements get `traces.derives_from: [INT-001, ...]`.
+
+**Pivot / re-capture command:** out of scope for v0.28 — will be added later as `/gse:intent --pivot` or similar. For now, if the user wants to replace the intent, they manually archive `docs/intent.md` and re-run `/gse:go` on a greenfield-looking project (or use `/gse:hug --update` to reset the first-project flag).
+
+**Exempt / skip conditions:**
+- Existing project (non-greenfield) → no Intent Capture; inferred implicit from existing artefacts.
+- Adopted project (`/gse:go --adopt`) → no Intent Capture; the adoption flow has its own analysis (see spec §3 Adopt Mode).
+- User explicit skip ("I know the process", "no need") → no `intent.md` written, Inform note logged.
+- Existing `docs/intent.md` present → skip Intent Capture, use the existing artefact.
+
+**Failure modes:**
+- User refuses to describe intent → `/gse:go` proceeds to Step 6 (Complexity Assessment) without an intent artefact. A one-line Inform note is displayed: *"Intent Capture declined — I'll infer from your first sprint work. You can create `docs/intent.md` manually at any time."*
+- User describes intent but declines to validate the reformulation → agent writes the artefact with `status: draft` and proceeds. The draft can be promoted to `approved` by running `/gse:go` again.
+
 **Checkpoint schema (spec §12.5):**
 ```yaml
 timestamp: 2026-04-11T16:30:00
