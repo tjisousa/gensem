@@ -990,6 +990,36 @@ The pushback mechanism is calibrated:
 - **Expert**: triggers after 8 consecutive acceptances (less intrusive)
 - If the user selects "Everything looks good" twice in a row, the agent respects this and does not trigger again for the rest of the sprint.
 
+#### Root-Cause Discipline before patching
+
+When applying a fix to a reported defect — either during `/gse:fix` processing a review finding, or in response to a user-reported bug arriving during any other activity (PRODUCE, post-DELIVER, etc.) — the agent MUST follow a 4-step protocol before modifying any file. The protocol protects against *unsystematic debugging*: applying speculative patches in rapid succession without first identifying the actual root cause.
+
+**The 4 steps (mandatory, in order):**
+
+1. **Read** — the source files relevant to the reported defect MUST have been opened in the current turn. A patch on code the agent has not just read is forbidden.
+2. **Symptom** — the agent states the defect in specific, observable terms ("the toggle button's background color does not change when clicked", not "the toggle does not work"). If the report is vague, the agent requests one concrete observable fact (console error line, screenshot, specific user interaction sequence) before proceeding.
+3. **Hypothesis + Evidence test** — the agent writes in the chat: (a) the hypothesized root cause, (b) a test that would validate or invalidate the hypothesis, (c) a confidence tag per P15 (Verified / High / Moderate / Low). The agent then runs the evidence test. If the result contradicts the hypothesis, the agent returns to this step with a new hypothesis. No patch is attempted yet.
+4. **Patch** — only after the evidence test confirms the hypothesis, the agent applies the fix. The commit trailer includes the root-cause summary and the confirming evidence.
+
+**Failed-patch counter and devil-advocate escalation:**
+
+The agent maintains a `fix_attempts_on_current_symptom` counter in `.gse/status.yaml`. The counter is **incremented** by +1 each time a patch fails to resolve the symptom (the user reports the same symptom again, or the evidence test still fails after the patch). The counter is **reset to 0** when:
+- The user explicitly confirms resolution ("it works now", "fixed", user moves on to a different topic),
+- The symptom explicitly changes (a different observable defect is reported),
+- A new sprint starts (`/gse:plan --strategic` promotes the next sprint).
+
+**Escalation thresholds** (calibrated by expertise):
+
+| Expertise | Threshold | On reaching threshold |
+|-----------|-----------|----------------------|
+| **Beginner** | 2 | Agent STOPS patching and spawns the devil-advocate for a focused static review of the relevant code. |
+| **Intermediate** | 3 | Same escalation. |
+| **Expert** | 4 | Same escalation. |
+
+On escalation, the devil-advocate receives as input: the precise symptom description, the chain of hypotheses already tried, the patches already applied, and the list of source files under suspicion. It returns findings per its standard format. The agent MUST resolve at least one finding before attempting any further patch on this symptom.
+
+**Rationale:** premature patching adds noise, introduces new bugs, and often fails to address causes external to the code being patched (CORS issues, module-resolution failures, environment mismatches, cache staleness). The read-first and hypothesis-first rules force the agent to anchor in reality; the counter prevents the agent from spiraling into trial-and-error loops that erode user trust.
+
 ---
 
 ## 3. Activities (Commands)
@@ -2192,6 +2222,11 @@ complexity:
 consecutive_acceptances: 2             # primary counter — triggers pushback at threshold (beginner=3, intermediate=5, expert=8)
 pushback_dismissed: 0                  # times user chose "Everything looks good" — if >=2, suppress for rest of sprint
 
+# P16 root-cause discipline — see spec P16 "Root-Cause Discipline before patching" for rules
+# Incremented: patch applied but symptom persists (user reports again, or evidence test still fails)
+# Reset to 0: user confirms resolution, symptom explicitly changes, or new sprint starts
+fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at threshold (beginner=2, intermediate=3, expert=4)
+
 last_activity: /gse:produce
 last_activity_date: 2026-04-10
 
@@ -2239,6 +2274,7 @@ The following fields are **mandatory** — tools and the dashboard depend on the
 | `current_phase` | `LC00` \| `LC01` \| `LC02` \| `LC03` | Current lifecycle phase — used by dashboard |
 | `activity_history` | list of `{ activity, completed_at, sprint, notes }` | Per-activity completion log for the current sprint — authoritative source for `plan.yaml.workflow.completed` timestamps |
 | `consecutive_acceptances` | integer ≥ 0 | P16 pushback counter |
+| `fix_attempts_on_current_symptom` | integer ≥ 0 | P16 root-cause discipline counter — triggers devil-advocate escalation at threshold |
 
 **Validation rule:** After creating or updating `config.yaml` or `status.yaml`, the agent SHOULD verify that all required fields are present and non-empty. If the dashboard tool (`dashboard.py`) is available, regenerate the dashboard and verify the output does not contain placeholder values ("Unknown Project", empty phase).
 

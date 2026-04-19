@@ -32,6 +32,11 @@ complexity:
 consecutive_acceptances: 0             # primary counter — triggers pushback at threshold (beginner=3, intermediate=5, expert=8)
 pushback_dismissed: 0                  # times user chose "Everything looks good" — if >=2, suppress for rest of sprint
 
+# P16 root-cause discipline — see spec P16 "Root-Cause Discipline before patching" for rules
+# Incremented: patch applied but symptom persists (user reports again, or evidence test still fails)
+# Reset to 0: user confirms resolution, symptom explicitly changes, or new sprint promotion
+fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at threshold (beginner=2, intermediate=3, expert=4)
+
 last_activity: ""                      # e.g., /gse:produce
 last_activity_date: ""                 # ISO 8601 timestamp
 

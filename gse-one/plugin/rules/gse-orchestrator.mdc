@@ -84,6 +84,28 @@ For the current release (v0.25.0), only `/gse:hug` Step 4 and `/gse:go` Step 2.7
 
 Rationale: git identity is a pre-commit prerequisite the agent cannot assume is set, especially on fresh machines, classroom laptops, or CI containers. Letting the commit fail silently leaves the user with an opaque git error and a broken foundational setup. A single-Gate resolution is educational, non-destructive, and reversible.
 
+**Root-Cause Discipline Invariant:** When a defect is reported — either by a review finding during `/gse:fix`, or by the user directly during any other activity (PRODUCE, post-DELIVER idle, etc.) — the agent MUST follow the 4-step protocol *Read → Symptom → Hypothesis+Evidence → Patch* before modifying any file (spec P16 "Root-Cause Discipline before patching"). This protects against *unsystematic debugging*: applying speculative patches in rapid succession without identifying the actual root cause.
+
+**The 4 steps (mandatory, in order):**
+1. **Read** — the source file(s) concerned MUST have been opened via the Read tool in the current turn. A blind patch is forbidden.
+2. **Symptom** — specific, observable description of the defect. If vague, request one concrete fact (console error, screenshot, interaction).
+3. **Hypothesis + Evidence** — state hypothesis + validation test + P15 confidence tag; run the test; only proceed if it confirms.
+4. **Patch** — applied only after evidence confirms. Commit trailer includes `Root cause:` and `Evidence:` lines.
+
+**Transversal counter:** the `fix_attempts_on_current_symptom` field in `.gse/status.yaml` is a **single shared counter** across all activities — not scoped per activity. It increments on each patch that does not resolve the symptom (user reports it again, or evidence re-run still fails). It resets to 0 on: user confirmation of resolution, explicit symptom change, or new sprint promotion.
+
+**Escalation thresholds** (by `profile.yaml → dimensions.it_expertise`): beginner=2, intermediate=3, expert=4. At threshold, the agent STOPS patching and spawns the **devil-advocate** sub-agent in `focused-review` mode with inputs: precise symptom, chain of failed hypotheses, patches applied, files under suspicion. The devil-advocate returns findings; at least one MUST be addressed before any further patch on the same symptom.
+
+**Ad-hoc bug report detection:** outside of `/gse:fix`, the orchestrator detects user messages matching bug-report patterns (*"doesn't work"*, *"broken"*, *"not working"*, *"expected X but got Y"*, screenshots of errors, pasted console output). On detection, the orchestrator applies the 4-step protocol inline, exactly as `/gse:fix` Step 3 would.
+
+**Activities concerned:**
+- `/gse:fix` — canonical implementation in Step 3.
+- Any activity where a user reports a symptom (`/gse:produce`, post-`/gse:deliver` idle, etc.) — orchestrator-driven inline application.
+
+**Exempt activities** (no root-cause discipline needed — they don't process bug reports): `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:resume`, `/gse:collect`, `/gse:assess`, `/gse:plan`, `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:tests`, `/gse:compound`, `/gse:integrate`.
+
+Rationale: unsystematic debugging erodes user trust and often fails because the real cause is external to the patched code (CORS issues, module resolution, environment mismatches, stale caches). Forcing a read + explicit hypothesis + evidence test anchors the agent in reality. The counter prevents doom loops of speculative patches; devil-advocate escalation restores rigor when the agent's own judgment has drifted.
+
 ## Command Reference
 
 Complete list of GSE-One commands. On Cursor, commands are prefixed `gse-` (e.g., `/gse-go`). On Claude Code, commands are prefixed `gse:` (e.g., `/gse:go`).

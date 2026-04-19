@@ -1396,6 +1396,74 @@ Additional activities that SHOULD invoke the preflight in future releases (track
 
 **Exempt activities:** read-only and planning activities that do not create commits (`/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:resume`, `/gse:collect`, `/gse:assess`, `/gse:plan`, `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:tests`, `/gse:review`, `/gse:compound`, `/gse:integrate`, `/gse:deploy`).
 
+**Root-Cause Discipline — Design Mechanics (spec P16 "Root-Cause Discipline before patching"):**
+
+The discipline materializes as a 4-step sub-protocol applied inside any fix flow. The orchestrator owns the invariant; `/gse:fix` Step 3 is the canonical in-lifecycle implementation; ad-hoc bug reports outside the lifecycle trigger the same protocol via the orchestrator.
+
+**Step-by-step mechanics:**
+
+| Step | Agent action | Blocking conditions |
+|------|--------------|---------------------|
+| **1. Read** | Open the relevant source file(s) via the Read tool in the current turn. Agent records which files were read. | A file must have been read in the current turn (not in a previous turn, not cached from context compaction) before it can be patched. |
+| **2. Symptom** | Extract observable fact from the report. If report is vague, prompt the user for ONE concrete piece of evidence (console error, screenshot, specific interaction). | Empty/vague symptoms are not acceptable — the agent cannot proceed to step 3 without a specific observable. |
+| **3. Hypothesis + Evidence** | Write in chat: hypothesis, proposed test, P15 confidence tag. Run the test (execute a command, inspect a file, run a unit test, ask the user to perform a concrete action). | If evidence contradicts → loop back to step 3 with a new hypothesis. If evidence confirms → proceed to step 4. Do NOT skip to step 4 without a confirming test result. |
+| **4. Patch** | Apply the fix. Commit trailer MUST include `Root cause:` and `Evidence:` lines. | Commit is refused if these trailer lines are absent (can be enforced by a future pre-commit hook — for now, relies on the activity writing the commit message). |
+
+**Counter persistence:**
+
+| Field | File | Lifecycle |
+|-------|------|-----------|
+| `fix_attempts_on_current_symptom` | `.gse/status.yaml` | Persists across `/gse:pause` / `/gse:resume`. Reset on user confirmation of resolution, explicit symptom change, or sprint promotion (`/gse:plan --strategic` sets it back to 0 at the same time as sprint counter advance). |
+
+**Increment logic:** after a patch is applied (step 4), the agent asks the user to re-verify the symptom (or automatically re-runs the evidence test if available). If the symptom persists, the counter increments. If resolved, the counter resets to 0.
+
+**Threshold logic (read `profile.yaml → dimensions.it_expertise`):**
+
+| Expertise | Threshold | Escalation action |
+|-----------|-----------|-------------------|
+| `beginner` | 2 | Freeze patching; spawn devil-advocate in focused-review mode (below). |
+| `intermediate` | 3 | Same. |
+| `expert` | 4 | Same. |
+
+**Devil-advocate focused-review input format (on escalation):**
+
+```yaml
+mode: focused-review
+symptom: "<precise observable>"
+hypotheses_tried:
+  - hypothesis: "<text>"
+    evidence: "<result that contradicted>"
+    confidence: Moderate
+  - hypothesis: "<text>"
+    evidence: "<result>"
+    confidence: High
+patches_applied:
+  - file: "src/foo.js"
+    summary: "<what was changed>"
+    commit: "<hash>"
+files_under_suspicion:
+  - "src/foo.js"
+  - "src/bar.js"
+  - "index.html"
+```
+
+The devil-advocate runs its standard checklist (hallucination hunt, assumption challenge, complaisance detection, temporal validity, etc.) **focused on the symptom** and returns findings. The agent displays the findings and MUST address at least one finding (fix it, explicitly dismiss with a DEC-, or request user input) before any further patch on this symptom is authorized.
+
+**Ad-hoc bug reports outside the lifecycle:**
+
+The orchestrator detects user messages matching bug-report patterns ("doesn't work", "broken", "not working", "expected X but got Y", screenshots of errors, pasted console output) **outside of `/gse:fix`** (e.g., during PRODUCE, after DELIVER, or in idle state). On detection, the orchestrator applies the Root-Cause Discipline protocol inline, just as `/gse:fix` Step 3 would — same 4 steps, same counter, same escalation. The counter is a single transversal field (`fix_attempts_on_current_symptom` in `status.yaml`), not scoped per activity.
+
+**Activities concerned:**
+- `/gse:fix` (canonical, in-lifecycle) — applied in Step 3
+- Any activity where a user reports a symptom (PRODUCE, post-DELIVER idle, etc.) — orchestrator-driven
+
+**Exempt activities:** read-only and planning activities (`/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:resume`, `/gse:collect`, `/gse:assess`, `/gse:plan`, `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:tests`, `/gse:compound`, `/gse:integrate`).
+
+**Failure modes:**
+- User refuses to provide a concrete observable at step 2 → agent proceeds with a *best-effort* symptom description but flags the uncertainty in the hypothesis confidence tag (max Moderate).
+- Evidence test requires a user action (e.g., "open the console and tell me what you see") → agent waits; no counter increment until the user responds and a patch is attempted.
+- Devil-advocate returns no findings (the focused review confirms the code is sound) → the escalation is logged as a DEC-, the counter is reset, and the agent suggests looking at external causes (environment, cache, network, permissions) with the user.
+
 **Checkpoint schema (spec §12.5):**
 ```yaml
 timestamp: 2026-04-11T16:30:00

@@ -84,21 +84,74 @@ Group findings by their originating task/branch. For each group:
 
 1. Fix in-place on the current branch
 
-### Step 3 — Apply Fixes
+### Step 3 — Apply Fixes (Root-Cause Discipline)
 
-For each finding (RVW-NNN):
+For each finding (RVW-NNN), apply the **Root-Cause Discipline** protocol (spec P16 "Root-Cause Discipline before patching") BEFORE modifying any file. This protects against unsystematic debugging — applying speculative patches in rapid succession without first identifying the actual root cause.
 
-1. Read the finding details: location (file, line), description, suggestion
-2. Apply the fix according to the suggestion
-3. Verify the fix resolves the finding (re-run relevant check if possible)
-4. Commit with traceability:
+#### 3.1 Read — open the file(s) in the current turn
+
+1. Read the finding details: location (file, line), description, suggestion.
+2. Open the relevant source file(s) via the Read tool **in the current turn**. A patch on code the agent has not just read is forbidden. If the file is already read from a previous turn, re-read it (state may have evolved).
+
+#### 3.2 Symptom — state the defect in observable terms
+
+3. Re-state the defect using specific, observable terms (e.g., *"the toggle button's background color does not change when clicked"* — not *"the toggle does not work"*). For RVW findings, the finding description usually suffices. For user-reported bugs arriving outside the review cycle, request one concrete observable fact if the report is vague (console error, screenshot, specific interaction).
+
+#### 3.3 Hypothesis + Evidence test
+
+4. Write in the chat:
+   - **Hypothesis:** the hypothesized root cause of the symptom.
+   - **Evidence test:** a concrete test that would validate or invalidate the hypothesis (command to run, file to inspect, unit test to execute, or user action to perform).
+   - **Confidence:** P15 tag (Verified / High / Moderate / Low).
+5. Run the evidence test (execute the command, inspect the file, request the user to perform the action).
+6. Evaluate the result:
+   - **Confirms the hypothesis** → proceed to 3.4.
+   - **Contradicts the hypothesis** → return to 3.3 with a new hypothesis. Do NOT patch.
+
+#### 3.4 Patch — only after evidence confirms
+
+7. Apply the fix according to the finding's suggestion (or the hypothesis-informed fix for ad-hoc bugs).
+8. Commit with traceability — the trailer MUST include `Root cause:` and `Evidence:` lines:
    ```
    gse(sprint-{NN}/fix): fix RVW-{NNN} — {short description}
 
    Sprint: S{NN}
    Traces: RVW-{NNN}
    Finding: {finding summary}
+   Root cause: {one-line summary of the confirmed root cause}
+   Evidence: {what confirmed the hypothesis — command output, test result, etc.}
    ```
+9. Verify the fix resolves the finding (re-run the relevant check if possible; ask the user if no automated check exists).
+
+#### 3.5 Failed-patch counter and devil-advocate escalation
+
+After applying a patch, if the symptom persists (user reports it again, or the evidence re-run still fails):
+
+1. **Increment** `status.yaml → fix_attempts_on_current_symptom` by 1.
+2. Read `profile.yaml → dimensions.it_expertise` to determine the threshold:
+   - `beginner` → threshold = 2
+   - `intermediate` → threshold = 3
+   - `expert` → threshold = 4
+3. **At threshold:** STOP patching. Spawn the **devil-advocate** sub-agent in *focused-review* mode with the following input:
+   ```yaml
+   mode: focused-review
+   symptom: "<precise observable>"
+   hypotheses_tried:
+     - hypothesis: "<text>"
+       evidence: "<result that contradicted>"
+       confidence: <tag>
+   patches_applied:
+     - file: "<path>"
+       summary: "<what was changed>"
+       commit: "<hash>"
+   files_under_suspicion:
+     - "<path>"
+   ```
+4. The devil-advocate returns a list of findings. Display them to the user. **At least one finding MUST be addressed** (fixed, explicitly dismissed with a DEC-, or resolved via user input) before any further patch on this symptom is attempted.
+5. **Reset** `fix_attempts_on_current_symptom` to 0 when:
+   - The user confirms resolution ("it works now", "fixed", user moves on to a different topic).
+   - The symptom explicitly changes (a different observable defect is reported).
+   - A new sprint is promoted (`/gse:plan --strategic`).
 
 ### Step 4 — Merge Fix Back
 

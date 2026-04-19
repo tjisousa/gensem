@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-04-19
+
+Layers impacted: **spec**, **design**, **implementation** (activity fix + orchestrator + devil-advocate agent + status.yaml schema)
+
+### Added
+- **Root-Cause Discipline guardrail** (AMÉL-03 from training feedback) — When a defect is reported (either a review finding during `/gse:fix`, or a user-reported bug during any activity), the agent MUST follow a 4-step protocol *Read → Symptom → Hypothesis+Evidence → Patch* before modifying any file. A blind patch on unread code is forbidden; hypotheses must be evidence-tested before patching.
+- **Failed-patch counter** `fix_attempts_on_current_symptom` in `.gse/status.yaml`. Increments on each patch that does not resolve the symptom. Resets on user confirmation of resolution, explicit symptom change, or new sprint promotion.
+- **Devil-advocate escalation** at counter threshold (beginner=2, intermediate=3, expert=4). The agent stops patching and spawns the devil-advocate in new `focused-review` mode, which receives the symptom, chain of failed hypotheses, patches applied, and files under suspicion, and returns findings including an *external-cause suggestion* when the code itself appears sound. At least one finding must be addressed before further patching on the same symptom.
+- New *Root-Cause Discipline Invariant* section in the orchestrator listing concerned vs exempt activities and transversal counter semantics.
+- New *Root-Cause Discipline — Design Mechanics* subsection in `gse-one-implementation-design.md` mapping protocol steps to concrete actions, counter mechanics, devil-advocate input format, and failure modes.
+- New subsection P16 *"Root-Cause Discipline before patching"* in the spec with the 4-step protocol, threshold table, and rationale.
+
+### Changed
+- `/gse:fix` Step 3 entirely rewritten as "Apply Fixes (Root-Cause Discipline)" with 5 sub-steps (3.1 Read / 3.2 Symptom / 3.3 Hypothesis+Evidence / 3.4 Patch / 3.5 Counter and Escalation). Commit trailer now REQUIRES `Root cause:` and `Evidence:` lines.
+- Devil-advocate agent extended with a `focused-review` mode (on-demand invocation with symptom + hypotheses + patches + suspect files). The standard `/gse:review` mode is preserved unchanged.
+
+### Fixed
+- Unsystematic debugging ("shotgun patching") observed during training session learner02: agent applied 3 consecutive speculative patches on a theme-toggle bug before the user forced a static code review, which immediately revealed the real cause was external (CORS `file://`) — not in the patched code at all.
+
 ## [0.25.0] - 2026-04-19
 
 Layers impacted: **spec**, **design**, **implementation** (activities hug/go + orchestrator), **docs** (README)

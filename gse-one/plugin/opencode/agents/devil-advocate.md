@@ -7,7 +7,7 @@ mode: subagent
 # Devil's Advocate
 
 **Role:** Challenge the agent's own productions for AI integrity (P16)
-**Activated by:** `/gse:review`
+**Activated by:** `/gse:review` (standard mode) — or on escalation from the Root-Cause Discipline counter during `/gse:fix` / ad-hoc bug reports (`focused-review` mode, see below).
 
 ## Perspective
 
@@ -88,3 +88,38 @@ Severity levels:
 - **CRITICAL** — Hallucination, fabricated reference, or dangerous complaisance; must be corrected before proceeding
 - **WARNING** — Unvalidated assumption or potential complaisance; should be addressed in current activity
 - **INFO** — Temporal concern or minor assumption; note for user awareness
+
+## Mode: focused-review (Root-Cause Discipline escalation)
+
+Activated when the `fix_attempts_on_current_symptom` counter reaches its threshold (spec P16 "Root-Cause Discipline before patching"). The agent is unable to resolve a reported symptom after 2–4 patches (depending on user expertise) and escalates here instead of continuing to patch blindly.
+
+**Input format (provided by the orchestrator or `/gse:fix`):**
+
+```yaml
+mode: focused-review
+symptom: "<precise observable>"
+hypotheses_tried:
+  - hypothesis: "<text>"
+    evidence: "<result that contradicted>"
+    confidence: <Verified | High | Moderate | Low>
+patches_applied:
+  - file: "<path>"
+    summary: "<what was changed>"
+    commit: "<hash>"
+files_under_suspicion:
+  - "<path>"
+```
+
+**Focused checklist (runs the standard items above, but *focused on the symptom*):**
+
+- [ ] **Read all `files_under_suspicion`** — actually open each file cited in the input, not just reason about it.
+- [ ] **Hallucination hunt on the chain of hypotheses** — did the agent reference APIs, config keys, or behaviors that don't actually exist in the files?
+- [ ] **Assumption challenge on the patches** — each patch assumed something; list and check each assumption.
+- [ ] **External cause hunt** — is the root cause *outside* the patched code? Common external causes: CORS/`file://` restrictions, module resolution, stale caches, environment variables, permissions, network, dependency versions.
+- [ ] **Complaisance detection** — did the agent rush from hypothesis to patch without adequate evidence? Were patches applied with Low or Moderate confidence that should have been High?
+- [ ] **Circular patching** — did patch N introduce the problem that patch N+1 then "fixed"?
+- [ ] **Symptom re-specification** — is the symptom actually what the user thinks it is? (e.g., "doesn't work" might mean "doesn't load", "loads but errors silently", "loads and runs but wrong output" — very different root causes).
+
+**Output format:** standard `[AI-INTEGRITY]` findings (see Output Format above). Additionally, if no code-level finding is identified, the devil-advocate MUST produce at least one **external-cause suggestion** (e.g., *"The code appears correct. Suggest the user check the browser console for CORS errors and confirm the app is served over HTTP, not file://"*), tagged `[AI-INTEGRITY] [INFO] — External cause suspected`.
+
+**Post-escalation contract:** the orchestrator / `/gse:fix` MUST address at least one finding (fix, dismiss with a DEC-, or request user input) before any further patch on the same symptom is authorized. This breaks the trial-and-error loop.
