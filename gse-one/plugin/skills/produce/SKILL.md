@@ -141,6 +141,16 @@ Read `config.yaml` field `git.strategy` and branch accordingly:
 2. Update the TASK in `backlog.yaml`:
    - `status: in-progress`
 
+#### Record activity start SHA (all strategies)
+
+After the branch/worktree is ready (or immediately, in the `none` strategy), record the baseline for the later Scope Reconciliation check (spec P6):
+
+```bash
+git rev-parse HEAD
+```
+
+Save the result to `.gse/status.yaml → activity_start_sha`. This will be used in Step 4.5 to compute the activity's file-level contribution via `git diff --name-status {activity_start_sha}..HEAD`. **Skip this recording** in Micro mode or when `git.strategy: none` AND the repository has no commits — the reconciliation step will then skip too.
+
 ### Step 3 — Execute Production
 
 Produce the artefact according to the task specification:
@@ -190,6 +200,58 @@ After generation (if any), proceed to the canonical run.
 - **Skip** — leave `status: fail`, continue; flagged as HIGH in the next review
 - **Discuss** — explore the failure with the user
 
+### Step 4.5 — Scope Reconciliation (Creator-Activity Closure, spec P6)
+
+After the canonical test run succeeds and before Finalize, compare what was delivered to what was planned. Deterministic, based on version-control history.
+
+**Precondition:** `status.yaml → activity_start_sha` was recorded in Step 2. If missing (Micro mode, `git.strategy: none` with empty history, or session interrupted), skip this step with an Inform note: *"Scope Reconciliation skipped: no git baseline recorded."*
+
+1. **Enumerate file changes:**
+   ```bash
+   git diff --name-status {activity_start_sha}..HEAD
+   ```
+   Categorize each entry: `A` (added), `M` (modified), `D` (deleted), `R` (renamed).
+
+2. **Extract per-commit traces:**
+   ```bash
+   git log {activity_start_sha}..HEAD --pretty=format:"%H%n%B%n---"
+   ```
+   For each commit, parse the `Traces:` trailer line.
+
+3. **Load planned scope:** read `docs/sprints/sprint-{NN}/reqs.md` (list of REQ-NNN) and `docs/sprints/sprint-{NN}/design.md` (list of DEC-NNN/DES-NNN). Build `planned_ids = {REQ-001, REQ-002, DES-001, ...}`. If either artefact is absent (Lightweight mode, early sprint), skip reconciliation with an Inform note and proceed to Step 5.
+
+4. **Categorize each delta:**
+   - **ADDED out of scope** — file status `A` AND no commit touching it has `Traces:` listing any ID in `planned_ids`.
+   - **MODIFIED beyond plan** — file status `M` AND commits touching it introduce `Traces:` IDs outside `planned_ids`.
+   - **OMITTED** — ID in `planned_ids` with zero commits referencing it in `Traces:`.
+   - **aligned** — all other cases (silent).
+
+5. **If all deltas are `aligned`:** skip the Gate entirely, proceed silently to Step 5.
+
+6. **If any non-aligned delta exists, present the Scope Reconciliation table and Gate:**
+
+   ```
+   **Scope Reconciliation for TASK-{ID}:**
+
+   | Planned | Delivered | Delta |
+   |---|---|---|
+   | REQ-001 add expense form | `src/forms/Expense.tsx` | aligned |
+   | (nothing planned) | `db/columns/note.sql` | **ADDED out of scope** |
+   | REQ-005 export CSV | — | **OMITTED** |
+
+   **Question:** I delivered N items not in the approved plan, and M planned items are missing. How should we reconcile?
+
+   **Options:**
+   1. **Accept as deliberate** (default) — Record the N additions as a single grouped DEC-NNN, move the M OMITTED items to the backlog pool.
+   2. **Revert out-of-scope** — Undo each ADDED item.
+   3. **Amend requirements/design** — Append lightweight REQ-NNN / DEC-NNN to the sprint artefact to recognize emergent scope (no re-elicitation).
+   4. **Discuss** — Per-delta mixed decisions.
+   ```
+
+7. **Execute the chosen option** per the spec P6 mechanics (see design doc for the concrete formats). Option 1 is the default.
+
+8. **Clear `activity_start_sha` to empty string** after reconciliation completes.
+
 ### Step 5 — Finalize
 
 1. Ensure all changes are committed (no uncommitted work in worktree)
@@ -210,4 +272,33 @@ After generation (if any), proceed to the canonical run.
    - Manual testing procedure (from Step 6)
    - Remaining sprint budget (for intermediate/expert; hidden for beginner)
    - Next task suggestion (if any)
-8. **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with the final task status (done) and budget consumption. Note: the dashboard was already refreshed right after the test run (step 7 of the canonical run); this second regen captures the TASK status transition.
+
+### Step 5.5 — Inform-Tier Decisions Summary (Creator-Activity Closure, spec P16)
+
+Close the activity with a retrospective list of the **Inform-tier decisions** made during production (per P7 risk classification). These are the small autonomous choices the agent made without an interruptive Gate — library micro-choices, folder naming, utility-vs-framework, convention-over-configuration defaults.
+
+1. **Assemble the list** from the agent's conversation memory for this activity. Examples: *"chose `crypto.randomUUID()` over the uuid package"*, *"folder `src/components/` over `src/ui/`"*, *"integer cents over float euros for money"*, *"HashRouter over BrowserRouter"*.
+
+2. **If the list is empty** (rare — all choices were Gated), display explicitly: *"No inform-tier decisions made this activity — all choices were Gated."* Then proceed to Step 6 (dashboard regen).
+
+3. **If the list is non-empty, present it and the Gate:**
+
+   ```
+   **Inform-tier decisions made during this production:**
+   - {decision 1}
+   - {decision 2}
+   - ...
+
+   Any of these you want to promote to a Gate decision (revisit, replace, or document as a DEC-NNN)?
+
+   **Options:**
+   1. **Accept all as-is** (default) — Record as an `## Inform-tier Decisions` section in the produce report (commit message body) and in `docs/sprints/sprint-{NN}/produce-{TASK-ID}.md` if such artefact exists.
+   2. **Promote one or more to Gate** — For each selected decision, walk through a standard Gate (Question / Context / Options with consequence horizons / Discuss). If the user picks an alternative, the agent rolls back the inform-tier choice and applies the new one. The resulting DEC-NNN is added to `decisions.md`.
+   3. **Discuss** — Explore any of the decisions before accepting or promoting.
+   ```
+
+4. Execute the chosen option. Accepted decisions are serialized as a markdown list.
+
+### Step 6 — Regenerate Dashboard
+
+**Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with the final task status (done) and budget consumption. Note: the dashboard was already refreshed right after the test run (step 7 of the canonical run); this second regen captures the TASK status transition.

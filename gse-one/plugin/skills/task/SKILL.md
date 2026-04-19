@@ -130,6 +130,8 @@ Create a dedicated branch and worktree following the same logic as `/gse:produce
 
 The git strategy (worktree/branch-only/none) is read from `config.yaml`.
 
+**Record activity start SHA** — after the branch/worktree is ready, run `git rev-parse HEAD` and save the result to `.gse/status.yaml → activity_start_sha`. This will be used in Step 5.5 (Scope Reconciliation) to compute the task's file-level contribution. Skip in Micro mode or `git.strategy: none` with empty history.
+
 ### Step 5 — Execute Task
 
 1. Execute the work described in the task
@@ -141,6 +143,22 @@ The git strategy (worktree/branch-only/none) is read from `config.yaml`.
    Task: TASK-{ID}
    Source: ad-hoc
    ```
+
+### Step 5.5 — Scope Reconciliation (Creator-Activity Closure, spec P6)
+
+Before Finalize, compare what was delivered to what was planned for this ad-hoc task. Deterministic, based on version-control history.
+
+**Precondition:** `status.yaml → activity_start_sha` was recorded in Step 4. If missing (Micro mode, `git.strategy: none` with empty history, or session interrupted), skip this step with an Inform note.
+
+For ad-hoc tasks, the "plan" is the task's own description in `backlog.yaml` (the TASK title, `artefact_type`, and any `Traces:` specified at creation). The reconciliation applies the same protocol as `/gse:produce` Step 4.5:
+
+1. Enumerate changes: `git diff --name-status {activity_start_sha}..HEAD`.
+2. Extract commit `Traces:` trailers via `git log --pretty=format:"%H%n%B%n---"`.
+3. Build `planned_ids` from the task's own traces. If the task has no traces (common for spikes and quick fixes), `planned_ids = {TASK-{ID}}` and any file commit with `Task: TASK-{ID}` in the trailer is considered aligned.
+4. Categorize deltas (ADDED out of scope / OMITTED / MODIFIED beyond plan / aligned).
+5. If all aligned: skip the Gate silently, proceed to Step 6.
+6. If any non-aligned delta exists, present the Scope Reconciliation table and Gate with the four options (Accept as deliberate / Revert / Amend / Discuss) per spec P6.
+7. Clear `activity_start_sha` to empty string after reconciliation.
 
 ### Step 6 — Finalize
 
@@ -160,3 +178,11 @@ The git strategy (worktree/branch-only/none) is read from `config.yaml`.
    - Complexity consumed: {N}
    - Remaining budget: {M}
    - Review required: {yes/no}
+
+### Step 6.5 — Inform-Tier Decisions Summary (Creator-Activity Closure, spec P16)
+
+Close the activity with a retrospective list of the Inform-tier decisions made during task execution (per P7 risk classification).
+
+1. Assemble the list from conversation memory.
+2. If empty: display *"No inform-tier decisions made this activity — all choices were Gated."* and proceed.
+3. If non-empty, present the list and the Gate with three options: Accept all as-is (default, decisions appended to the task commit message body) / Promote one or more to Gate (walk through standard Gate for each, roll back inform-tier choice if a different option is picked) / Discuss.

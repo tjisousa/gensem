@@ -246,3 +246,29 @@ After presenting previews, ask for feedback (Gate):
 - **Discuss** — Explore alternatives
 
 Note: Previews are lightweight simulations, not prototypes. They are disposable and exist only to validate direction before investing in production.
+
+### Step 4 — Inform-Tier Decisions Summary (Creator-Activity Closure, spec P16)
+
+Close the activity with a retrospective list of the **Inform-tier decisions** the agent made during preview work (per P7 risk classification). PREVIEW may involve many small autonomous choices — mockup layout conventions, placeholder data choices, interaction stub styles — that were individually low-stakes.
+
+1. **Assemble the list** from the agent's conversation memory for this activity. Examples: *"used mock data with 3 sample expenses"*, *"mocked the dashboard chart with a static SVG rather than a JS library stub"*, *"labeled the placeholder button 'Save' rather than 'Submit'"*.
+
+2. **If the list is empty** (rare — all choices were Gated), display explicitly: *"No inform-tier decisions made this activity — all choices were Gated."* Then conclude PREVIEW.
+
+3. **If the list is non-empty, present it and the Gate:**
+
+   ```
+   **Inform-tier decisions made during this preview:**
+   - {decision 1}
+   - {decision 2}
+   - ...
+
+   Any of these you want to promote to a Gate decision?
+
+   **Options:**
+   1. **Accept all as-is** (default) — Record as an `## Inform-tier Decisions` section at the end of `docs/sprints/sprint-{NN}/preview.md`.
+   2. **Promote one or more to Gate** — For each selected decision, walk through a standard Gate. The resulting DEC-NNN is added to `decisions.md`.
+   3. **Discuss** — Explore any of the decisions before accepting or promoting.
+   ```
+
+4. Execute the chosen option. Accepted decisions are serialized as a markdown list.

@@ -1464,6 +1464,106 @@ The orchestrator detects user messages matching bug-report patterns ("doesn't wo
 - Evidence test requires a user action (e.g., "open the console and tell me what you see") → agent waits; no counter increment until the user responds and a patch is attempted.
 - Devil-advocate returns no findings (the focused review confirms the code is sound) → the escalation is logged as a DEC-, the counter is reset, and the agent suggests looking at external causes (environment, cache, network, permissions) with the user.
 
+**Scope Reconciliation & Inform-Tier Summary — Design Mechanics (spec P6 Scope Reconciliation + P16 Inform-Tier Decisions Summary):**
+
+Two complementary closure mechanisms for creator activities. The first (Scope Reconciliation) detects *what* was delivered outside the plan; the second (Inform-Tier Summary) detects *how* the delivered work was shaped (micro-decisions). Both fire at the end of creator activities.
+
+**1. Scope Reconciliation — deterministic git-diff-based detection:**
+
+*Applies to:* `/gse:produce`, `/gse:task` (activities that produce code or executable artefacts).
+
+**a. Record activity start (at the start of the activity):**
+
+```bash
+git rev-parse HEAD
+```
+
+Save the result to `.gse/status.yaml → activity_start_sha`. Done right after the git setup step (feature branch / worktree created) so the diff captures only the activity's contribution.
+
+**b. Compute deltas (at activity closure, before Finalize):**
+
+```bash
+git diff --name-status {activity_start_sha}..HEAD
+git log {activity_start_sha}..HEAD --pretty=format:"%H%n%B%n---"
+```
+
+The first command gives the list of changed files (status: A/M/D/R). The second gives each commit's body, from which the agent parses the `Traces:` trailer line (already mandated by the produce/task commit format).
+
+**c. Load planned scope:** read `docs/sprints/sprint-{NN}/reqs.md` (list of REQ-NNN) and `docs/sprints/sprint-{NN}/design.md` (list of DEC-NNN) to build `planned_ids = {REQ-001, REQ-002, DES-001, ...}`.
+
+**d. Categorize each delta:**
+
+| Condition | Category |
+|-----------|----------|
+| File added, no commit touching it has `Traces:` listing any `planned_id` | `ADDED out of scope` |
+| File modified, commits touching it introduce `Traces:` IDs outside `planned_ids` | `MODIFIED beyond plan` |
+| REQ or DEC in `planned_ids` with zero commits referencing it | `OMITTED` |
+| Otherwise | `aligned` (no output) |
+
+**e. Present the Gate if any non-`aligned` delta exists.**
+
+**f. Execute the chosen option:**
+
+- **Option 1 (Accept as deliberate):** append a single grouped DEC-NNN to `docs/sprints/sprint-{NN}/decisions.md`:
+  ```markdown
+  ### DEC-{next_id} — Out-of-scope additions during {activity} (TASK-{ID})
+  
+  During implementation of TASK-{ID}, the following items were delivered beyond the approved plan:
+  - `{path/to/file1}` — {one-line rationale}
+  - `{path/to/file2}` — {one-line rationale}
+  
+  Grouped rationale: {thematic summary — e.g. "user convenience additions that emerged during implementation and were judged individually low-risk"}
+  Reconciled at: {timestamp}
+  Traces: {associated REQ-NNN if any}
+  ```
+  For OMITTED items: move their derived TASK to backlog pool with `status: planned`, `sprint: null`.
+
+- **Option 2 (Revert out-of-scope):** for each ADDED file, revert the originating commit(s). Verify the worktree still builds.
+
+- **Option 3 (Amend):** append a **lightweight** REQ-NNN / DEC-NNN to the relevant sprint artefact — **no elicitation Gate, no approval cycle**. Format example:
+  ```markdown
+  ### REQ-{next_id} — {short title} [amended during {activity}]
+  
+  Acceptance criterion: {one line}
+  Rationale: emerged during {activity}; reconciled at {timestamp}.
+  ```
+
+- **Option 4 (Discuss):** per-delta mixed decisions — iterate through each delta with its own 1/2/3/discuss choice.
+
+**g. Clear `activity_start_sha`** to empty string after the reconciliation completes.
+
+**2. Inform-Tier Summary — agent-maintained decision list:**
+
+*Applies to:* `/gse:design`, `/gse:preview`, `/gse:produce`, `/gse:task`.
+
+**a. During the activity:** the agent internally tracks Inform-tier decisions as it makes them. This is a conversation-scope list (not persisted to disk during the activity); it's assembled from the agent's own Inform-tier actions per P7.
+
+Typical examples: *"chose `crypto.randomUUID()` over the uuid package"*, *"folder `src/components/` over `src/ui/`"*, *"HashRouter over BrowserRouter"*, *"integer cents over float euros for money"*.
+
+**b. At activity closure:** present the list. If empty, display the standard empty-state message (*"No inform-tier decisions made this activity — all choices were Gated."*).
+
+**c. On "Accept all":** append an `## Inform-tier Decisions` section to the activity's artefact:
+
+| Activity | Destination |
+|----------|-------------|
+| `/gse:design` | `docs/sprints/sprint-{NN}/design.md` |
+| `/gse:preview` | `docs/sprints/sprint-{NN}/preview.md` |
+| `/gse:produce` | In the produce report (commit message body) AND as a section in `docs/sprints/sprint-{NN}/produce-{TASK-ID}.md` if such artefact exists |
+| `/gse:task` | In the ad-hoc task commit message body |
+
+**d. On "Promote":** for each selected decision, walk through a standard Gate (Question / Context / Options with consequence horizons per P8 / Discuss). If the user picks an alternative, the agent rolls back the inform-tier choice and applies the new one. The resulting DEC-NNN is added to `decisions.md`.
+
+**Ordering at activity closure:**
+
+Scope Reconciliation runs FIRST (material deltas), Inform-Tier Summary SECOND (design micro-choices). Both run before the activity's Finalize step (status.yaml update, dashboard regen).
+
+**Exempt activities** (neither mechanism applies): `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:resume`, `/gse:collect`, `/gse:assess`, `/gse:plan`, `/gse:reqs`, `/gse:tests`, `/gse:review`, `/gse:fix`, `/gse:deliver`, `/gse:compound`, `/gse:integrate`, `/gse:deploy`, `/gse:hug`, `/gse:go`, `/gse:pause`.
+
+**Failure modes:**
+- `activity_start_sha` missing or invalid (interrupted session, Micro mode, `git.strategy: none`) → skip Scope Reconciliation with a one-line Inform note ("Scope Reconciliation skipped: no git baseline recorded"). Proceed with Inform-Tier Summary normally.
+- Commits without `Traces:` trailer (user commited manually, or legacy commits) → agent can still enumerate files but cannot match them to planned IDs. Treats the files as unlabeled and asks the user to clarify in a one-shot prompt.
+- Plan artefacts missing (`reqs.md` or `design.md` absent — Lightweight mode, or early sprint) → skip Scope Reconciliation; Inform-Tier Summary still applies.
+
 **Checkpoint schema (spec §12.5):**
 ```yaml
 timestamp: 2026-04-11T16:30:00

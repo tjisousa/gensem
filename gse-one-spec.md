@@ -571,6 +571,8 @@ traces:
 
 Only include the link types that apply — omit empty ones for brevity. The agent maintains **bidirectional consistency**: if artefact A says `implements: [REQ-007]`, then REQ-007 is implemented by A.
 
+**Scope Reconciliation — creator-activity closure check:** at the end of every creator activity that produces code or executable artefacts (`/gse:produce`, `/gse:task`), the agent MUST present a **Scope Reconciliation** comparing what was planned (from the approved requirements and design of the current sprint) to what was actually delivered. The delivered set is derived **deterministically from the version-control history** between the activity's starting commit (recorded when the activity began) and its ending commit, cross-referenced with the per-commit `Traces:` trailer. Deltas are categorized as `ADDED out of scope` (delivered but not traceable to a planned REQ or DEC), `OMITTED` (planned but not delivered), or `MODIFIED beyond plan` (existing artefact changed in a way that introduces new user-visible behavior not in the plan). If any non-empty delta exists, the activity blocks at a Gate with four options: *(1) Accept as deliberate* (the agent records all ADDED items together as **a single grouped DEC-NNN** summarizing the additions by theme, preserving traceability; OMITTED items move to the backlog pool for a future sprint), *(2) Revert out-of-scope* (each ADDED item is undone), *(3) Amend requirements/design* (the agent appends a **lightweight REQ-NNN or DEC-NNN** to the current sprint's artefact to recognize the emergent scope, without re-running the full elicitation ceremony), *(4) Discuss* (per-delta mixed decisions). If deltas are empty, the Gate is skipped silently. **Exempt modes:** Micro mode (no formal plan) and `git.strategy: none` (no commit history to diff) skip this check entirely. Rationale: code delivered outside the approved scope bypasses human governance and erodes the "Built by AI, Governed by Humans" contract.
+
 ### P7, P8, P11 — Risk Analysis and Mitigation System
 
 Principles P7, P8 and P11 form a coherent **risk analysis and mitigation chain**. Together they ensure that any action with significant consequences on the project — regardless of the dimension (application quality, cost, development time, security, maintainability) — is analyzed, presented transparently, and formally validated by the user with full traceability.
@@ -1019,6 +1021,18 @@ The agent maintains a `fix_attempts_on_current_symptom` counter in `.gse/status.
 On escalation, the devil-advocate receives as input: the precise symptom description, the chain of hypotheses already tried, the patches already applied, and the list of source files under suspicion. It returns findings per its standard format. The agent MUST resolve at least one finding before attempting any further patch on this symptom.
 
 **Rationale:** premature patching adds noise, introduces new bugs, and often fails to address causes external to the code being patched (CORS issues, module-resolution failures, environment mismatches, cache staleness). The read-first and hypothesis-first rules force the agent to anchor in reality; the counter prevents the agent from spiraling into trial-and-error loops that erode user trust.
+
+#### Inform-Tier Decisions Summary
+
+At the end of every creator activity (`/gse:design`, `/gse:preview`, `/gse:produce`, `/gse:task`), the agent MUST close with a short list of **Inform-tier decisions** it made during the activity (per P7 risk classification). These are choices the agent made autonomously because they were individually low-stakes — library micro-choice, folder naming, utility-vs-framework, import style, convention-over-configuration defaults — none of which warranted an interruptive Gate on their own. Listing them at closure gives the user a retrospective override window:
+
+1. **Accept all as-is** (default) — the decisions are appended as an `## Inform-tier Decisions` section in the activity's artefact (or in the commit message for `/gse:task`) for traceability.
+2. **Promote one or more to Gate** — the selected decision is elevated to a DEC-NNN and the agent walks through it with the standard Gate format (Question / Context / Options with consequence horizons / Discuss).
+3. **Discuss** — explore any of the decisions before accepting or promoting.
+
+If the agent made no Inform-tier decisions during the activity (rare — all choices were Gated), it says so explicitly: *"No inform-tier decisions made this activity — all choices were Gated."*
+
+**Rationale:** inform-tier decisions are individually small but collectively shape the codebase. Making them visible at activity closure is cheaper than surfacing each one at the time it was made, and keeps the human in the loop without decision fatigue. Complements **Scope Reconciliation** (P6 creator-closure check): that one detects *what* was delivered outside the plan; this one detects *how* the delivered work was shaped (design micro-choices).
 
 ---
 
@@ -2226,6 +2240,11 @@ pushback_dismissed: 0                  # times user chose "Everything looks good
 # Incremented: patch applied but symptom persists (user reports again, or evidence test still fails)
 # Reset to 0: user confirms resolution, symptom explicitly changes, or new sprint starts
 fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at threshold (beginner=2, intermediate=3, expert=4)
+
+# P6 scope reconciliation — recorded at start of creator activities (produce, task)
+# Used at closure to compute `git diff --name-status <sha>..HEAD` and detect scope drift
+# Cleared at activity closure; empty when not in a creator activity
+activity_start_sha: ""                 # HEAD SHA at the start of the current creator activity
 
 last_activity: /gse:produce
 last_activity_date: 2026-04-10

@@ -174,3 +174,29 @@ Content includes:
 - Dependency graph
 
 Present the design for user approval (Gate). Set status to `approved` once confirmed.
+
+### Step 7 — Inform-Tier Decisions Summary (Creator-Activity Closure, spec P16)
+
+Close the activity with a retrospective list of the **Inform-tier decisions** the agent made during design work (per P7 risk classification). DESIGN often contains many small autonomous choices that were individually low-stakes — typing conventions, import style, interface naming conventions, diagramming notation — none of which warranted an interruptive Gate on their own.
+
+1. **Assemble the list** from the agent's conversation memory for this activity. Examples: *"used TypeScript types instead of Zod schemas"*, *"interface methods return `Result<T, E>` rather than throwing"*, *"used Mermaid over ASCII for the component diagram"*.
+
+2. **If the list is empty** (rare — all choices were Gated), display explicitly: *"No inform-tier decisions made this activity — all choices were Gated."* Then conclude DESIGN.
+
+3. **If the list is non-empty, present it and the Gate:**
+
+   ```
+   **Inform-tier decisions made during this design:**
+   - {decision 1}
+   - {decision 2}
+   - ...
+
+   Any of these you want to promote to a Gate decision?
+
+   **Options:**
+   1. **Accept all as-is** (default) — Record as an `## Inform-tier Decisions` section at the end of `docs/sprints/sprint-{NN}/design.md`.
+   2. **Promote one or more to Gate** — For each selected decision, walk through a standard Gate (Question / Context / Options with consequence horizons / Discuss). If the user picks an alternative, the agent updates the design to reflect the new choice, and the DEC-NNN is added to `decisions.md`.
+   3. **Discuss** — Explore any of the decisions before accepting or promoting.
+   ```
+
+4. Execute the chosen option. Accepted decisions are serialized as a markdown list under an `## Inform-tier Decisions` section.

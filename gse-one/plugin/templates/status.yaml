@@ -37,6 +37,11 @@ pushback_dismissed: 0                  # times user chose "Everything looks good
 # Reset to 0: user confirms resolution, symptom explicitly changes, or new sprint promotion
 fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at threshold (beginner=2, intermediate=3, expert=4)
 
+# P6 scope reconciliation — recorded at start of creator activities (produce, task)
+# Used at closure to compute `git diff --name-status <sha>..HEAD` and detect scope drift
+# Cleared at activity closure; empty when not in a creator activity
+activity_start_sha: ""                 # HEAD SHA at the start of the current creator activity
+
 last_activity: ""                      # e.g., /gse:produce
 last_activity_date: ""                 # ISO 8601 timestamp
 

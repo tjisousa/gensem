@@ -106,6 +106,30 @@ Rationale: git identity is a pre-commit prerequisite the agent cannot assume is 
 
 Rationale: unsystematic debugging erodes user trust and often fails because the real cause is external to the patched code (CORS issues, module resolution, environment mismatches, stale caches). Forcing a read + explicit hypothesis + evidence test anchors the agent in reality. The counter prevents doom loops of speculative patches; devil-advocate escalation restores rigor when the agent's own judgment has drifted.
 
+**Creator-Activity Closure Invariant (Scope Reconciliation + Inform-Tier Summary):** Every creator activity — `/gse:design`, `/gse:preview`, `/gse:produce`, `/gse:task` — MUST close with two retrospective checks (spec P6 + P16):
+
+1. **Scope Reconciliation** (PRODUCE and TASK only) — compare delivered files/commits against the planned REQ/DEC set using `git diff --name-status {activity_start_sha}..HEAD` cross-referenced with per-commit `Traces:` trailers. If any delta is non-aligned (`ADDED out of scope` / `OMITTED` / `MODIFIED beyond plan`), present a 4-option Gate: *Accept as deliberate* (grouped DEC-NNN, default), *Revert out-of-scope*, *Amend requirements/design* (lightweight REQ/DEC amendment, no re-elicitation), *Discuss*. If all deltas are aligned, skip silently. Requires `activity_start_sha` to have been recorded at the activity's start (immediately after branch/worktree setup).
+
+2. **Inform-Tier Decisions Summary** (DESIGN, PREVIEW, PRODUCE, TASK) — list the Inform-tier decisions the agent made autonomously during the activity (P7). Present a 3-option Gate: *Accept all as-is* (default, decisions appended as `## Inform-tier Decisions` section in the activity's artefact), *Promote one or more to Gate* (retrospective escalation with standard Gate format; if user picks an alternative, the agent rolls back the inform-tier choice and applies the new one, and a DEC-NNN is added), *Discuss*. If the list is empty, display *"No inform-tier decisions made this activity — all choices were Gated."* and proceed.
+
+**Order at closure:** Scope Reconciliation (material deltas) first, Inform-Tier Summary (design micro-choices) second. Both run before the activity's Finalize step (`status.yaml` update, dashboard regen).
+
+**Transversal state:**
+- `activity_start_sha` in `.gse/status.yaml` — HEAD SHA recorded at creator-activity start; cleared on closure. Used exclusively by Scope Reconciliation.
+
+**Activities concerned:**
+- Scope Reconciliation: `/gse:produce`, `/gse:task`.
+- Inform-Tier Summary: `/gse:design`, `/gse:preview`, `/gse:produce`, `/gse:task`.
+
+**Exempt activities** (neither mechanism applies): all others, including `/gse:review`, `/gse:fix`, `/gse:deliver`, `/gse:compound`, `/gse:integrate`, `/gse:reqs`, `/gse:tests`, `/gse:collect`, `/gse:assess`, `/gse:plan`, `/gse:hug`, `/gse:go`, `/gse:pause`, `/gse:resume`, `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:learn`, `/gse:deploy`.
+
+**Failure modes:**
+- `activity_start_sha` missing (Micro mode, `git.strategy: none`, session interrupted) → skip Scope Reconciliation with a one-line Inform note. Inform-Tier Summary still runs.
+- Plan artefacts (`reqs.md` / `design.md`) absent (Lightweight mode, early sprint) → skip Scope Reconciliation. Inform-Tier Summary still runs.
+- Commits without `Traces:` trailer → unlabeled files cannot be matched to planned IDs; agent asks the user to clarify in a one-shot prompt, or treats them as ADDED by default.
+
+Rationale: the two mechanisms close the loop between agent autonomy and human governance. Scope Reconciliation catches *what* was delivered outside the plan (structural drift). Inform-Tier Summary catches *how* the delivered work was shaped (micro-decision drift). Together, they give the user a clear, low-friction override window at every creative milestone — preserving "Built by AI, Governed by Humans" without imposing ceremony on every small choice.
+
 ## Command Reference
 
 Complete list of GSE-One commands. On Cursor, commands are prefixed `gse-` (e.g., `/gse-go`). On Claude Code, commands are prefixed `gse:` (e.g., `/gse:go`).

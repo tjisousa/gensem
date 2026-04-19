@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-04-19
+
+Layers impacted: **spec**, **design**, **implementation** (activities design/preview/produce/task + orchestrator + status.yaml schema)
+
+### Added
+- **Scope Reconciliation guardrail** (AMÉL-05 from training feedback, also closes AMÉL-17) — At the end of every creator activity that produces code (`/gse:produce`, `/gse:task`), the agent compares delivered files against the planned REQ/DEC set. Detection is deterministic via `git diff --name-status {activity_start_sha}..HEAD` cross-referenced with per-commit `Traces:` trailers. Deltas categorized as `ADDED out of scope`, `OMITTED`, or `MODIFIED beyond plan`. If non-empty, a 4-option Gate fires: *Accept as deliberate* (grouped DEC-NNN summarizing additions by theme, OMITTED items move to backlog pool), *Revert out-of-scope*, *Amend* (lightweight REQ/DEC appended without re-elicitation), *Discuss*. Skipped silently when all deltas are aligned.
+- **Inform-Tier Decisions Summary** — At the end of every creator activity (`/gse:design`, `/gse:preview`, `/gse:produce`, `/gse:task`), the agent lists the Inform-tier decisions it made autonomously (P7) and offers a 3-option Gate: *Accept all as-is* (default, appended as `## Inform-tier Decisions` section in the activity's artefact), *Promote one or more to Gate* (retrospective elevation with standard Gate format), *Discuss*. Empty-list case shown explicitly as *"No inform-tier decisions made this activity — all choices were Gated."*
+- New `activity_start_sha` field in `.gse/status.yaml` — HEAD SHA recorded at creator-activity start, used exclusively for Scope Reconciliation, cleared on closure.
+- New *Creator-Activity Closure Invariant* section in the orchestrator combining both mechanisms.
+- New *Scope Reconciliation & Inform-Tier Summary — Design Mechanics* subsection in `gse-one-implementation-design.md` with full git-diff mechanics, trace parsing, delta categorization, Gate formats, and failure modes.
+- New *Scope Reconciliation — creator-activity closure check* paragraph in spec P6 (Traceability); new *Inform-Tier Decisions Summary* subsection in spec P16 (AI Integrity).
+
+### Changed
+- `/gse:produce` — added Step 2 sub-step "Record activity start SHA", new Step 4.5 (Scope Reconciliation) between test run and Finalize, new Step 5.5 (Inform-Tier Summary) between Finalize and dashboard regen, Finalize step renumbered.
+- `/gse:task` — same pattern (SHA record in Step 4, Step 5.5 Scope Reconciliation, Step 6.5 Inform-Tier Summary).
+- `/gse:design` — new final Step 7 Inform-Tier Summary.
+- `/gse:preview` — new final Step 4 Inform-Tier Summary.
+
+### Fixed
+- Silent scope drift during PRODUCE observed in training sessions learner06 (Opus autonomous additions: `note` column, `sort_order` field, monthly total widget — none in approved plan) and learner09 (Composer2 `Uncategorized` feature added without request). The reconciliation block now surfaces these drifts at activity closure with a clear override window.
+
+### Closed
+- **AMÉL-17** (Inform-tier decisions summary) — absorbed into this release.
+
 ## [0.26.0] - 2026-04-19
 
 Layers impacted: **spec**, **design**, **implementation** (activity fix + orchestrator + devil-advocate agent + status.yaml schema)
