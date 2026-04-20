@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.3] - 2026-04-20
+
+Layers impacted: **design**, **implementation** (`/gse:preview` scaffold-as-preview variant)
+
+### Added
+- **Connectivity preflight before invoking any external scaffolder** in `/gse:preview` scaffold-as-preview variant (AMÉL-19 from training feedback). Before running a scaffold command (`create-next-app`, `create-vite`, `streamlit init`, …), the agent issues a short, ecosystem-appropriate reachability probe to confirm the registry is reachable from the current environment. **The exact probe command is left to the coding agent's judgment** based on the detected ecosystem — the methodology specifies the principle (what to verify, when), not the command (how). On probe failure, the agent does NOT retry the scaffold command: it presents a **4-option Gate** — *(1) Retry*, *(2) Run locally, then resume*, *(3) Fallback to static preview*, *(4) Discuss*. Option 2 prints the exact scaffold command, the user runs it in their own terminal, confirms completion, and the agent resumes from the created directory.
+- Design doc fail-modes section now distinguishes *scaffolder invocation fails* (covered by the preflight + Gate) from *scaffold build fails* (already covered) — two independent fail modes with independent resolutions.
+
+### Rationale
+Training feedback observed learner10 (v01 Codex) hitting a sandbox/proxy block on `registry.npmjs.org` during `create-next-app`; the agent retried three times identically before the user manually granted broader network access (~5 minutes of blind-retry pantomime). The methodology provided no anchor for the fail case of *invocation* — only for the fail case of *build*. Adding a lightweight, principle-level preflight (no commands prescribed, no timeout prescribed, no config field) closes the gap without overreaching to other activities (`/gse:produce` dep installs, `/gse:tests` framework installs) on the basis of a single observation. If additional signals emerge, the pattern extends naturally. A separate, broader concern — *agents looping on any external operation that fails* — is noted for potential AMÉL follow-up (generic loop/blockage monitoring, potentially an extension of P16 Root-Cause Discipline).
+
 ## [0.37.2] - 2026-04-20
 
 Layers impacted: **implementation** (`architect` agent + `/gse:design` Step 2)

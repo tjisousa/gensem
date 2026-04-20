@@ -2047,7 +2047,8 @@ scaffold_path: ""  # populated only if variant: scaffold, e.g., "./" or "fronten
 **Failure modes:**
 
 - Agent picks `scaffold` for a domain where it's inappropriate (e.g., library) → DEC-NNN documenting the deviation, user can reverse.
-- Scaffold build fails → the PREVIEW variant cannot be validated; agent asks the user whether to debug the scaffold (continues PREVIEW) or revert to static.
+- Scaffolder invocation fails (network / proxy / sandbox blocks the package registry) → the **connectivity preflight** detects the failure before running the heavy scaffold command; the agent presents a 4-option Gate (*Retry / Run locally, then resume / Fallback to static / Discuss*). The preflight is an ecosystem-appropriate reachability probe whose exact command is chosen by the coding agent based on the detected ecosystem. Rationale: avoids blind retries in corporate / training / sandboxed environments. See `activities/preview.md` Step 1.5 → option 2.
+- Scaffold build fails (post-invocation) → the PREVIEW variant cannot be validated; agent asks the user whether to debug the scaffold (continues PREVIEW) or revert to static.
 - User forgets to replace all `PREVIEW:` markers before DELIVER → the DELIVER review flags them via the same grep; explicit DEC- required to ship code with remaining placeholders.
 
 
