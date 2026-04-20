@@ -171,65 +171,27 @@ Note: Branches are NOT created yet — only named. They are created when product
 
 #### Step 7 — Persist Plan
 
-Write the living sprint plan to `.gse/plan.yaml`:
+Initialize `.gse/plan.yaml` from the `plan.yaml` template (`plugin/templates/plan.yaml` — authoritative schema). Set the following fields from the planning session:
 
-```yaml
-version: 1
-id: PLN-{NNN}                        # artefact ID for traceability
-sprint: {NN}
-mode: full                           # full | lightweight | micro
-status: active                       # active | completed | abandoned
-
-goal: "Short sprint goal description"
-
-tasks:
-  - id: TASK-010
-    order: 1
-    complexity: 3                    # integer points (P10 unit) — 1 pt ≈ 1 pair-session hour (indicative)
-    branch: "gse/sprint-{NN}/feat/rate-limiting"
-  - id: TASK-011
-    order: 2
-    complexity: 1
-    branch: "gse/sprint-{NN}/feat/notifications"
-
-budget:
-  total: 8                           # sum of selected complexity points
-  consumed: 0                        # updated as tasks complete
-  remaining: 8
-
-workflow:
-  expected: [collect, assess, plan, reqs, design, tests, produce, review, deliver]
-  completed:
-    - activity: collect              # if COLLECT already ran in LC01
-      completed_at: "{iso8601}"
-      notes: "{short summary}"
-    - activity: assess               # if ASSESS already ran in LC01
-      completed_at: "{iso8601}"
-      notes: "{short summary}"
-    - activity: plan                 # this run
-      completed_at: "{iso8601}"
-  active: reqs                       # next activity to execute
-  pending: [design, tests, produce, review, deliver]
-  skipped:
-    - activity: preview              # if project_domain is not web/mobile
-      reason: "project_domain: {value} — not applicable"
-
-coherence:
-  last_evaluated: "{iso8601}"
-  scope_changes: []                  # populated at each transition if scope drifts
-  alerts: []                         # active alerts; cleared when resolved
-
-risks:
-  - description: "{risk description}"
-    likelihood: low | medium | high
-    mitigation: "{mitigation plan}"
-
-created: "{iso8601}"
-updated: "{iso8601}"
-```
+- `id`: next PLN-NNN artefact ID
+- `sprint`: current sprint number (from `status.yaml.current_sprint`)
+- `mode`: selected lifecycle mode
+- `status`: `active` (set after user approval Gate)
+- `goal`: user-provided sprint goal
+- `tasks[]`: selected items with `id`, `order`, `complexity`, `branch` (from Step 6)
+- `budget.total`: sum of selected task complexity (must not exceed `config.yaml complexity.budget_per_sprint`)
+- `budget.consumed`: 0, `budget.remaining`: same as total
+- `workflow.expected`: activity sequence for the mode (see §10.1 for per-mode lists)
+- `workflow.completed`: pre-populate with COLLECT, ASSESS if already ran in LC01 + current PLAN
+- `workflow.active`: `reqs` (next activity after PLAN in both Full and Lightweight)
+- `workflow.pending`: remaining activities from expected minus completed minus active
+- `workflow.skipped`: conditional skips (e.g., preview if not web/mobile)
+- `coherence`: initialize with `last_evaluated: {now}`, empty `scope_changes` and `alerts`
+- `risks[]`: optional, from user input during planning
+- `created`, `updated`: current ISO 8601 timestamp
 
 **workflow.completed initialization:**
-- Pre-populate with COLLECT and ASSESS if LC01 already ran. Read their timestamps from `status.yaml.activity_history` filtered by `sprint == current_sprint` (authoritative source). If the history is empty or the entry is missing (e.g., migrated project), fall back to `status.yaml.last_activity_date` for the last recorded activity and leave older entries with `completed_at: null`.
+- Pre-populate with COLLECT and ASSESS if LC01 already ran. Read their timestamps from `status.yaml.activity_history` filtered by `sprint == current_sprint` (authoritative source). If the history is empty or the entry is missing (e.g., migrated project), fall back to `status.yaml.last_activity_timestamp` for the last recorded activity and leave older entries with `completed_at: null`.
 - Always append the current PLAN activity as completed.
 - Reset `status.yaml.activity_history` to `[]` for the new sprint (the prior sprint's history is archived in the previous `plan-summary.md`).
 

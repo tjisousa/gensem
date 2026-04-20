@@ -158,22 +158,31 @@ Reversibility: easy | moderate | difficult | irreversible
 Gate: [Accept recommendation] / [Choose different option] / [Discuss]
 ```
 
-Each decision is appended to `.gse/decisions.md` (the decision journal, spec Section 11) with this format:
+Each decision is appended to `.gse/decisions.md` (the decision journal — authoritative format in `plugin/templates/decisions.md`, spec Section 11):
 
-```yaml
----
-id: DEC-{NNN}
-artefact_type: decision
-title: "{Topic}"
-sprint: {NN}
-status: draft | accepted | superseded
-created: {date}
-author: pair
-traces:
-  derives_from: [REQ-{NNN}, ...]
-  impacts: [DES-{NNN}, SRC-{NNN}, ...]
-  supersedes: []  # if replacing an earlier decision
----
+```markdown
+## DEC-{NNN} — {Topic}
+
+- **Sprint:** {NN}
+- **Date:** {YYYY-MM-DD}
+- **Activity:** /gse:design
+- **Tier:** Gate | Inform
+- **Branch:** {branch-name}
+- **Options considered:** {option A}, {option B}, ...
+- **Chosen:** {selected option}
+- **Rationale:** {why this option was chosen}
+- **Consequence horizon:**
+  - **Now:** {immediate impact}
+  - **3 months:** {medium-term}
+  - **1 year:** {long-term}
+- **Reversibility:** High cost | Medium cost | Low cost
+- **Review trigger:** {when to revisit this decision}
+- **Traces:**
+  - derives_from: [{REQ-NNN, DES-NNN, OQ-NNN}]
+  - impacts: [{DES-NNN, TASK-NNN}]
+  - supersedes: []
+- **Status:** draft | accepted | superseded
+- **Decided by:** user | agent
 ```
 
 ### Step 5 — Design Validation (`--validate`)

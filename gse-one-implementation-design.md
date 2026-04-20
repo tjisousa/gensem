@@ -1118,7 +1118,7 @@ description: "Evaluate project artefact status against goals. Identifies covered
 ## Workflow
 
 ### Step 1 — Gather Inputs
-1. Read artefact inventory from latest COLLECT (or run inline)
+1. Run artefact scan inline (same as COLLECT Steps 1-5 — project files, sprint dirs, git state)
 2. Read project goals from `.gse/config.yaml → project` or ask user
 3. Read backlog pool for pending items
 
@@ -1281,7 +1281,7 @@ never_modifies: false
 never_questions: false
 
 last_activity: /gse:produce
-last_activity_date: 2026-04-11
+last_activity_timestamp: "2026-04-11T09:15:00Z"
 
 # Stale sprint detection (complexity/session-based, not calendar-based)
 sessions_without_progress: 0
@@ -2513,7 +2513,7 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 
 ### 10.1 Sprint Plan Lifecycle (`.gse/plan.yaml`)
 
-`.gse/plan.yaml` is a **living document** maintained by the orchestrator, not a static artefact. Its schema (goal, tasks, budget, workflow, coherence, risks) is defined in `src/activities/plan.md`.
+`.gse/plan.yaml` is a **living document** maintained by the orchestrator, not a static artefact. Its authoritative schema is defined in `plugin/templates/plan.yaml`. The activity `plan.md` references this template for initialization; the template is the single source of truth for the YAML structure.
 
 **Creation** — Written by `/gse:plan --strategic` at sprint start. `workflow.expected` is initialized from the project mode:
 

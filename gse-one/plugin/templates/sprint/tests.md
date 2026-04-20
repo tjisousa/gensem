@@ -15,7 +15,7 @@ gse:
 ## Test Strategy
 
 - **Domain:** {web | cli | library | embedded | scientific | mobile}
-- **Pyramid target:** Unit {N}% / Integration {N}% / E2E {N}%
+- **Pyramid target:** Unit {N}% / Integration {N}% / E2E {N}% / Policy {N}%
 - **Coverage target:** {N}%
 - **Framework:** {pytest | jest | ...}
 
@@ -69,6 +69,21 @@ gse:
   3. {user action}
   4. {expected response}
 - **Success criteria:** {what constitutes a pass}
+
+## Policy Tests
+
+> Enforce structural rules on the codebase via static analysis (no runtime).
+> Derived from design decisions (DEC-) and architecture rules in design.md.
+> Baseline: 5% of test pyramid (spec §6). Raisable to 10-15% for strict-architecture projects.
+
+### T30 — {rule name}
+
+- **Enforces:** {one-sentence rule, e.g., "src/domain/** must not import src/ui/**"}
+- **Source:** {DEC-NNN or design.md section reference}
+- **Tool:** {pytest-archon | ts-arch | ArchUnit | eslint-plugin | custom}
+- **Traces:**
+  - enforces: [{DEC-NNN, design-section-ref}]
+- **Level:** policy
 
 ## Test Data
 

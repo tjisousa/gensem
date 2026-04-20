@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.41.0] - 2026-04-20
+
+Layers impacted: **spec**, **design**, **implementation** (templates, activities, generator)
+
+### Added
+- **Template `plan.yaml`** — authoritative schema for the living sprint plan (previously defined only inline in `plan.md`). All three layers (spec, design, activities) now reference this template as the single source of truth.
+- **Template `decisions.md`** — decision journal header with unified DEC-NNN format (merged spec §11.2 Markdown format + design.md YAML traceability fields into a single Markdown format with 16 fields).
+- **Template `checkpoint.yaml`** — session pause snapshot schema (previously defined only inline in `pause.md`).
+- **Template `methodology-feedback.md`** — methodology feedback export format for COMPOUND Axe 2.
+- **Template `MANIFEST.yaml`** — declarative index of all templates with target paths, creator activities, and scope. Prepares future `/gse:upgrade` and generator verification.
+- **Section "Policy Tests"** in `sprint/tests.md` template — aligns template with v0.35.0 AMÉL-13 (policy test pyramid level, baseline 5%).
+- **Section "Inform-tier Decisions"** in `sprint/design.md` template — aligns template with DESIGN Step 7 closure.
+- **Section "Methodology Feedback Summary"** in `sprint/compound.md` template — aligns template with COMPOUND Step 2.6.
+
+### Changed
+- **`backlog.yaml` template** — replaced 2 example items (TASK-001, TASK-002) with empty list + commented structure. Added missing `delivered_at: null` field. Added `spike` to `artefact_type` enum.
+- **`profile.yaml` template** — replaced orphan `competency_map` section (4 flat lists never read by any activity) with the rich `topics: {}` schema actually used by `/gse:learn` (level/last_session/mode/note per concept). Redirected `learn.md` to read/write `profile.yaml → competency_map.topics` instead of a separate `.gse/competency_map.yaml` file.
+- **`status.yaml` template** — renamed `last_activity_date` → `last_activity_timestamp` (aligns with all 12 activities that write this field + dashboard.py that reads it). Fixed internal contradiction in orchestrator (line 465 said `_date`, line 485 said `_timestamp`).
+- **Activities `plan.md`, `pause.md`** — replaced inline YAML schema blocks with references to authoritative templates + field population lists (eliminates schema duplication).
+- **Activity `design.md`** — DEC-NNN format changed from YAML frontmatter (8 fields) to unified Markdown format (16 fields, merging spec consequence horizons + implementation traceability).
+- **Spec §11.2** — enriched DEC-NNN example with `Activity`, `Traces`, `Status`, `Decided by` fields + renamed `Why` → `Rationale`.
+- **Spec §12 tree** — `plan.yaml` description enriched with key fields summary + template pointer.
+
+### Removed
+- **`inventory.yaml`** — removed from the methodology. The artefact scan performed by `/gse:collect` is now ephemeral (console output only, not persisted to a file). `/gse:assess` runs its own inline scan instead of reading a stale file. Rationale: single consumer, immediately stale after any file change, redundant with git for file-level queries. The scan itself (Steps 1-5) and console summary remain unchanged.
+- **`--refresh` flag** from `/gse:collect` — no longer meaningful without a persisted inventory file.
+
 ## [0.40.0] - 2026-04-20
 
 Layers impacted: **documentation**

@@ -3,72 +3,39 @@
 # Items are either in the pool (sprint: null) or assigned to a sprint.
 # Git state is tracked per-TASK — no separate worktree tracking file.
 
-items:
-  # Sprint task — in progress (example)
-  - id: TASK-001
-    title: "Implement user authentication"
-    artefact_type: code                # code | requirement | design | test | doc | config | import
-    sprint: 1
-    priority: must                     # must | should | could
-    complexity: 3                      # complexity points consumed from budget
-    traces:
-      implements: [REQ-001]            # requirements this task implements
-      derives_from: [DES-001]          # design this task derives from
-    acceptance_criteria: "User can login via email/password and receive a JWT token"
-    status: in-progress                # open | planned | in-progress | review | fixing | done | delivered | deferred
-    origin: plan                       # plan | review | collect | user | import
-    origin_ref: null
-    git:
-      branch: gse/sprint-01/feat/auth
-      branch_status: active            # null | planned | active | merged | deleted
-      worktree: .worktrees/sprint-01-feat-auth
-      worktree_status: active          # null | active | removed
-      commits: 12
-      last_commit: 2026-04-10T14:30:00
-      uncommitted_changes: 0
-    github_issue: null                 # GitHub issue number, null if not enabled
-    # Test evidence — single structured field, written by /gse:produce and /gse:tests --run,
-    # read by /gse:review guardrail and /gse:deliver. Replaces legacy flat fields
-    # (test_campaign / test_pass_rate / code_coverage) as of v0.21.0.
-    test_evidence:
-      status: absent                   # absent | pass | fail | skipped
-      campaign_ref: null               # path to docs/sprints/sprint-NN/test-reports/campaign-*.md
-      timestamp: null                  # ISO 8601 of last run
-      pass_rate: null                  # % of tests passing (0-100)
-      code_coverage: null              # % line coverage (0-100)
-      summary: null                    # human-readable one-liner ("24 tests, 22 passed, 2 failed")
-    created: 2026-04-08
-    updated: 2026-04-10
-
-  # Pool item — not yet assigned to a sprint (example)
-  - id: TASK-002
-    title: "Add dark mode support"
-    artefact_type: code
-    sprint: null                       # null = pool (unplanned)
-    priority: could
-    complexity: null                   # estimated during PLAN when promoted
-    traces:
-      derives_from: []
-      implements: []
-    acceptance_criteria: ""
-    status: open
-    origin: user
-    origin_ref: null
-    git:
-      branch: null
-      branch_status: null
-      worktree: null
-      worktree_status: null
-      commits: 0
-      last_commit: null
-      uncommitted_changes: 0
-    github_issue: 46
-    test_evidence:
-      status: absent
-      campaign_ref: null
-      timestamp: null
-      pass_rate: null
-      code_coverage: null
-      summary: null
-    created: 2026-04-10
-    updated: 2026-04-10
+items: []
+  # list of:
+  # - id: TASK-NNN                       # Unique, never recycled
+  #   title: ""
+  #   artefact_type: code                # code | requirement | design | test | doc | config | import | spike
+  #   sprint: null                       # null = pool (unplanned), integer = assigned to sprint
+  #   priority: must                     # must | should | could
+  #   complexity: null                   # integer points (P10 unit), null if unestimated
+  #   traces:
+  #     implements: []                   # requirements this task implements [REQ-NNN, ...]
+  #     derives_from: []                 # design/intent this derives from [DES-NNN, INT-NNN, ...]
+  #   acceptance_criteria: ""            # User-visible success definition
+  #   status: open                       # open | planned | in-progress | review | fixing | done | delivered | deferred
+  #   delivered_at: null                 # ISO 8601 timestamp, set by /gse:deliver Step 4
+  #   origin: user                       # plan | review | collect | user | import
+  #   origin_ref: null                   # Reference to originating artefact
+  #   git:
+  #     branch: null                     # e.g., gse/sprint-01/feat/auth
+  #     branch_status: null              # null | planned | active | merged | deleted
+  #     worktree: null                   # e.g., .worktrees/sprint-01-feat-auth
+  #     worktree_status: null            # null | active | removed
+  #     commits: 0
+  #     last_commit: null                # ISO 8601 timestamp
+  #     uncommitted_changes: 0
+  #   github_issue: null                 # GitHub issue number, null if not enabled
+  #   # Test evidence — written by /gse:produce and /gse:tests --run,
+  #   # read by /gse:review guardrail and /gse:deliver.
+  #   test_evidence:
+  #     status: absent                   # absent | pass | fail | skipped
+  #     campaign_ref: null               # path to test-reports/campaign-*.md
+  #     timestamp: null                  # ISO 8601 of last run
+  #     pass_rate: null                  # % of tests passing (0-100)
+  #     code_coverage: null              # % line coverage (0-100)
+  #     summary: null                    # human-readable one-liner
+  #   created: YYYY-MM-DD
+  #   updated: YYYY-MM-DD

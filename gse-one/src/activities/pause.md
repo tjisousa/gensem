@@ -54,46 +54,17 @@ Report: "Auto-committed {N} worktree(s) with changes."
 
 ### Step 2 — Save Checkpoint
 
-Create a checkpoint file at `.gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml`:
+Create a checkpoint file at `.gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml` using the checkpoint.yaml template (`plugin/templates/checkpoint.yaml` — authoritative schema). Populate all fields from the current session state:
 
-```yaml
-checkpoint:
-  timestamp: "{ISO-8601 timestamp}"
-  user: "{profile.yaml user name}"
-  sprint: S{NN}
-  phase: "{lifecycle_phase}"
-  last_activity: "{last_activity}"
-  last_task: "TASK-{ID}"
-  note: "{user note if --note provided}"
-
-status_snapshot:
-  lifecycle_phase: "{phase}"
-  current_sprint: {NN}
-  last_activity: "{activity}"
-  last_activity_timestamp: "{timestamp}"
-  health_score: {overall}
-
-backlog_sprint_snapshot:
-  tasks:
-    TASK-{ID}:
-      status: "{status}"
-      complexity: {N}
-      branch: "{branch or null}"
-
-git_state:
-  current_branch: "{active branch}"
-  worktrees:
-    - path: ".worktrees/{name}"
-      branch: "gse/sprint-{NN}/{type}/{name}"
-      task: "TASK-{ID}"
-      last_commit: "{hash}"
-      clean: true
-    - path: ".worktrees/{name2}"
-      branch: "gse/sprint-{NN}/{type}/{name2}"
-      task: "TASK-{ID2}"
-      last_commit: "{hash2}"
-      clean: true
-```
+- `checkpoint.timestamp`: current ISO 8601 timestamp
+- `checkpoint.user`: from `profile.yaml → user.name`
+- `checkpoint.sprint`, `checkpoint.phase`: from `status.yaml`
+- `checkpoint.last_activity`, `checkpoint.last_task`: from current session context
+- `checkpoint.note`: from `--note` flag if provided, else empty
+- `status_snapshot`: extract `lifecycle_phase`, `current_sprint`, `last_activity`, `last_activity_timestamp`, `health.score` from `status.yaml`
+- `backlog_sprint_snapshot.tasks`: for each TASK in current sprint, record `status`, `complexity`, `branch`
+- `git_state.current_branch`: from `git branch --show-current`
+- `git_state.worktrees[]`: from `git worktree list`, for each: `path`, `branch`, `task` (from backlog), `last_commit` (HEAD hash), `clean` (from `git status`)
 
 ### Step 3 — Update Status
 

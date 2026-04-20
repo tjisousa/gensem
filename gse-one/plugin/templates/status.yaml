@@ -66,7 +66,7 @@ profile_drift_signals: {}              # map of { dimension → { observations: 
 workflow_observations: []              # list of { axis, moment, observation, evidence, severity, timestamp }
 
 last_activity: ""                      # e.g., /gse:produce
-last_activity_date: ""                 # ISO 8601 timestamp
+last_activity_timestamp: ""            # ISO 8601 timestamp
 
 # Per-activity completion history (appended by orchestrator at each transition).
 # Authoritative source for `workflow.completed[*].completed_at` in `.gse/plan.yaml`.

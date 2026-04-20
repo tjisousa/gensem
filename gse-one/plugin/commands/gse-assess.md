@@ -21,7 +21,7 @@ Arguments: $ARGUMENTS
 ## Prerequisites
 
 Before executing, read:
-1. `.gse/inventory.yaml` — artefact inventory from COLLECT
+1. Project artefacts — scan the project directory and sprint artefacts inline (same scan as `/gse:collect` Steps 1-5) to establish what exists
 2. `.gse/config.yaml` — project goals and scope definition
 3. `.gse/backlog.yaml` — current backlog (pool and sprint items)
 4. `.gse/sources.yaml` — external sources (if any)
@@ -46,13 +46,13 @@ Collect all inputs needed for the analysis:
 
 | Input | Source | Purpose |
 |-------|--------|---------|
-| Artefact inventory | `.gse/inventory.yaml` | What exists |
+| Artefact scan | Inline scan (project files, sprint dirs, git state) | What exists |
 | Project goals | `.gse/config.yaml` → `goals` | What is expected |
 | Backlog items | `.gse/backlog.yaml` | What is planned |
 | External sources | `.gse/sources.yaml` | What is available from outside |
 | Requirements | `docs/sprints/*/reqs.md` | Formal requirements |
 
-If `inventory.yaml` does not exist or was last generated in a previous session, propose running `/gse:collect` first.
+If the project has not been scanned recently in this session, run the artefact scan inline (Steps 1-5 of `/gse:collect`). This is lightweight — it reads the filesystem and git state, producing in-memory aggregates without persisting a file.
 
 ### Step 2 — Analyze Coverage Per Goal
 

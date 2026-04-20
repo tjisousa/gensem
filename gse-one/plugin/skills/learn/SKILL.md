@@ -24,7 +24,7 @@ Arguments: $ARGUMENTS
 
 Before executing, read:
 1. `.gse/profile.yaml` — user profile (especially `learning_goals`, `it_expertise`, `abstraction_capability`, `preferred_verbosity`)
-2. `.gse/competency_map.yaml` — topics already explained (if it exists)
+2. `.gse/profile.yaml` → `competency_map.topics` — topics already explained
 3. `docs/learning/` — existing learning notes (if any)
 
 ## Workflow
@@ -116,7 +116,7 @@ Save to `docs/learning/LRN-{NNN}-{topic-slug}.md`.
 
 #### Step 5 — Update Competency Map
 
-Update `.gse/competency_map.yaml`:
+Update `.gse/profile.yaml` → `competency_map.topics`:
 
 ```yaml
 topics:
@@ -170,7 +170,7 @@ When `contextual_tips: on` in user profile:
 
 After any action that involves a technical concept:
 
-1. Check `competency_map.yaml` — has this concept been explained?
+1. Check `profile.yaml` → `competency_map.topics` — has this concept been explained?
 2. If not explained: insert 2-3 sentences of context after the action output
 3. Mark as `mentioned` in competency map (not `explained` — that requires a full session)
 

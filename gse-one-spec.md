@@ -1224,7 +1224,7 @@ Scans the current project and produces an inventory of all existing artefacts:
 - Git state: branches, worktrees, tags
 - Dependencies (package manifests)
 
-Output: an artefact inventory saved to `.gse/inventory.yaml`, classified by type, status (draft/reviewed/approved/implemented), and completeness. This file is used by `/gse:assess` as input for gap analysis.
+Output: a console summary classifying artefacts by type, status (draft/reviewed/approved/implemented), and completeness. The scan result is ephemeral (not persisted to a file) — `/gse:assess` performs its own inline scan when it needs artefact coverage data.
 
 ### 4.2 External Mode
 
@@ -1356,7 +1356,7 @@ This ensures that at any point in the project's life, someone can answer: "Where
 
 The `/gse:assess` activity evaluates the project's current state against its goals:
 
-1. **Input:** Artefact inventory from COLLECT + project goals from config or user
+1. **Input:** Artefact scan (inline, same as COLLECT Steps 1-5) + project goals from config or user
 2. **Analysis:**
    - For each project goal: which artefacts exist? Which are missing?
    - For each existing artefact: what is its status (draft/reviewed/approved)?
@@ -2037,26 +2037,33 @@ Safety tags are prefixed `gse-backup/` and retained for 30 days (configurable vi
 
 ### 11.1 Purpose
 
-The agent automatically maintains a decision journal (`.gse/decisions.md`) that records every Inform-tier and Gate-tier decision. This prevents "why did we do this?" amnesia and enables informed revisiting of past choices.
+The agent automatically maintains a decision journal (`.gse/decisions.md`). Its authoritative format is defined in `plugin/templates/decisions.md`. It records every Inform-tier and Gate-tier decision. This prevents "why did we do this?" amnesia and enables informed revisiting of past choices.
 
 ### 11.2 Format
 
 ```markdown
 ## DEC-005 — Database engine: PostgreSQL
+
 - **Sprint:** 2
 - **Date:** 2026-04-10
+- **Activity:** /gse:design
 - **Tier:** Gate
 - **Branch:** gse/sprint-02/feat/data-layer
 - **Options considered:** SQLite, PostgreSQL, MongoDB
 - **Chosen:** PostgreSQL
-- **Why:** User expects >500 concurrent users within 6 months.
+- **Rationale:** User expects >500 concurrent users within 6 months.
   SQLite would require a costly migration later.
 - **Consequence horizon:**
-  - Now: more setup, managed service cost (~$15/month)
-  - 3 months: scales without changes
-  - 1 year: still appropriate
+  - **Now:** more setup, managed service cost (~$15/month)
+  - **3 months:** scales without changes
+  - **1 year:** still appropriate
 - **Reversibility:** High cost (data migration + ORM changes, ~2 sprints)
 - **Review trigger:** Revisit if user count stays <50 after 6 months
+- **Traces:**
+  - derives_from: [REQ-007]
+  - impacts: [DES-003, TASK-038]
+- **Status:** accepted
+- **Decided by:** user
 ```
 
 ### 11.3 Auto Decisions
@@ -2086,7 +2093,6 @@ This log is not shown to the user by default but is available via `/gse:status -
 │   ├── plan.yaml                    # Living sprint plan (workflow, budget, coherence)
 │   ├── backlog.yaml                 # Unified work items (TASK) with git state
 │   ├── sources.yaml                 # External source registry
-│   ├── inventory.yaml               # Artefact inventory (COLLECT output)
 │   ├── decisions.md                 # Decision journal (Inform + Gate tiers)
 │   ├── decisions-auto.log           # Auto-tier decision log (compact)
 │   ├── dashboard.py                 # Dashboard generator script (copied from plugin)
@@ -2210,7 +2216,7 @@ items:
 **Key design principles:**
 - **One ID, one item, one place** — no dual tracking between plan and backlog
 - **Git state is per-TASK** — branch and worktree info lives with the task, not in a separate file
-- **Sprint plan = living filtered view** — `.gse/plan.yaml` is maintained by the orchestrator throughout the sprint, tracking workflow state, budget, and coherence. At delivery, a snapshot is archived to `docs/sprints/sprint-NN/plan-summary.md`. `plan.yaml` uses its own YAML schema (not Markdown frontmatter)
+- **Sprint plan = living filtered view** — `.gse/plan.yaml` is maintained by the orchestrator throughout the sprint. Its authoritative schema is defined in `plugin/templates/plan.yaml`. Key fields: `version`, `id` (PLN-NNN), `sprint`, `mode`, `status` (active|completed|abandoned), `goal`, `tasks[]` (with order, complexity, branch), `budget` (total/consumed/remaining), `workflow` (expected/active/completed/pending/skipped), `coherence` (last_evaluated, scope_changes, alerts), `risks[]`. At delivery, a snapshot is archived to `docs/sprints/sprint-NN/plan-summary.md`
 - **Merge queue = derived view** — items where `status == done AND git.branch_status == active`
 
 **Archival (multi-sprint scalability):**
@@ -2287,7 +2293,7 @@ fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at t
 activity_start_sha: ""                 # HEAD SHA at the start of the current creator activity
 
 last_activity: /gse:produce
-last_activity_date: 2026-04-10
+last_activity_timestamp: "2026-04-10T14:30:00Z"
 
 # Per-activity completion history — authoritative source for plan.yaml workflow.completed timestamps
 # Appended by the orchestrator at each activity transition. Scoped to the current sprint;
@@ -2936,7 +2942,7 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | **Merge strategy** | How commits from a feature branch are integrated: squash, merge commit, or rebase |
 | **Hook** | Event-driven behavior triggered automatically (e.g., auto-commit on pause, guardrail check on push) |
 | **Hook suppression** | Temporarily disabling a hook with documented rationale — an Inform-tier decision logged in sprint activity |
-| **Inventory** | The `.gse/inventory.yaml` file produced by `/gse:collect` — classifies all project artefacts by type, status, and completeness |
+| **Inventory** | The artefact scan performed by `/gse:collect` and `/gse:assess` — classifies project artefacts by type, status, and completeness. Results are displayed in the console and used in-memory; not persisted to a file |
 | **Learning note** | Persistent, reusable course note produced by `/gse:learn`, written in the user's language and grounded in the project context |
 | **Competency map** | Lightweight tracking of concepts learned, sessions completed, and detected skill gaps, stored in the HUG profile |
 | **External source** | A local project or remote repository (e.g., GitHub) scanned by `/gse:collect` for reusable elements |

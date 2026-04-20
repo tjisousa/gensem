@@ -132,7 +132,7 @@ into {M} themes. How should I route them?
 
 #### 2.4 — On option 1 or 3 (local export)
 
-Write `docs/sprints/sprint-{NN}/methodology-feedback.md` with the structure defined in the implementation design (Methodology Feedback — Design Mechanics). The file is a standalone, shareable artefact with:
+Write `docs/sprints/sprint-{NN}/methodology-feedback.md` using the methodology-feedback.md template (`plugin/templates/sprint/methodology-feedback.md` — authoritative format). The file is a standalone, shareable artefact with:
 
 - Summary (1-3 sentences)
 - Observations grouped by theme (observation, source refs, user quote if relevant, proposed improvement)

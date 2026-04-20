@@ -66,6 +66,17 @@ _Issues to file against tools or libraries._
 |-------------------------------|----------------------|----------|--------|
 |                               |                      |          |        |
 
+### Methodology Feedback Summary
+
+> Recorded at Step 2.6 closure. Summarizes methodology observations from this sprint.
+
+- **Observations collected:** {N}
+- **Themes identified:** {N}
+- **Route:** {exported locally | proposed as tickets | both | none}
+- **References:**
+  - `methodology-feedback.md`: {produced | not produced}
+  - `compound-tickets-draft.yaml`: {produced | not produced}
+
 ## Axis 3: Development Governance
 
 _Improvements to the development process itself._

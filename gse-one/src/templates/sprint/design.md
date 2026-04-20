@@ -96,3 +96,12 @@ _If no shared state applies to this sprint: replace the table with:_
 ## Open Design Questions
 
 1. {question needing resolution}
+
+## Inform-tier Decisions
+
+> Low-risk autonomous decisions made during design (Step 7 closure).
+> Each was individually below the Gate threshold (P7). Reviewed as a batch
+> at activity closure — the user can promote any to a Gate decision.
+
+- _{decision 1}_
+- _{decision 2}_

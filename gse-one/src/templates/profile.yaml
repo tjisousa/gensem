@@ -34,8 +34,14 @@ expertise_domains: {}
   # testing: intermediate    # user wrote tests but needed guidance on coverage
   # devops: beginner         # user asked what CI/CD means
 
+# Progressive competency tracking (populated by /gse:learn and contextual tips).
+# Tracks which SE concepts have been covered, at what depth, and when.
+# Used by /gse:learn to avoid re-explaining and by contextual tips to fill gaps.
 competency_map:
-  concepts_explained: []    # List of SE concepts the agent has explained
-  sessions_completed: []    # List of completed sprint/activity identifiers
-  gaps_detected: []         # Areas where user showed knowledge gaps
-  notes_produced: []        # Learning notes generated during sessions
+  topics: {}
+    # keyed by concept slug:
+    # git-rebase:
+    #   level: explained             # not-seen | mentioned | explained | practiced
+    #   last_session: "2026-01-15"   # ISO 8601 date of last interaction
+    #   mode: deep                   # quick | deep (from /gse:learn session)
+    #   note: LRN-003               # reference to learning note if produced

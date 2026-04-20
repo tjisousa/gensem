@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.40.0 -->
+<!-- gse-one-version: 0.41.0 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -463,7 +463,7 @@ Update `plan.yaml.coherence.last_evaluated` after each evaluation.
 
 ### Step 4 — Update status.yaml
 
-1. Set `last_activity` and `last_activity_date` (quick cursor; `plan.yaml.workflow` holds the full detail).
+1. Set `last_activity` and `last_activity_timestamp` (quick cursor; `plan.yaml.workflow` holds the full detail).
 2. Update `current_phase` if transitioning (LC01→LC02, LC02→LC03).
 3. **Append to `status.yaml.activity_history`** a record of the completed activity:
    ```yaml

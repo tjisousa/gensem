@@ -11,10 +11,9 @@ Arguments: $ARGUMENTS
 
 | Flag / Sub-command | Description |
 |--------------------|-------------|
-| (no args)          | Run internal inventory of current project |
+| (no args)          | Scan and summarize current project artefacts |
 | `<path>`           | Scan a local directory as an external source |
 | `<url>`            | Scan a GitHub repository URL as an external source |
-| `--refresh`        | Re-scan and update existing inventory |
 | `--sources`        | List all registered external sources |
 | `--help`           | Show this command's usage summary |
 
@@ -87,7 +86,7 @@ Read project manifest (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`)
 
 #### Step 6 — Output Internal Inventory
 
-Save to `.gse/inventory.yaml` and display summary:
+Display summary (the scan result is ephemeral — `/gse:assess` runs its own scan or invokes `/gse:collect` inline when it needs artefact coverage data):
 
 ```
 Internal Inventory — 2026-01-20
