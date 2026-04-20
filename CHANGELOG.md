@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.36.0] - 2026-04-20
+
+Layers impacted: **spec**, **design**, **implementation** (new agent + orchestrator + config/status templates + generator)
+
+### Added
+- **New `tutor` specialized agent** (AMÉL-15 from training feedback) — dedicated sub-agent managing user upskilling along two axes: (1) explicit `learning_goals` from HUG, (2) inferred competency gaps detected from friction patterns (repeated questions, hesitations, explicit confusion, shotgun-fix correlation with P16 root-cause counter). Delivers P14 knowledge transfer via contextual evaluation + 5-option P14 preambles with precise, context-aware topic formulation (e.g., "property-based testing specifically relevant to the state invariants in your design" — not just "testing"). Architecture consistent with the other advocates (architect, security-auditor, ux-advocate, devil-advocate). Count of specialized agents: 8 → 9.
+- **Pedagogical evaluation invariant in the orchestrator** — at activity start, if `learning_goals` is non-empty AND `pedagogy.enabled: true` AND sprint cap not exhausted, the orchestrator spawns the tutor for contextual evaluation. Tutor returns skip (silent) or propose with a topic and 5-option preamble content.
+- **Extensible pedagogical recipes in `agents/tutor.md`** — a dedicated section users can edit manually AND the agent can auto-update via `/gse:compound` Axe 3 when a presentation strategy proves effective. Examples seeded: concrete-first preference, abstract-first preference, methodology self-improvement topics.
+- **New `pedagogy` config section** (`config.yaml`): `enabled` (boolean, default true), `max_preambles_per_sprint` (cap, default 3), `proactive_gap_detection` (boolean, default true — monitors friction patterns to infer gaps).
+- **New `learning_preambles[]` and `detected_gaps[]` fields** in `status.yaml` — persistent history of tutor interactions (respects `not-interested` permanently and `not-now` per-activity) and inferred-gap ledger reviewed at `/gse:compound` Axe 3.
+- New *Tutor agent — Design Mechanics* subsection in `gse-one-implementation-design.md` with invocation contract, inputs/outputs, persistence model, and dual-maintenance rules for pedagogical recipes.
+- `tutor.md` added to `SPECIALIZED_AGENTS` list in `gse_generate.py` so it is copied to the three platform targets (Claude skills, Cursor, opencode).
+
+### Rationale
+Observed training feedback (learner05): *"Consider making this an auto-propose behaviour when `profile.learning_goals` intersects with the next activity. Currently it's ad-hoc — formalising would remove guesswork."* After analysis, a static `goal → activity` lookup table is too rigid (misses precise goals, orthogonal goals, abstract goals, task-content-driven goals). A dedicated **tutor agent** performs contextual evaluation instead: objective (fresh context), precise (topic tied to what the activity will actually exercise), extensible (pedagogical recipes file), non-saturating (caps, persistence of user choices). Pattern consistent with the other specialized advocates.
+
 ## [0.35.0] - 2026-04-20
 
 Layers impacted: **spec**, **design**, **implementation** (test pyramid + tests activity)

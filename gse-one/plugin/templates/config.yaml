@@ -122,6 +122,15 @@ dashboard:
                                        # (spec §7 automatic regeneration policy). Raise for
                                        # bursty projects, lower for ultra-reactive feedback.
 
+# --- Section 15: Pedagogy (tutor agent, spec P14) ---
+pedagogy:
+  enabled: true                        # Tutor agent invocations. Set false to disable all proactive preambles.
+                                       # /gse:learn remains available for manual learning sessions.
+  max_preambles_per_sprint: 3          # Cap to prevent preamble saturation. Sprint-scoped.
+  proactive_gap_detection: true        # Tutor monitors friction patterns (repeated questions, hesitations,
+                                       # explicit confusion) to infer competency gaps and propose preambles.
+                                       # Set false for pure explicit-goals mode.
+
 # --- Section 14: Compound (end-of-sprint capitalization) ---
 compound:
   max_proposed_issues_per_sprint: 3    # Hard cap on methodology tickets proposed to upstream

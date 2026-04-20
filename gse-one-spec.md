@@ -441,6 +441,7 @@ An agent is a named role that shapes how the coding agent reasons about a specif
 | **ux-advocate** | Evaluates user experience and accessibility. | `/gse:preview`, `/gse:review` |
 | **guardrail-enforcer** | Monitors and enforces guardrail compliance (P11). Cross-cutting, always active. | All activities |
 | **devil-advocate** | Challenges the agent's own productions for AI integrity (P16). | `/gse:review` |
+| **tutor** | Manages user upskilling (P14). Evaluates contextual pedagogical relevance based on explicit `learning_goals` and inferred competency gaps; proposes 5-option P14 preambles with precise, context-aware topics; maintains LRN- learning notes; holds extensible pedagogical recipes (user-editable and self-updatable via compound Axe 3). | Activity start (when learning_goals set), Gate decisions with high pedagogical load, `/gse:compound` Axe 3, inferred gap triggers |
 
 ---
 

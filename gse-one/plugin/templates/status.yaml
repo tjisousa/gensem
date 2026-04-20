@@ -42,6 +42,17 @@ fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at t
 # Cleared at activity closure; empty when not in a creator activity
 activity_start_sha: ""                 # HEAD SHA at the start of the current creator activity
 
+# P14 tutor agent history (spec P14 + agents/tutor.md)
+# Each entry records a preamble offered by the tutor and the user's response.
+# Used to respect `not-interested` (permanent suppress) and `not-now` (activity-scoped).
+# Persists across /gse:pause / /gse:resume.
+learning_preambles: []                 # list of { topic, offered_at, sprint, response, lrn_ref, timestamp }
+
+# P14 tutor agent — inferred-gap ledger (only populated if pedagogy.proactive_gap_detection: true)
+# Running record of friction patterns the tutor observes during the sprint.
+# Reviewed at /gse:compound Axe 3; may seed new learning_goals with user consent.
+detected_gaps: []                      # list of { concept, source, occurrences, last_seen, addressed_by_lrn }
+
 last_activity: ""                      # e.g., /gse:produce
 last_activity_date: ""                 # ISO 8601 timestamp
 

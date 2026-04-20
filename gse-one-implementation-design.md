@@ -2123,6 +2123,78 @@ At start of `/gse:tests --run` or `/gse:produce`:
 - Compare current framework (from package manifest) with `config.yaml → testing.framework`
 - If different → Inform: "Framework changed from X to Y. Update config?"
 
+**Tutor agent — Design Mechanics (spec P14 + `agents/tutor.md`):**
+
+The tutor is a dedicated specialized sub-agent responsible for the **pedagogical dimension** of GSE-One. Modeled after the other advocates (architect, security-auditor, ux-advocate, devil-advocate): separate agent file, fresh context on invocation, narrow mandate.
+
+**Why a dedicated agent (and not orchestrator-inline):**
+- Keeps the orchestrator lean — no inline pedagogical reasoning algorithm
+- Fresh context = objective evaluation (pedagogical judgment not polluted by project-execution details)
+- Extensible: the `agents/tutor.md` file contains a *"Pedagogical recipes"* section that both the user (manual edit) and the agent (auto-update via `/gse:compound` Axe 3) can maintain
+- Pattern consistent with `devil-advocate.md` (invoked at specific moments, returns a verdict, orchestrator acts on it)
+
+**Invocation contract:**
+
+Invoked by the orchestrator at:
+- Activity start (any of the 15 lifecycle activities) when `profile.yaml → dimensions.learning_goals` is non-empty AND `config.yaml → pedagogy.enabled: true`
+- Before a Gate decision with high pedagogical load (stack choice, architecture, persistence strategy)
+- After detected friction patterns (repeated questions, hesitations, explicit confusion — if `proactive_gap_detection: true`)
+- During `/gse:compound` Axe 3 (competency capitalization)
+
+**Inputs passed to the tutor:**
+- Activity name + what it will concretely exercise (technique, pattern, tasks)
+- `profile.yaml → dimensions.learning_goals` (free text)
+- `docs/learning/LRN-*` (list + metadata)
+- `status.yaml → learning_preambles[]` (previous interactions and responses)
+- `status.yaml → detected_gaps[]` (for inferred-gap trigger)
+
+**Outputs (returned to orchestrator):**
+
+```yaml
+tutor_decision:
+  verdict: skip | propose
+  # if skip:
+  reason: "already covered (LRN-002)" | "previously declined" | "cap reached" | "no overlap" | ...
+  # if propose:
+  topic: "{precise formulation, 1 sentence}"
+  trigger: explicit-goal | inferred-gap | gate-preamble | compound-review
+  preamble:
+    core_concept: "{1-2 sentences}"
+    example: "{concrete 3-10 line example}"
+    pitfall: "{common mistake + fix hint}"
+  suggested_depth: quick | deep
+```
+
+On `propose`, the orchestrator presents the 5-option P14 Gate to the user. On Quick or Deep acceptance, the tutor writes the learning note (LRN-NNN) and persists the interaction.
+
+**Persistence model:**
+
+| Field | Location | Lifecycle |
+|-------|----------|-----------|
+| `learning_preambles[]` | `.gse/status.yaml` | Per-project, survives pauses/resumes |
+| `detected_gaps[]` | `.gse/status.yaml` | Per-project, reviewed at each `/gse:compound` |
+| Learning notes | `docs/learning/LRN-*.md` | Per-project, durable artefacts with traces |
+| Pedagogical recipes | `gse-one/plugin/agents/tutor.md` Recipes section | **Edit destination:** the user-local copy in `.claude/agents/tutor.md` / `.cursor/agents/tutor.md` (per-project recipes) OR the shipped template (shared defaults) |
+
+**Pedagogical recipes — dual maintenance:**
+
+1. **User-edit path:** user manually edits the project-local `tutor.md` copy to add project-specific or personal pedagogy (e.g., "prefer code examples in TypeScript", "always include a security caveat when discussing auth").
+2. **Agent auto-update path:** during `/gse:compound` Axe 3, if the tutor observes that a specific presentation strategy worked well (or poorly), it proposes a new recipe or update to the user via Gate. Approved updates are written to the same project-local file.
+
+**Anti-spam architecture:**
+
+- Sprint cap (`pedagogy.max_preambles_per_sprint`) — hard budget per sprint
+- Per-topic permanent suppress (`not-interested` response)
+- Per-topic activity-scope suppress (`not-now` response)
+- LRN deduplication (if LRN exists on the topic, don't re-propose unless user requests refresh)
+- Empty-goals skip: if `learning_goals` is empty AND `proactive_gap_detection: false`, the tutor is never invoked
+
+**Failure modes:**
+
+- Tutor sub-agent fails to return → orchestrator proceeds without preamble, logs an Inform note
+- `learning_goals` malformed → tutor skips with "invalid profile input" reason; orchestrator surfaces a warning
+- Multiple topics match → tutor picks the most contextually relevant (matching the activity's current work); cap enforced
+
 **Policy tests — Design Mechanics (spec §6 Policy column):**
 
 Policy tests enforce **structural rules** on the codebase via static analysis. They are a first-class test level in the pyramid (5% baseline, adjustable 10-15% for strict architecture projects), distinct from the Other column which contains dynamic-constraint checks.
