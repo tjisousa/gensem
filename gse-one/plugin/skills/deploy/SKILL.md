@@ -15,6 +15,9 @@ Arguments: $ARGUMENTS
 | --status | Show deployment status (server, app URL, health) |
 | --destroy | Tear down server and all data (Gate, confirm twice) |
 | --redeploy | Force rebuild and redeploy (skip infrastructure phases) |
+| --registrar `<name>` | Show DNS instructions for a specific registrar (`namecheap`, `gandi`, `ovh`, `cloudflare`) without re-running earlier phases |
+| --training-init | (Instructor) Generate `.env.training` for distribution to learners |
+| --training-reap | (Instructor) Delete learner apps at end of course |
 | --help | Show this command's usage summary |
 
 ## Prerequisites
@@ -24,14 +27,23 @@ Read before execution:
 2. `.gse/deploy.json` — infrastructure state (if exists)
 3. `.env` — credentials and configuration (if exists)
 4. `.gse/profile.yaml` — user profile (apply P9 Adaptive Communication to all output)
+5. `$(cat ~/.gse-one)/agents/deploy-operator.md` — adopt this role for the entire activity
+6. `$(cat ~/.gse-one)/references/hetzner-infrastructure.md` — pricing, sizing, Coolify API (consulted on demand)
+7. `$(cat ~/.gse-one)/references/ssh-operations.md` — SSH patterns and credential resolution (consulted on demand)
 
 ## Workflow
 
 ### Step 0 — Situation Detection
 
-Read `.env` and `.gse/deploy.json` (if they exist). Determine starting point based on which variables are present:
+Invoke the deploy tool:
 
-**`.env` variables (all optional):**
+```
+python3 "$(cat ~/.gse-one)/tools/deploy.py" detect
+```
+
+This returns a JSON object with `starting_phase`, `mode` (`full | partial | app-only | training`), the presence map of `.env` variables, and the `phases_completed` map. Use the returned `starting_phase` to skip already-completed phases (idempotence is handled by the tool, not by this skill).
+
+**`.env` variables (all optional) — for reference:**
 
 | Variable | Purpose | Level |
 |----------|---------|-------|
@@ -44,23 +56,13 @@ Read `.env` and `.gse/deploy.json` (if they exist). Determine starting point bas
 | `DEPLOY_DOMAIN` | Base domain for subdomains | Domain |
 | `DEPLOY_USER` | User identity for subdomain prefix (training mode) | Identity |
 
-**Detection logic:**
-
-| Variables present | Starting phase | Mode |
-|-------------------|:-------------:|------|
-| Nothing | Phase 1 | Full (solo) |
-| `HETZNER_API_TOKEN` only | Phase 2 | Full (token provided) |
-| `SERVER_IP` + `SSH_USER` (no Coolify) | Phase 3 or 4 | Partial (server provided) |
-| `COOLIFY_URL` + `COOLIFY_API_TOKEN` + `DEPLOY_DOMAIN` | Phase 6 | App-only (training or pre-configured) |
-| All variables | Phase 6 | App-only |
-
-Also check `.gse/deploy.json → phases_completed` for already-completed phases (idempotence).
+The detection logic (which variables map to which starting phase) is documented in `gse-one-implementation-design.md` §5.18 and authoritatively applied by the `detect` subcommand. Trust its output — do not re-derive the mapping from the table above.
 
 **Display the detected situation to the user:**
 - Full mode: *"No deployment configuration found. I'll guide you through the complete setup."*
 - Partial: *"I found a server at {IP}. Starting from there."*
 - App-only: *"Deployment infrastructure is ready ({COOLIFY_URL}). I'll deploy your application."*
-- Training: *"Training mode detected. I'll deploy your project as {DEPLOY_USER}.{DEPLOY_DOMAIN}."*
+- Training: *"Training mode detected. I'll deploy your project on the shared server. The full URL will be shown after Phase 6 (typically `{DEPLOY_USER}-{project-name}.{DEPLOY_DOMAIN}`)."*
 
 ---
 
@@ -86,10 +88,10 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
    - Ask: *"What domain will you use for deployment? (e.g., my-project.com)"*
 
 4. **Save credentials**
-   - Write or update `.env` at project root:
+   - Persist the token and domain via the deploy tool:
      ```
-     HETZNER_API_TOKEN=<token>
-     DEPLOY_DOMAIN=<domain>
+     python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set HETZNER_API_TOKEN <token>
+     python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set DEPLOY_DOMAIN <domain>
      ```
    - Check `.gitignore` contains `.env` — if not, add it and warn the user
    - If no `.gitignore` exists: Gate decision to create one
@@ -98,8 +100,11 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
    - Run `hcloud server list` to confirm the token works
    - If it fails: ask user to verify the token
 
-6. **Update state**
-   - Create `.gse/deploy.json` with `phases_completed.setup` timestamp
+6. **Persist completion**
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" init-state
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-phase setup
+   ```
 
 ---
 
@@ -142,10 +147,15 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
    - `ssh -i ~/.ssh/gse-deploy -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 root@<IP> "echo ok"`
    - Retry up to 3 times with 10s wait between attempts
 
-8. **Update state**
-   - Record server name, id, IP, type in `deploy.json`
-   - Add `SERVER_IP=<IP>` and `SSH_USER=root` and `SSH_KEY=~/.ssh/gse-deploy` to `.env`
-   - Set `phases_completed.provision`
+8. **Persist completion**
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-server \
+     --name <name> --ipv4 <IP> --id <id> --type <type> --datacenter <dc>
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set SERVER_IP <IP>
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set SSH_USER root
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set SSH_KEY ~/.ssh/gse-deploy
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-phase provision
+   ```
 
 ---
 
@@ -187,21 +197,34 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
        sudo ufw --force enable"
      ```
 
-5. **Install fail2ban**
+5. **Install ufw-docker** (prevents Docker from bypassing UFW rules)
+   - By default, Docker publishes containers to `0.0.0.0` and inserts iptables rules that bypass UFW. Without `ufw-docker`, a container exposing port `5432` to the host would be reachable from the internet even if UFW denies port `5432`. This is a real production risk.
+   - ```
+     ssh deploy@<IP> "sudo wget -O /usr/local/bin/ufw-docker \
+       https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker && \
+       sudo chmod +x /usr/local/bin/ufw-docker && \
+       sudo ufw-docker install && \
+       sudo systemctl restart ufw"
+     ```
+   - Verify: `ssh deploy@<IP> "sudo ufw-docker status"` (should report rules are active).
+
+6. **Install fail2ban**
    - ```
      ssh deploy@<IP> "sudo apt-get install -y -qq fail2ban && \
        sudo systemctl enable fail2ban && sudo systemctl start fail2ban"
      ```
 
-6. **Automatic security updates**
+7. **Automatic security updates**
    - ```
      ssh deploy@<IP> "sudo apt-get install -y -qq unattended-upgrades && \
        sudo dpkg-reconfigure -plow unattended-upgrades"
      ```
 
-7. **Update state**
-   - Update `SSH_USER=deploy` in `.env`
-   - Set `phases_completed.secure`
+8. **Persist completion**
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set SSH_USER deploy
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-phase secure
+   ```
 
 ---
 
@@ -216,22 +239,44 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
    - Poll `http://<IP>:8000` every 15 seconds, timeout 5 minutes
    - Show progress: *"Waiting for Coolify to start..."*
 
-3. **Guide browser setup**
-   - Tell the user:
-     *"Coolify is ready. Open http://<IP>:8000 in your browser.*
-     *1. Create your admin account*
-     *2. Go to Keys & Tokens → API Tokens → create a token with full access*
-     *3. Copy and paste the token here"*
-   - Save `COOLIFY_API_TOKEN` to `.env`
-   - Save `COOLIFY_URL=http://<IP>:8000` to `.env`
+3. **Guide browser setup (detailed)**
+   Walk the user through the Coolify onboarding. Tell them verbatim:
+
+   > Coolify is ready. Open `http://<IP>:8000` in your browser.
+   >
+   > **3a. Create your admin account:**
+   > - Fill in: *Email*, *Name*, *Password* (min 8 chars), *Confirm password*
+   > - Click **Register**. You are now logged in.
+   >
+   > **3b. Initial setup wizard:**
+   > - Coolify displays a *"Welcome"* screen. Click **Let's go!** or **Skip** through optional settings (root user email, instance name — you can change these later in Settings).
+   >
+   > **3c. Create an API token:**
+   > - In the left sidebar, click your profile icon (bottom left) → **Keys & Tokens** → **API Tokens** tab.
+   > - Click **Create New Token**.
+   > - Name it: `gse-one`
+   > - Permissions: check **Read**, **Write**, and **Deploy** (or the "Full Access" preset if available).
+   > - Click **Continue**. The token is displayed **only once** — copy it now.
+   >
+   > **3d. Paste the token here.**
+
+   Then persist:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set COOLIFY_URL http://<IP>:8000
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set COOLIFY_API_TOKEN <token>
+   ```
+
+   **If the UI has changed** (Coolify iterates fast), adapt the step numbering to what the user describes. The invariants are: create account → find "API tokens" or equivalent → create token with full-access permissions → copy once. If a step path differs significantly, please consider submitting a PR to update this section (see README → Deployment → Maintaining upstream compatibility).
 
 4. **Verify containers**
    - `ssh deploy@<IP> "sudo docker ps --format 'table {{.Names}}\t{{.Status}}'"` 
    - Check: coolify, traefik, postgres containers running
 
-5. **Update state**
-   - Record Coolify URL in `deploy.json`
-   - Set `phases_completed.coolify`
+5. **Persist completion**
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-coolify --url http://<IP>:8000
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-phase coolify
+   ```
 
 ---
 
@@ -240,35 +285,152 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
 **Purpose:** Point the domain to the server and enable SSL.
 
 1. **Guide DNS configuration**
-   - Tell the user:
-     *"Add these DNS records at your domain registrar:*
-     *- Type: A, Name: @, Value: <IP>*
-     *- Type: A, Name: *, Value: <IP> (wildcard for subdomains)*
-     *TTL: 300 seconds (5 minutes)"*
-   - If domain registrar is known, provide direct link to DNS settings
+   - Tell the user (verbatim):
+     > Add these DNS records at your domain registrar:
+     > | Type | Name | Value        | TTL |
+     > |------|------|--------------|-----|
+     > | A    | `@`  | `<server-IP>` | 300 |
+     > | A    | `*`  | `<server-IP>` | 300 |
+     >
+     > The wildcard `*` enables all subdomains (`project-a.domain.com`, `project-b.domain.com`, ...) to point to this server automatically — essential for the multi-app pattern.
+   - Ask the user which registrar they use; if one of the four below, display the registrar-specific subsection. Otherwise, provide the generic records and invite them to follow their registrar's documentation (you can also run `/gse:deploy --registrar <name>` later to re-display the steps).
+
+   #### 1a. Namecheap
+   1. Log in at https://www.namecheap.com → **Domain List** (top menu).
+   2. Next to your domain, click **Manage**.
+   3. Open the **Advanced DNS** tab.
+   4. Under **Host Records**, click **Add New Record**:
+      - Type: `A Record`, Host: `@`, Value: `<server-IP>`, TTL: `Automatic`.
+   5. Click **Add New Record** again:
+      - Type: `A Record`, Host: `*`, Value: `<server-IP>`, TTL: `Automatic`.
+   6. Click the green check next to each to save. Changes propagate in 5–30 minutes.
+
+   #### 1b. Gandi
+   1. Log in at https://admin.gandi.net → **Domaines** (or **Domains**).
+   2. Click your domain → **DNS Records** (or **Enregistrements DNS**).
+   3. Click **Add record**. Type `A`, Name `@`, TTL `300`, Value `<server-IP>`. Save.
+   4. Click **Add record** again. Type `A`, Name `*`, TTL `300`, Value `<server-IP>`. Save.
+
+   #### 1c. OVH
+   1. Log in at https://www.ovh.com/manager/ → **Web Cloud** → **Domains** (or **Noms de domaine**).
+   2. Click your domain → **DNS Zone** (or **Zone DNS**).
+   3. Click **Add an entry**:
+      - Type: `A`, Sub-domain: (leave empty for `@`), Target: `<server-IP>`, TTL: `300`.
+   4. Click **Add an entry** again:
+      - Type: `A`, Sub-domain: `*`, Target: `<server-IP>`, TTL: `300`.
+
+   #### 1d. Cloudflare (DNS-only for now, CDN opt-in later)
+   1. Log in at https://dash.cloudflare.com → click your domain.
+   2. Open the **DNS** → **Records** page.
+   3. Click **Add record**:
+      - Type: `A`, Name: `@`, IPv4 address: `<server-IP>`, Proxy status: **DNS only** (grey cloud), TTL: `Auto`.
+   4. Click **Add record** again:
+      - Type: `A`, Name: `*`, IPv4 address: `<server-IP>`, Proxy status: **DNS only** (grey cloud), TTL: `Auto`.
+   5. **Important:** keep the proxy OFF at this stage. Let's Encrypt needs direct DNS resolution to issue the certificate. After SSL is active and Coolify dashboard works, the next step (CDN proposal) offers to enable proxy + CDN.
 
 2. **Verify DNS propagation**
-   - `dig +short <domain>` — check it resolves to server IP
-   - If not resolved:
-     *"DNS is not propagated yet. This can take 5-30 minutes. Run `/gse:deploy` again when ready."*
-   - Exit gracefully — **do not mark phase complete**
+   Invoke the tool with a timeout of 10 minutes:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" wait-dns \
+     --domain <domain> --expected-ip <server-IP> --timeout 600
+   ```
+   The tool polls `dig` (system resolver + `@8.8.8.8` fallback every 15s). On `resolved`, proceed. On `timeout`, it returns a hint — display it to the user and exit the skill without marking the phase complete (so the user can re-run `/gse:deploy` once propagation completes).
 
-3. **Configure Coolify domain**
-   - Via Coolify API: set dashboard domain to `coolify.<domain>`
-   - Update `COOLIFY_URL=https://coolify.<domain>` in `.env`
+3. **Configure Coolify dashboard domain**
+   Use the Coolify API to set the dashboard FQDN to `coolify.<domain>`:
+   ```
+   curl -X PATCH "http://<IP>:8000/api/v1/settings/general" \
+     -H "Authorization: Bearer $COOLIFY_API_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"instance_fqdn":"https://coolify.<domain>"}'
+   ```
+   Then update the env:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" env-set COOLIFY_URL https://coolify.<domain>
+   ```
 
-4. **Verify SSL**
-   - Coolify + Traefik handle Let's Encrypt automatically
-   - `curl -sI https://<domain>` — check for valid certificate
-   - If SSL not ready: wait 30s and retry (up to 3 times)
+4. **Verify SSL (Let's Encrypt via Traefik)**
+   Coolify+Traefik requests a Let's Encrypt certificate automatically on first HTTPS request. Poll until it succeeds (max 2 minutes):
+   ```
+   for i in $(seq 1 8); do
+     if curl -sI "https://coolify.<domain>" 2>/dev/null | grep -q "HTTP.*200\|HTTP.*301\|HTTP.*302"; then
+       echo "SSL OK"; break
+     fi
+     sleep 15
+   done
+   ```
+   If SSL fails, check DNS propagation first (`dig coolify.<domain>` must return `<server-IP>`).
 
 5. **Close temporary port 8000**
    - `ssh deploy@<IP> "sudo ufw delete allow 8000/tcp"`
    - `hcloud firewall delete-rule gse-fw-<name> --direction in --protocol tcp --port 8000`
 
-6. **Update state**
-   - Record domain in `deploy.json`
-   - Set `phases_completed.dns`
+6. **Persist domain completion**
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-domain --base <domain> --registrar <namecheap|gandi|ovh|cloudflare|manual>
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-phase dns
+   ```
+
+7. **Propose Cloudflare CDN + DDoS + WAF (recommended for production)**
+
+   Ask the user (Inform tier):
+   > Your domain is live. Would you like to add Cloudflare CDN & DDoS protection? (free plan, ~10 minutes, no downtime)
+   >
+   > Benefits:
+   > - Free CDN (faster page loads worldwide)
+   > - DDoS protection (layer 3/4/7)
+   > - Bot & AI-scraper detection/blocking
+   > - Web Application Firewall (WAF)
+   > - Rate limiting per IP
+   > - Analytics & threat dashboard
+   >
+   > Without it, the server has only: Hetzner network-level DDoS (L3/L4), UFW firewall, fail2ban (SSH only).
+
+   **If the user declines:** record `--provider none` and exit this step:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-cdn --provider none
+   ```
+
+   **If the user accepts:** walk them through:
+
+   7a. Create a free Cloudflare account at https://dash.cloudflare.com (skip if they have one).
+
+   7b. Click **Add a site** → enter the domain → **Free plan**.
+
+   7c. Cloudflare displays nameservers (e.g., `nina.ns.cloudflare.com`, `rob.ns.cloudflare.com`). **Copy both.**
+
+   7d. Change nameservers at the original registrar:
+   - **Namecheap:** Domain List → Manage → **Nameservers** → select **Custom DNS** → paste Cloudflare NS1 and NS2 → save.
+   - **Gandi:** Domain → **Nameservers** → **Change** → paste NS1 and NS2 → save.
+   - **OVH:** Domain → **DNS servers** (or **Serveurs DNS**) → **Modify** → paste NS1 and NS2 → save.
+   - (Cloudflare-as-registrar: already handled automatically.)
+
+   7e. Wait for nameserver activation (minutes to 24h; Cloudflare sends an email when active). During this window, the site may be briefly unreachable — warn the user.
+
+   7f. Once active, in Cloudflare **DNS** → **Records**:
+   - Change A `@` → **Proxy status: Proxied** (orange cloud).
+   - Change A `*` → **Proxy status: Proxied** (orange cloud).
+   - Add A `coolify` → `<server-IP>` → **Proxy status: DNS only** (grey cloud, because the admin panel uses WebSockets that Cloudflare proxy can break).
+
+   7g. In **SSL/TLS**:
+   - Mode: **Full (strict)** (the server already has a valid Let's Encrypt cert).
+   - **Always Use HTTPS:** ON.
+   - **Minimum TLS Version:** 1.2.
+
+   7h. In **Security** → **Bots**:
+   - **Bot Fight Mode:** ON.
+   - **AI Scrapers and Crawlers:** Block.
+
+   7i. In **Security** → **Settings**:
+   - **Security Level:** Medium.
+   - **Challenge Passage:** 30 minutes.
+
+   7j. Record the CDN state:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" record-cdn --provider cloudflare --enabled --bot-protection
+   ```
+
+   **If Cloudflare UI has changed** (Cloudflare redesigns periodically): adapt wording to what the user sees. Invariants: DNS with proxy orange cloud on apps + grey cloud on `coolify`; SSL Full (strict); Bot Fight Mode + AI Scrapers Block. If navigation diverges significantly, please submit a PR (see README → Deployment → Maintaining upstream compatibility).
 
 ---
 
@@ -277,66 +439,70 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
 **Purpose:** Deploy the current project as a Coolify application.
 
 1. **Determine subdomain**
-   - If `DEPLOY_USER` is set in `.env`: subdomain = `{DEPLOY_USER}.{DEPLOY_DOMAIN}`
-   - Else: subdomain = `{project-name}.{DEPLOY_DOMAIN}`
-   - `project-name` is the current directory name (sanitized: lowercase, hyphens, no special chars)
+   Invoke the deploy tool:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" subdomain \
+     --project "$PWD" \
+     --user "$(python3 "$(cat ~/.gse-one)/tools/deploy.py" env-get DEPLOY_USER | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"value\") or \"\")')" \
+     --domain "$(python3 "$(cat ~/.gse-one)/tools/deploy.py" env-get DEPLOY_DOMAIN | python3 -c 'import json,sys; print(json.load(sys.stdin)[\"value\"])')"
+   ```
+   The tool applies the full P1 rule (sanitization, training vs solo pattern, RFC 1035 length checks). If it returns `{"ok": false, ...}`, abort and report the error to the user. On success, it returns `{project_name, deploy_user, label, subdomain, url}`.
 
-2. **Preflight checks**
-   - Project has deployable content: Dockerfile, or `pyproject.toml`, or `requirements.txt`, or `package.json`, or static HTML
-   - Git repo exists with at least one commit
-   - Git remote exists (Coolify pulls from GitHub): check `git remote get-url origin`
-   - If uncommitted changes: warn and offer to commit first (Inform tier)
-   - If no remote: warn — Coolify needs a GitHub repo to pull from
+2. **Preflight checks** — delegate to the tool for deterministic, typed checks:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" preflight
+   ```
+   The tool detects the project type (`streamlit | python | node | static | custom`), derives the default port, and runs a structured list of checks: git state (repo, commits, remote, github.com hint, working tree), entry points per type (Streamlit/Python/Node), Streamlit reverse-proxy config (`enableCORS=false`, `enableXsrfProtection=false`), Node `start` script + Next.js build hint, static `index.html`, and `Dockerfile` `ARG SOURCE_COMMIT`. It returns JSON with `type`, `port`, `overall` (`ok | warnings | errors`), and the full `checks` list.
 
-3. **Generate Dockerfile** (if not present in project root)
-   - Detect project type:
-     - `streamlit` in dependencies (pyproject.toml or requirements.txt) → Streamlit template
-     - `pyproject.toml` or `requirements.txt` without Streamlit → Python generic template
-     - `package.json` → Node.js basic template
-     - Static HTML files only → Nginx static template
-     - Otherwise → ask the user what type of application this is
-   - Generate the Dockerfile from the appropriate template
-   - Show to user for approval (Inform tier)
-   - Commit the Dockerfile if user approves
+   Handle the result:
+   - **`overall == "errors"`** → abort the skill. Display each failed check (`name`, `message`, `fix_hint`). Ask the user to resolve and re-run `/gse:deploy`.
+   - **`overall == "warnings"`** → list the warnings (Inform tier). Present a Gate: *"Proceed despite these warnings?"* (Typical: uncommitted changes, missing Streamlit CORS config, remote not on github.com, missing `ARG SOURCE_COMMIT`.) On accept → continue. On decline → exit, suggest the fixes.
+   - **`overall == "ok"`** → proceed silently.
 
-4. **Create Coolify application**
-   - Via Coolify API (`POST /api/v1/applications`):
-     - Source: GitHub repository (from `git remote get-url origin`)
-     - Branch: current branch or `main`
-     - Dockerfile path: `./Dockerfile`
-     - Domain: `https://{subdomain}`
-     - Port: auto-detected (8501 for Streamlit, 3000 for Node.js, 80 for static)
-   - Record the application UUID
+   Capture the returned `type` and `port` — used in Step 3 (Dockerfile template selection) and Step 4 (`deploy-app --type --port`).
 
-5. **Trigger build**
-   - Via Coolify API: trigger deployment
-   - Poll deployment status every 10 seconds
-   - Show progress: *"Building your application..."*
+3. **Generate Dockerfile and .dockerignore** (if not present in project root)
+   - Use the `type` returned by the preflight tool in Step 2 (do **not** re-detect — the tool is authoritative). If `config.yaml → deploy.app_type` is set to an explicit value (not `auto`), that value **overrides** the detected type.
+   - Map the type to a template:
+     - `streamlit` → `$(cat ~/.gse-one)/templates/Dockerfile.streamlit`
+     - `python`    → `$(cat ~/.gse-one)/templates/Dockerfile.python`
+     - `node`      → `$(cat ~/.gse-one)/templates/Dockerfile.node`
+     - `static`    → `$(cat ~/.gse-one)/templates/Dockerfile.static`
+   - Copy the selected template to `./Dockerfile` in the project, and copy `$(cat ~/.gse-one)/templates/.dockerignore` to `./.dockerignore` if absent.
+   - Show the generated Dockerfile to the user for approval (Inform tier), highlighting any CMD/ENTRYPOINT line the user may need to customize (notably for Python: FastAPI/Flask/script comment block; for Node: optional `RUN npm run build`).
+   - Commit both files if the user approves.
 
-6. **Health check**
-   - Poll `https://{subdomain}` every 10 seconds
-   - Timeout: `config.yaml → deploy.health_check_timeout` (default: 120 seconds)
-   - Health check URL by app type:
-     - Streamlit: `/_stcore/health`
-     - HTTP apps: `/`
-     - Custom: from `config.yaml → deploy.health_check_url` if set
-   - If healthy: proceed to report
-   - If timeout: report failure with last build logs, suggest checking Coolify dashboard at `{COOLIFY_URL}`
+4. **Deploy the application (Coolify project → environment → app → build → health check → state)**
 
-7. **Report**
-   - If successful:
-     *"Your project is live at: https://{subdomain}"*
-   - If solo mode (server provisioned by this user):
-     *"Server: {IP} ({server-type}), monthly cost: ~8.49 EUR"*
-   - If training mode:
-     *"Deployed on shared training server."*
+   This step consolidates what were previously five sub-steps (create project, create app, trigger build, health check, update state). The tool does all of it in one call:
 
-8. **Update state**
-   - Record in `deploy.json`:
-     - `app.name`, `app.url`, `app.github_repo`, `app.type`
-     - `app.deployed_at` (timestamp)
-     - `app.status` ("healthy" or "unhealthy")
-     - `coolify.app_uuid`
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" deploy-app \
+     --name "<label-from-subdomain-step>" \
+     --project-name "<pre-sanitization-dir-name>" \
+     --deploy-user "<DEPLOY_USER or empty>" \
+     --subdomain "<fqdn-from-subdomain-step>" \
+     --github-repo "<user/repo>" \
+     --branch "<current-branch>" \
+     --type "<streamlit|python|node|static|custom>" \
+     --port <N>
+   ```
+
+   **What the tool does:**
+   - Ensures a Coolify project (`gse-{DEPLOY_USER}` in training, `gse` in solo) exists.
+   - Ensures a `production` environment exists within that project.
+   - Looks up `applications[]` in `.gse/deploy.json` by name. If a matching entry with `coolify.app_uuid` exists → triggers a redeploy (`GET /api/v1/deploy?uuid=...&force=true`). Otherwise, creates the app via `POST /api/v1/applications/public` and triggers the initial deploy.
+   - Polls the health endpoint (`/_stcore/health` for Streamlit, `/` for others) for `config.yaml → deploy.health_check_timeout` seconds (default 120).
+   - Records the application entry in `.gse/deploy.json → applications[]` with all fields (identification, source, runtime, Coolify UUIDs, resources, timestamps, status).
+
+   **Return JSON:** `{"status": "healthy|unhealthy|timeout|error", "url": "...", "app_uuid": "...", "created": true|false, "http_code": N}`.
+
+5. **Report**
+   - If `status == "healthy"`: *"Your project is live at: https://{subdomain}"*
+   - If `status` is `unhealthy` or `timeout`: report failure, suggest checking the Coolify dashboard at `{COOLIFY_URL}`.
+   - If `status == "error"`: show the Coolify error message and suggest corrective action.
+   - Solo mode: append *"Server: {IP} ({server-type}), monthly cost: ~8.49 EUR"*.
+   - Training mode: append *"Deployed on shared training server."*
 
 ---
 
@@ -344,35 +510,125 @@ Also check `.gse/deploy.json → phases_completed` for already-completed phases 
 
 When invoked with `--status`:
 
-1. Read `.gse/deploy.json`
-2. If no deploy.json: *"No deployment found. Run `/gse:deploy` to deploy."*
-3. Display:
-   - Phases completed (with timestamps)
-   - Server info (IP, type) if applicable
-   - Application URL and health status
-   - Last deployment timestamp
-4. If app URL exists: run a live health check and report current status
+1. Invoke:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" state --human
+   ```
+   This prints the full state (phases, server, Coolify, domain, applications table).
+
+2. For each application listed, run a live health check:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" app-status <app-name>
+   ```
+   and display the current status to the user.
+
+3. If no `.gse/deploy.json` exists (the tool will return an empty state): *"No deployment found. Run `/gse:deploy` to deploy."*
 
 ### --destroy Option
 
 When invoked with `--destroy`:
 
-1. Gate decision (first confirmation):
-   *"This will permanently destroy the server and all deployed applications. Are you sure?"*
-2. Gate decision (second confirmation):
-   *"Type the server name to confirm: {server-name}"*
-3. If confirmed:
-   - Delete all Coolify applications via API
-   - `hcloud server delete <name>`
-   - `hcloud firewall delete gse-fw-<name>`
-   - Remove infrastructure entries from `.gse/deploy.json`
-   - Remove server-related variables from `.env`
-   - Report: *"Server destroyed. Deployment configuration cleared."*
+1. **Dry-run first** — always surface the impact before the Gates:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" destroy --dry-run
+   ```
+   Display the result to the user:
+   > **Impact of /gse:deploy --destroy:**
+   > - Applications to delete: {count} ({comma-separated list})
+   > - Coolify projects to delete: {count} ({comma-separated list})
+   > - Hetzner server to delete: {server-name}
+   > - Firewall to delete: {firewall-name}
+   > - Estimated cost savings: {cost-hint}
+
+2. **Gate 1** — first confirmation (generic):
+   > *"This is a destructive operation that cannot be undone. It will stop billing for the Hetzner server but will NOT touch DNS records at your registrar (you may want to remove them manually afterwards). Proceed?"*
+
+   Wait for explicit user confirmation (yes/no). If no: exit without change.
+
+3. **Gate 2** — retype the server name:
+   > *"To confirm, type the server name exactly: {server-name}"*
+
+   Wait for the user to type the literal name. If mismatch: abort with *"Name mismatch. Destroy cancelled."*
+
+4. **Execute destroy** with the typed name as confirmation:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" destroy --confirm <typed-name>
+   ```
+
+5. **Handle the result:**
+   - If `status == "ok"`: all deletions succeeded. State file is cleared. Continue to step 6.
+   - If `status == "partial"`: some deletions failed (see `errors` array). **State is preserved** for retry — the user can re-run `/gse:deploy --destroy` later once the issue is resolved. Surface the `errors` list verbatim so the user can diagnose (e.g., hcloud token expired, network issue, Coolify down). **Skip step 6** (keep `.env` intact for retry).
+
+6. **Clean up `.env` variables** (only on `status == "ok"`):
+   ```
+   for key in SERVER_IP SSH_USER SSH_KEY COOLIFY_URL COOLIFY_API_TOKEN; do
+     python3 "$(cat ~/.gse-one)/tools/deploy.py" env-delete "$key"
+   done
+   ```
+
+7. **Post-destroy report + warnings** (only on `status == "ok"`):
+   > Deployment configuration cleared. {cost_savings}.
+   >
+   > Remaining external resources to consider:
+   > - **DNS records** at your registrar (`A @` and `A *`) still point to a dead IP — remove or repurpose them.
+   > - **Cloudflare CDN** (if you set it up): consider removing the zone or reverting nameservers to the registrar's defaults.
+   > - **Let's Encrypt certificates** were automatically revoked when Coolify shut down — no action needed.
+   > - **Hetzner SSH key** (`gse-deploy`) is still registered in your Hetzner project if you want to reuse it.
 
 ### --redeploy Option
 
 When invoked with `--redeploy`:
 
-1. Skip to Phase 6
-2. Trigger a new build via Coolify API
-3. Monitor and health check as usual
+1. Verify that `deploy.json → phases_completed.dns` is set (infrastructure is ready). If not, abort with *"Infrastructure not ready. Run /gse:deploy first to complete Phases 1-5."*
+2. Skip directly to Phase 6 (subdomain computation + `deploy-app` + report). The `deploy-app` subcommand auto-detects the existing application entry by name and triggers a forced rebuild via `GET /api/v1/deploy?uuid=...&force=true`.
+3. Return the same JSON contract as a normal deploy: `{status, url, app_uuid, created: false, http_code}`.
+
+### --registrar Option
+
+When invoked with `--registrar <name>` (where `<name>` is `namecheap`, `gandi`, `ovh`, or `cloudflare`):
+
+1. Read `.gse/deploy.json → server.ipv4`. If missing: *"No server IP recorded. Run /gse:deploy to provision first."*
+2. Display **only** the corresponding registrar subsection from Phase 5 Step 1 (1a/1b/1c/1d) with the server IP substituted.
+3. Remind the user they can run `/gse:deploy` (no args) afterwards to continue from the detected phase.
+
+Useful when the user skipped the full flow, already has infrastructure, and just needs the registrar-specific DNS instructions.
+
+### --training-init Option (Instructor-only)
+
+When invoked with `--training-init`:
+
+1. Verify `phases_completed.dns` is set (the instructor has completed Phases 1-5). If not, abort with *"Training-init requires completed infrastructure. Finish /gse:deploy first."*
+2. Invoke:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" training-init [--output .env.training]
+   ```
+3. The tool generates `.env.training` containing `COOLIFY_URL`, `COOLIFY_API_TOKEN`, `DEPLOY_DOMAIN`, and a `DEPLOY_USER=learnerXX` placeholder. It **excludes** `HETZNER_API_TOKEN`, `SERVER_IP`, SSH keys. A security warning is embedded as a comment.
+4. Display the output path to the instructor and remind them:
+   *"Distribute .env.training to your learners. They copy it to their project as .env and set DEPLOY_USER. Consider generating a dedicated Coolify token for the course; revoke it when the course ends."*
+
+### --training-reap Option (Instructor-only)
+
+When invoked with `--training-reap`:
+
+1. Prompt for scope (Gate):
+   *"Reap which? (1) a single learner, (2) all gse-* projects, (3) cancel"*
+2. If option 1: ask for the learner name, then run a dry-run first:
+   ```
+   python3 "$(cat ~/.gse-one)/tools/deploy.py" training-reap --user <name> --dry-run
+   ```
+   Display the list of projects that would be deleted. If the instructor confirms (Gate), re-invoke with `--confirm <name>` to actually delete.
+3. If option 2: run `training-reap --all --dry-run`, display the list, confirm (Gate), then `--all --confirm all`.
+4. The tool deletes the selected Coolify projects via API and syncs `.gse/deploy.json → applications[]` by removing entries whose `deploy_user` matches.
+5. Report the number of projects deleted and any errors (e.g., partial failures).
+
+The `gse` solo project (instructor's own apps) is **never** touched by `--training-reap`.
+
+### --help Option
+
+When invoked with `--help`:
+
+Display the Options table and a short hint:
+
+> Run `/gse:deploy` without arguments to start (or resume) a deployment. Use `--status` to inspect current state, `--redeploy` to force a rebuild of an existing application, or `--destroy` to tear everything down.
+
+If `config.yaml → deploy.app_type` is set to a specific value (not `auto`), also mention which Dockerfile template would be used (e.g., *"Current app_type: `python` → will use Dockerfile.python"*).

@@ -2,6 +2,7 @@
   "version": "1.0",
   "plugin": "gse-one",
   "created_at": "",
+  "last_updated_at": "",
 
   "phases_completed": {
     "setup": "",
@@ -21,7 +22,7 @@
 
   "coolify": {
     "url": "",
-    "app_uuid": ""
+    "version": ""
   },
 
   "domain": {
@@ -29,12 +30,11 @@
     "registrar": ""
   },
 
-  "app": {
-    "name": "",
-    "url": "",
-    "github_repo": "",
-    "type": "",
-    "deployed_at": "",
-    "status": ""
-  }
+  "cdn": {
+    "provider": "",
+    "enabled": false,
+    "bot_protection": false
+  },
+
+  "applications": []
 }

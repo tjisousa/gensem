@@ -118,7 +118,7 @@ deploy:
   provider: hetzner                    # only supported provider
   server_type: cax21                   # cax21 | cax31 | cax41
   datacenter: fsn1                     # fsn1 | nbg1 | hel1
-  app_type: auto                       # auto | python | streamlit | static
+  app_type: auto                       # auto | streamlit | python | node | static | custom
   health_check_timeout: 120            # seconds
 
 # --- Section 13: Dashboard ---

@@ -17,7 +17,8 @@ GSE-One is an AI engineering companion that brings structured software developme
 4. [Develop and Generate](#develop-and-generate)
 5. [Publish the Plugin](#publish-the-plugin)
 6. [Command Reference](#command-reference)
-7. [Versioning](#versioning)
+7. [Deployment](#deployment)
+8. [Versioning](#versioning)
 
 ---
 
@@ -297,6 +298,54 @@ Type in your coding agent:
 ```
 
 The GSE-One agent should respond, detect the project state and propose the next activity.
+
+---
+
+## Deployment
+
+GSE-One includes `/gse:deploy` — a single-command deployment flow that provisions a Hetzner Cloud server, installs Coolify v4, configures DNS + SSL, and deploys the current project. It adapts to three situations:
+
+- **Solo** — you have nothing; the command walks you through every phase (provision → secure → install-coolify → configure-domain → deploy)
+- **Partial** — you already have a server; the command skips what's done
+- **Training** — the instructor has set up a shared server; learners only run Phase 6 (deploy their own app under `{user}-{project}.{domain}`)
+
+See `gse-one-implementation-design.md` §5.18 for the full design.
+
+### Prerequisites
+
+- **Python 3.9+** (already required by GSE-One for the dashboard tool)
+- **hcloud CLI** — installed automatically in Phase 1 if missing
+- **SSH** — available natively on macOS / Linux / Windows 10+
+
+### Maintaining upstream compatibility
+
+`/gse:deploy` is **deliberately concrete**: every command, API endpoint, and UI step is embedded verbatim (see design doc §5.18 — Abstraction principle). This choice trades occasional maintenance work for deterministic, auditable, self-contained behavior.
+
+Three areas drift upstream over time:
+
+1. **Coolify API** — `plugin/tools/coolify_client.py` is pinned to **Coolify v4, API `v1`** (last verified 2026-04-20). A new API version, renamed field, or new auth scheme will surface as a `404` or unexpected JSON.
+2. **DNS registrar UIs** — `src/activities/deploy.md` Phase 5 embeds step-by-step instructions for Namecheap, Gandi, OVH, and Cloudflare. UI labels and navigation paths may change.
+3. **hcloud CLI install paths** — `Phase 1` embeds download URLs; releases move.
+
+**When you hit a drift, we welcome your contribution.** Fixes are usually small and localized:
+
+| Drift | File to update |
+|---|---|
+| Coolify API endpoint | `gse-one/plugin/tools/coolify_client.py` |
+| Registrar UI step | `gse-one/src/activities/deploy.md` (Phase 5 subsection) |
+| hcloud install | `gse-one/src/activities/deploy.md` (Phase 1 Step 1) |
+| Cloudflare CDN setup | `gse-one/src/activities/deploy.md` (Phase 5 CDN proposal) |
+| Coolify onboarding wizard | `gse-one/src/activities/deploy.md` (Phase 4) |
+
+Suggested workflow:
+
+1. Fork the repo and create a branch named `fix/<scope>-<short-desc>` (e.g. `fix/coolify-api-rename-fqdn`, `fix/registrar-gandi-new-ui`)
+2. Update the relevant file(s)
+3. Run a manual test: provision → deploy a sample project from scratch
+4. Update the "last verified" date where applicable (Coolify: in `coolify_client.py` header + design §5.18)
+5. Open a PR describing: the scope, what changed upstream, what you tested
+
+Thank you — contributions keep `/gse:deploy` usable across releases of Hetzner, Coolify, Cloudflare, and domain registrars.
 
 ---
 

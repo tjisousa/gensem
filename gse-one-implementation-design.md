@@ -2310,6 +2310,93 @@ In lightweight mode detection: add note that for truly one-off tasks, don't use 
 - `decisions.md` is append-only → no conflicts
 - Checkpoints are per-user → no conflicts
 
+### 5.18 `/gse:deploy` — Application Deployment Activity
+
+This section documents the design of the `/gse:deploy` activity introduced at the spec level as the 23rd command. The activity deploys the current project to a Hetzner Cloud server via Coolify v4, adapting to the user's starting situation (solo with zero infrastructure, partial pre-configured, training on shared server). The detailed phase-by-phase workflow lives in `gse-one/src/activities/deploy.md`; this section captures the design decisions that cross-cut the skill, the tools, and the state schema.
+
+**Abstraction principle for `/gse:deploy` and future infrastructure-touching skills.** GSE-One prefers **concrete, deterministic instructions** over goal-level abstractions. The plugin is self-contained: every shell command, every API call, every UI step is embedded verbatim in the skill or the Python tools. This choice prioritizes:
+- **Reproducibility** — critical for training scenarios (20 learners must get identical results) and CI testing
+- **Auditability** — consistent with the "Governed by Humans" motto: a reader of `deploy.md` or `deploy.py` can predict exactly what will execute
+- **Self-containment** — the plugin functions without runtime dependencies on external MCP servers or LLM-generated guidance
+- **Testability** — deterministic inputs/outputs enable future CI validation
+
+The maintenance cost (occasional upstream drift in Coolify API, DNS registrar UIs, hcloud CLI install paths) is absorbed by a documented contribution workflow (README → Deployment → Maintaining upstream compatibility). This is the explicit trade-off: accept bounded maintenance work in exchange for determinism.
+
+**Subdomain derivation.** `/gse:deploy` derives the public subdomain for a deployed application as follows:
+
+- **Solo mode** (no `DEPLOY_USER` in `.env`): `{project-name}.{DEPLOY_DOMAIN}`
+- **Training mode** (`DEPLOY_USER` set): `{DEPLOY_USER}-{project-name}.{DEPLOY_DOMAIN}`
+
+Both `project-name` (derived from the current directory) and `DEPLOY_USER` are sanitized identically: lowercase; any character outside `[a-z0-9-]` replaced with `-`; consecutive hyphens collapsed; leading/trailing hyphens trimmed; truncated to 30 characters per component. If sanitization yields an empty string, the activity aborts with a clear error.
+
+**Rationale.** This pattern serves two goals simultaneously:
+1. **Single wildcard DNS suffices.** Only one record (`*.{DEPLOY_DOMAIN}` → server IP) is needed. In training, the instructor does not need to create a wildcard per learner.
+2. **Multi-application per learner.** A training participant can deploy multiple distinct projects in the same course (e.g., `alice-blog.training.example.com`, `alice-todo.training.example.com`) without collision, each tracked as a separate entry in `.gse/deploy.json → applications[]`.
+
+The alternative `<project>.<user>.<domain>` pattern was rejected: it requires per-user wildcard records (`*.alice.domain.com`, `*.bob.domain.com`, ...) or an unsupported double-wildcard (`*.*.domain.com`), both incompatible with training mode at scale.
+
+**FQDN length constraint.** The total FQDN must remain ≤ 253 characters and each DNS label ≤ 63 characters (RFC 1035). The sanitization cap of 30 chars per component keeps all valid combinations within these limits.
+
+**State schema (`.gse/deploy.json`).** The infrastructure state file is versioned (`version: "1.0"`). It tracks server-level phases (`phases_completed`), server/Coolify/domain metadata, and an array `applications[]` — one entry per deployed application.
+
+Each application entry carries the fields needed to manage its lifecycle: identification (`name`, `project_name`, `deploy_user`, `subdomain`, `url`), source (`github_repo`, `branch`), runtime shape (`type`, `port`, `resources.{memory_limit, cpu_limit}`), Coolify handles (`coolify.{project_uuid, environment_uuid, app_uuid}`), and timestamps/status (`created_at`, `last_deploy_at`, `status`). Fields intentionally excluded from v1.0 and deferred to later design increments: `replicas[]` (scaling), `previous_deploy` (rollback snapshot), `env_vars` (per-app secrets).
+
+**Coolify hierarchy mapping.** Coolify organizes resources as Project → Environment → Application. `/gse:deploy` maps this as:
+- **Solo mode:** a single shared Coolify project named `gse`, one environment `production`, N applications.
+- **Training mode:** one Coolify project per learner named `gse-{DEPLOY_USER}` (e.g. `gse-alice`), one environment `production`, N applications.
+
+This mapping makes training cleanup trivial: deleting the per-user project in Coolify removes all of that user's applications in one operation. The `--destroy` flag leverages this by iterating over all `gse-*` projects before tearing down the server.
+
+**Dockerfile templates.** `/gse:deploy` ships with four specialized Dockerfile templates in `plugin/templates/` and one shared `.dockerignore`. Each template includes `ARG SOURCE_COMMIT=unknown` (Docker cache-bust, cf. `references/hetzner-infrastructure.md` §7) and a `HEALTHCHECK` instruction.
+
+| Template | Base image | Default port | Healthcheck path | Default CMD |
+|---|---|:-:|---|---|
+| `Dockerfile.streamlit` | `python:3.13-slim` + uv | 8501 | `/_stcore/health` | `streamlit run app.py` |
+| `Dockerfile.python`    | `python:3.13-slim` + uv | 8000 | `/` | `python main.py` (edit for framework) |
+| `Dockerfile.node`      | `node:20-slim`          | 3000 | `/` | `npm start` |
+| `Dockerfile.static`    | `nginx:alpine`          | 80   | `/` | `nginx -g 'daemon off;'` |
+
+The `config.yaml → deploy.app_type` key (`auto | streamlit | python | node | static | custom`) selects the template: `auto` triggers detection based on project files; `custom` bypasses template generation and expects the user to provide their own Dockerfile. The skill's Phase 6 Step 3 documents the detection and selection logic.
+
+**Deploy operator role.** `/gse:deploy` adopts the `deploy-operator` specialized agent (defined in `src/agents/deploy-operator.md`) for the full duration of the activity. This agent encapsulates the safety, idempotence, and communication principles that govern every deployment step: no credentials in chat output or state file, mandatory confirmation before costly or destructive operations, idempotence via `phases_completed` tracking, step-numbered progress display, and the list of anti-patterns (never `--no-verify`, never commit `.env`, never disable UFW to debug, etc.). The skill loads this agent in its Prerequisites section. Invocation scope: only during `/gse:deploy` (not a background agent).
+
+**Execution tools.** `/gse:deploy` delegates complex deterministic operations to two Python tools under `plugin/tools/`:
+
+- `coolify_client.py` — a standard-library HTTP client for Coolify API v1 (projects, environments, applications, deploy triggers). Exposes `CoolifyClient` with typed methods and retries on 5xx errors.
+- `deploy.py` — an orchestrator exposing CLI subcommands used by the skill: `init-state`, `state`, `detect`, `subdomain`, `env-{get,set,delete}`, `record-{phase,server,coolify,domain}`, `deploy-app`, `app-status`, `destroy`.
+
+**Skill/tool boundary:** the skill narrates the workflow, handles user interaction (prompts, Gate decisions, cost displays), and performs shell-based operations (ssh, apt, hcloud). The tool handles Coolify API calls, state mutation, subdomain sanitization, situation detection, and the end-to-end deploy flow (Phase 6). Each phase 1–5 calls `record-phase` at its end to guarantee idempotence. Phase 6 is consolidated into a single `deploy-app` call.
+
+The tools require only Python 3.9+ standard library (no external dependencies). They are hand-maintained (not regenerated from `src/`) and live permanently in `plugin/tools/`. Their presence is enforced by `python3 gse_generate.py --verify`.
+
+**Note on Coolify API versioning.** `coolify_client.py` is pinned to **Coolify v4, API `v1`** (last verified 2026-04-20). If Coolify introduces a breaking change, the client will fail visibly with an unexpected response shape or `404` on pinned endpoints. Users who hit a version-compatibility issue are encouraged to **submit a PR** at the upstream repository (https://github.com/nicolasguelfi/gensem): the fix is usually a local modification to `coolify_client.py` (new field name, new endpoint, etc.). See the README "Deployment → Coolify compatibility" section for the contribution workflow.
+
+**Preflight (Phase 6 Step 2).** `deploy.py preflight` returns a structured JSON with the detected project type, the default port, the resolved project directory, and a list of typed checks. Universal checks cover git state (repo, commits, remote, working tree cleanliness, `github.com` remote hint) and Dockerfile quality (`ARG SOURCE_COMMIT` cache-bust). Type-specific checks cover entry points (Streamlit / Python / Node), Streamlit Traefik config (`enableCORS=false`, `enableXsrfProtection=false` in `.streamlit/config.toml`), Node `start` script + Next.js build hint, and static `index.html` presence. Each check has `name`, `ok`, `level` (`info | warning | error`), `message`, and `fix_hint`. The overall status rolls up to `errors | warnings | ok` — the skill aborts on errors, Gate-decides on warnings, and proceeds silently on ok. The detected type propagates to Step 3 (Dockerfile template selection) and Step 4 (`deploy-app`), avoiding any re-detection in the skill.
+
+**Training tools.** Two `deploy.py` subcommands support the instructor workflow in training mode:
+
+- **`training-init`** — called by `/gse:deploy --training-init`. Reads the instructor's completed `.env` and emits a redacted `.env.training` file containing only what learners need (`COOLIFY_URL`, `COOLIFY_API_TOKEN`, `DEPLOY_DOMAIN`, a `DEPLOY_USER` placeholder) plus an embedded security warning about token sharing. Instructor-only secrets (`HETZNER_API_TOKEN`, `SERVER_IP`, SSH keys) are never included.
+- **`training-reap`** — called by `/gse:deploy --training-reap`. Deletes Coolify projects named `gse-<learner>` (per-learner) or all `gse-*` (end-of-course), via the Coolify API. Requires `--confirm` matching the scope (either the learner name or the literal `all`). Supports `--dry-run`. Synchronizes `.gse/deploy.json → applications[]` by removing entries whose `deploy_user` matches the reaped scope. The `gse` solo project (instructor's own) is never touched.
+
+These tools close the loop on the training-mode design promise: an instructor can prepare, distribute, and clean up a shared training server with three commands (full `/gse:deploy` once, then `--training-init` to distribute, then `--training-reap --all` at course end).
+
+**Destroy semantics.** `/gse:deploy --destroy` is a best-effort, retry-safe operation:
+
+- In `--dry-run` mode, enumerates the applications, Coolify projects, server, and firewall that would be deleted, with an estimated monthly cost saving (from a hardcoded price table in `deploy.py`, kept in sync with `references/hetzner-infrastructure.md`).
+- Without `--dry-run`, requires `--confirm <server-name>` that must exactly match the server name recorded in state.
+- Attempts deletions in order: Coolify applications → Coolify `gse` / `gse-*` projects → Hetzner server → Hetzner firewall.
+- On any error, records it and continues (best-effort). Returns `status: "partial"` with the error list.
+- **Critically: the state file is reset ONLY if all deletions succeeded.** On partial failure, state is preserved so the user can retry — this avoids silent data-loss (server still billed but no longer tracked).
+
+The skill orchestrates a three-step ceremony (dry-run impact preview → Gate 1 generic confirmation → Gate 2 server-name retype) and surfaces post-destroy warnings about external resources (DNS records at registrar, Cloudflare zones, Let's Encrypt certs, SSH keys) that the destroy operation does not — and cannot — clean up.
+
+**Testing.** The plugin ships with two levels of validation:
+
+- **Unit tests** (`gse-one/tests/test_deploy.py`, ~44 tests) covering deterministic functions: `sanitize_component`, `build_subdomain`, `_detect_type`, `preflight` aggregation, `.env` parsing, state I/O, cost hints. Uses the `unittest` stdlib module — no external test dependency. Run: `python3 -m unittest discover tests` or integrated via `python3 gse_generate.py --verify` (which runs verify + tests atomically).
+- **Manual E2E checklist** (`gse-one/TESTING.md`) covering Coolify / Hetzner / SSH flows that require live infrastructure: solo full flow, partial-skip detection, training mode (instructor + N learners), destroy with dry-run, edge cases (FQDN overflow, Coolify down, DNS timeout).
+
+CI is not yet set up — listed as future work in `TESTING.md`. The test foundation is intentionally minimal to keep the contribution cost low while catching the most impactful regressions (subdomain sanitization, type detection, state schema drift, env file parsing).
+
 ---
 
 ## 6. Methodology Deployment: Cross-Platform Parity
@@ -2558,11 +2645,12 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 |------|-------|--------|---------|
 | 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc` | Body identical, frontmatter differs |
 | 2 | `src/activities/*.md` (23) | `plugin/skills/<name>/SKILL.md` | Shared |
-| 3 | `src/agents/*.md` (8 specialized) | `plugin/agents/<name>.md` | Shared |
+| 3 | `src/agents/*.md` (10 specialized) | `plugin/agents/<name>.md` | Shared |
 | 4 | `src/templates/*` (19) | `plugin/templates/*` | Shared |
-| 5 | Constants | `plugin/.claude-plugin/plugin.json` + `plugin/.cursor-plugin/plugin.json` | Two manifests |
-| 6 | Shared shell commands | `plugin/hooks/hooks.claude.json` + `plugin/hooks/hooks.cursor.json` | Same logic, different format |
-| 7 | — | `plugin/settings.json` | Claude-only |
+| 5 | `src/references/*.md` | `plugin/references/*.md` | Shared — consulted by agents at runtime |
+| 6 | Constants | `plugin/.claude-plugin/plugin.json` + `plugin/.cursor-plugin/plugin.json` | Two manifests |
+| 7 | Shared shell commands | `plugin/hooks/hooks.claude.json` + `plugin/hooks/hooks.cursor.json` | Same logic, different format |
+| 8 | — | `plugin/settings.json` | Claude-only |
 
 ---
 

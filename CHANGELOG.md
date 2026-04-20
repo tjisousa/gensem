@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.42.0] - 2026-04-21
+
+Layers impacted: **spec**, **design**, **implementation**, **tools**, **tests**, **docs**
+
+### Added
+- **`/gse:deploy` production-ready.** Concrete, deterministic, auditable deployment activity for Hetzner Cloud + Coolify v4 (23rd command). Adaptive to solo / partial / training situations with 6-phase workflow (setup → provision → secure → install-coolify → configure-domain → deploy).
+- **Subdomain derivation**: solo `<project>.<domain>`, training `<user>-<project>.<domain>` with full sanitization and RFC 1035 length checks.
+- **Multi-application state schema**: `.gse/deploy.json` with `applications[]` array, Coolify hierarchy mapping (`gse` / `gse-<user>` projects + `production` environment), `cdn` block.
+- **New artifact type `src/references/`**: reference material consulted by agents at runtime. Ships with `hetzner-infrastructure.md` (pricing, sizing, Coolify API endpoints, security checklist) and `ssh-operations.md` (connection patterns, credential resolution).
+- **Four Dockerfile templates**: `Dockerfile.streamlit`, `Dockerfile.python`, `Dockerfile.node`, `Dockerfile.static` + shared `.dockerignore`. All include `ARG SOURCE_COMMIT=unknown` for Docker cache-bust.
+- **`deploy-operator` agent**: 10th specialized agent, 7 core principles (safety, idempotence, user interaction, step numbering, error handling, credential management, SSH), 6-phase lifecycle, anti-patterns.
+- **Python execution tools**: `plugin/tools/coolify_client.py` (Coolify v1 API HTTP client, stdlib-only, 3x retries on 5xx) + `plugin/tools/deploy.py` (orchestrator with 18 subcommands: state, env, subdomain, detect, preflight, record-*, deploy-app, destroy, wait-dns, training-*).
+- **Concrete production-readiness**: 4 DNS registrar sections (Namecheap, Gandi, OVH, Cloudflare), Cloudflare CDN/DDoS/WAF proposal with 10-step opt-in flow, `ufw-docker` hardening (prevents Docker from bypassing UFW), detailed Coolify onboarding wizard, `wait-dns` polling with `@8.8.8.8` fallback resolver.
+- **Training tools**: `--training-init` generates redacted `.env.training` (safe secrets only, security warning embedded), `--training-reap` deletes per-learner or all `gse-*` Coolify projects (preserves `gse` solo project).
+- **Two-Gate `--destroy`** with dry-run preview, cost savings surfacing, retry-safe state preservation on partial failure, post-destroy warnings (DNS, Cloudflare, Let's Encrypt, SSH key).
+- **Typed preflight**: `deploy.py preflight` subcommand returns type + port + 15+ structured checks (git state, entry points, Streamlit CORS/XSRF, Dockerfile `ARG SOURCE_COMMIT`, Node `start` script, Next.js build hint, static `index.html`).
+- **Unit test foundation**: 44 stdlib unittest tests covering deterministic functions (sanitize, build_subdomain, detect_type, preflight rollup, env parsing, state I/O, cost hints). Runs automatically via `gse_generate.py --verify`.
+- **`TESTING.md`** at `gse-one/` root: documents unit test runner + manual E2E checklist (solo full, solo partial, training, edge cases).
+- **`--registrar <name>`, `--redeploy`, `--training-init`, `--training-reap`, `--help` flags** documented in skill `deploy.md`.
+- **README "Deployment" section** with Prerequisites + "Maintaining upstream compatibility" contribution workflow (covers Coolify API, registrar UIs, hcloud install, Cloudflare UI, Coolify onboarding).
+- **Abstraction principle doctrine** formalized in design §5.18: GSE-One prefers concrete, deterministic instructions over goal-level abstractions, for reproducibility, auditability, self-containment, testability.
+- **Destroy semantics** documented: retry-safe, best-effort, dry-run supported, state preserved on partial failure.
+
+### Changed
+- **Design doc §5.18** expanded from an empty section to 12 subsections covering the full `/gse:deploy` design.
+- **Spec §1.6 agent count corrected**: text said "8 specialized" while table listed 9. Now "10 specialized" (9 existing + deploy-operator) with matching table row.
+- **Spec `/gse:deploy` row** options list extended to include all 7 flags (`--status`, `--redeploy`, `--destroy`, `--registrar`, `--training-init`, `--training-reap`, `--help`).
+- **`src/templates/deploy.json`** redesigned: single `app` object → `applications: []` array, added `cdn` block, per-app Coolify UUIDs, resources.
+- **`src/templates/config.yaml` `deploy.app_type`** extended to `auto | streamlit | python | node | static | custom`.
+- **`src/templates/deploy-env-training.example`** enriched with URL pattern examples.
+- **Generator `gse_generate.py`**: added `REFERENCES_DIR` + copy logic, extended tools verify, unit test runner in `--verify`, registered `deploy-operator.md` as 10th specialized agent.
+- **Skill `deploy.md`** fully restructured (~600 lines): Step 0 delegates to tool `detect`, all phases persist completion via `record-phase`, Phase 6 consolidated into single `deploy-app` call, `--status`/`--destroy`/`--training-*` delegate to tool with skill-orchestrated Gates.
+
+### Fixed
+- **`destroy()` data-loss bug**: state was reset unconditionally even on partial failure, losing server tracking (user kept being billed with no trace in state). Now state is preserved on `status: "partial"` for retry.
+- **Pre-existing spec inconsistency** (§1.6): text said "9 agents / 8 specialized" while table listed 9 specialized rows. Corrected to "11 agents / 10 specialized" with matching table.
+
+### Removed
+- **`src/templates/Dockerfile`** (old Streamlit-only default) — replaced by 4 specialized templates.
+- **`gse-deploy-plan.md`, `gse-deploy-minimal-plan.md`** (design drafts at repo root) — archived outside the repo (`_LOCAL/archive/`, gitignored).
+
+### Notes for contributors
+The deploy implementation is deliberately concrete (not abstracted to LLM + Context7 MCP). Upstream drift (Coolify API, registrar UIs, hcloud install) is absorbed via PRs. See `README.md → Deployment → Maintaining upstream compatibility` and `TESTING.md`.
+
 ## [0.41.0] - 2026-04-20
 
 Layers impacted: **spec**, **design**, **implementation** (templates, activities, generator)

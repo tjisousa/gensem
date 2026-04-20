@@ -64,6 +64,7 @@ PRINCIPLES_DIR = SRC / "principles"
 ACTIVITIES_DIR = SRC / "activities"
 AGENTS_DIR = SRC / "agents"
 TEMPLATES_DIR = SRC / "templates"
+REFERENCES_DIR = SRC / "references"
 
 ACTIVITY_NAMES = [
     "go", "hug", "learn", "backlog", "collect", "assess", "plan",
@@ -76,6 +77,7 @@ SPECIALIZED_AGENTS = [
     "requirements-analyst.md", "architect.md", "test-strategist.md",
     "code-reviewer.md", "security-auditor.md", "ux-advocate.md",
     "guardrail-enforcer.md", "devil-advocate.md", "coach.md",
+    "deploy-operator.md",
 ]
 
 PLUGIN_DESCRIPTION = (
@@ -256,6 +258,17 @@ def generate(clean: bool = False) -> None:
                 copy_file(src_file, PLUGIN / "templates" / rel)
                 count += 1
     print(f"  {count}\n")
+
+    # 4.1. References (shared) — consulted by agents at runtime
+    print("References:")
+    ref_count = 0
+    if REFERENCES_DIR.exists():
+        for src_file in sorted(REFERENCES_DIR.rglob("*")):
+            if src_file.is_file():
+                rel = src_file.relative_to(REFERENCES_DIR)
+                copy_file(src_file, PLUGIN / "references" / rel)
+                ref_count += 1
+    print(f"  {ref_count}\n")
 
     # 4.5. Tools directory (dashboard etc.)
     print("Tools:")
@@ -697,15 +710,30 @@ def verify() -> None:
     agents = sum(1 for f in SPECIALIZED_AGENTS if (PLUGIN / "agents" / f).exists())
     orchestrator = (PLUGIN / "agents" / "gse-orchestrator.md").exists()
     templates = sum(1 for _ in (PLUGIN / "templates").rglob("*") if _.is_file()) if (PLUGIN / "templates").exists() else 0
+    references = sum(1 for _ in (PLUGIN / "references").rglob("*") if _.is_file()) if (PLUGIN / "references").exists() else 0
 
     print(f"  Agents:      {agents}/{len(SPECIALIZED_AGENTS)} specialized + orchestrator={'OK' if orchestrator else 'MISSING'}")
     print(f"  Templates:   {templates}")
+    print(f"  References:  {references}")
 
     # Hand-maintained tools (not regenerated) — presence is critical because
-    # the dashboard hook invokes plugin/tools/dashboard.py at runtime.
-    dashboard = PLUGIN / "tools" / "dashboard.py"
-    print(f"  Tools:       {'OK' if dashboard.exists() else 'MISSING dashboard.py'}")
-    if not dashboard.exists(): errors.append("Missing plugin/tools/dashboard.py (hand-maintained, not regenerated)")
+    # hooks and skills invoke them at runtime.
+    required_tools = {
+        "dashboard.py": "dashboard hook",
+        "coolify_client.py": "/gse:deploy skill (Coolify API client library)",
+        "deploy.py": "/gse:deploy skill (orchestrator)",
+    }
+    missing_tools = []
+    for name, purpose in required_tools.items():
+        path = PLUGIN / "tools" / name
+        if not path.exists():
+            missing_tools.append(f"{name} ({purpose})")
+    if missing_tools:
+        print(f"  Tools:       MISSING {', '.join(missing_tools)}")
+        for m in missing_tools:
+            errors.append(f"Missing plugin/tools/{m}")
+    else:
+        print(f"  Tools:       OK ({len(required_tools)} scripts)")
 
     if agents < len(SPECIALIZED_AGENTS): errors.append(f"Missing {len(SPECIALIZED_AGENTS)-agents} specialized agents")
     if not orchestrator: errors.append("Missing gse-orchestrator.md")
@@ -803,6 +831,30 @@ def verify() -> None:
             else:
                 print(f"    AGENTS.md vs .mdc body:    DIVERGENT!")
                 errors.append("opencode AGENTS.md body differs from .mdc body")
+
+    # Run unit tests if available (opt-in via directory presence).
+    tests_dir = ROOT / "tests"
+    if tests_dir.exists() and any(tests_dir.glob("test_*.py")):
+        print("\n  Unit tests:")
+        import io
+        import unittest
+        try:
+            loader = unittest.TestLoader()
+            suite = loader.discover(str(tests_dir), pattern="test_*.py")
+            stream = io.StringIO()
+            runner = unittest.TextTestRunner(verbosity=1, stream=stream)
+            result = runner.run(suite)
+            if not result.wasSuccessful():
+                print(stream.getvalue())
+                errors.append(
+                    f"Unit tests failed: {len(result.failures)} failures, "
+                    f"{len(result.errors)} errors"
+                )
+            else:
+                print(f"    OK ({result.testsRun} tests, "
+                      f"{result.skipped and len(result.skipped) or 0} skipped)")
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"Unit test runner failed: {e}")
 
     if errors:
         print(f"\n  ERRORS ({len(errors)}):")

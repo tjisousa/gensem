@@ -428,7 +428,7 @@ GSE-One is built for a fundamental asymmetry: the **user has the intent** but th
 
 ### 1.6 Agent Roles
 
-An agent is a named role that shapes how the coding agent reasons about a specific concern (see the Agent concept defined earlier in this section). GSE-One defines 9 agents — one orchestrator and 8 specialized roles. Each specialized agent is invoked by the orchestrator during the activities that require its expertise:
+An agent is a named role that shapes how the coding agent reasons about a specific concern (see the Agent concept defined earlier in this section). GSE-One defines 11 agents — one orchestrator and 10 specialized roles. Each specialized agent is invoked by the orchestrator during the activities that require its expertise:
 
 | Agent | Role | Invoked during |
 |-------|------|----------------|
@@ -442,6 +442,7 @@ An agent is a named role that shapes how the coding agent reasons about a specif
 | **guardrail-enforcer** | Monitors and enforces guardrail compliance (P11). Cross-cutting, always active. | All activities |
 | **devil-advocate** | Challenges the agent's own productions for AI integrity (P16). | `/gse:review` |
 | **coach** | Observes the AI+user collaboration across **8 axes** — pedagogy (P14: explicit learning goals + inferred gaps, 5-option P14 preambles, LRN- notes); profile calibration (drift between declared profile and observed behavior); sprint velocity; workflow health (stalls, friction); quality trends (test pass-rate, review findings); engagement pattern (P16 pushback, acceptance streaks); process deviation (activity skips, shortcuts); sustainability (session length, cadence). Each axis is individually toggleable. Holds extensible **coaching recipes** (both pedagogical and workflow) — user-editable and self-updatable via compound Axe 3. | Activity start (pedagogy axis when learning_goals set); sprint close and mid-sprint stall (velocity/health/quality); end of Gate sequences (engagement); activity-skip events (process deviation); session-boundary events (sustainability); `/gse:compound` Axe 3 (all axes + recipe curation) |
+| **deploy-operator** | Manages Hetzner/Coolify deployment lifecycle. Governs safety (credential handling, no-exposure), idempotence (phase tracking in `.gse/deploy.json`), and cost-confirmation gates. | `/gse:deploy` |
 
 ---
 
@@ -1184,7 +1185,7 @@ The agent also creates backlog items **automatically** during other activities (
 
 | Command | Activity | Description |
 |---------|----------|-------------|
-| `/gse:deploy` | **Deploy** | Deploy the current project to a Hetzner server via Coolify. Adapts to the user's situation: from zero infrastructure (solo) to a pre-configured shared server (training). Handles provisioning, server hardening, Coolify installation, DNS/SSL, and application deployment in a single guided flow. Options: `--status` (show deployment state), `--redeploy` (rebuild), `--destroy` (tear down server, Gate). |
+| `/gse:deploy` | **Deploy** | Deploy the current project to a Hetzner server via Coolify. Adapts to the user's situation: from zero infrastructure (solo) to a pre-configured shared server (training). Handles provisioning, server hardening, Coolify installation, DNS/SSL, and application deployment in a single guided flow. Options: `--status` (show state), `--redeploy` (force rebuild), `--destroy` (tear down, double Gate), `--registrar <name>` (registrar-specific DNS instructions), `--training-init` (instructor: generate `.env.training`), `--training-reap` (instructor: clean learner apps), `--help`. See `src/activities/deploy.md` for the full workflow. |
 
 ### 3.9 Capitalization
 
