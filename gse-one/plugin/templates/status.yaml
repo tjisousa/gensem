@@ -42,16 +42,28 @@ fix_attempts_on_current_symptom: 0     # triggers devil-advocate escalation at t
 # Cleared at activity closure; empty when not in a creator activity
 activity_start_sha: ""                 # HEAD SHA at the start of the current creator activity
 
-# P14 tutor agent history (spec P14 + agents/tutor.md)
-# Each entry records a preamble offered by the tutor and the user's response.
+# P14 coach agent — pedagogy-axis history (spec P14 + agents/coach.md)
+# Each entry records a preamble offered by the coach and the user's response.
 # Used to respect `not-interested` (permanent suppress) and `not-now` (activity-scoped).
 # Persists across /gse:pause / /gse:resume.
 learning_preambles: []                 # list of { topic, offered_at, sprint, response, lrn_ref, timestamp }
 
-# P14 tutor agent — inferred-gap ledger (only populated if pedagogy.proactive_gap_detection: true)
-# Running record of friction patterns the tutor observes during the sprint.
+# P14 coach agent — inferred-gap ledger (only populated if coach.proactive_gap_detection: true)
+# Running record of friction patterns the coach observes during the sprint (pedagogy axis).
 # Reviewed at /gse:compound Axe 3; may seed new learning_goals with user consent.
 detected_gaps: []                      # list of { concept, source, occurrences, last_seen, addressed_by_lrn }
+
+# Coach agent — profile-calibration axis (persistent drift signals)
+# Accumulates observations where the user's behavior diverges from the declared HUG profile
+# (e.g., declared beginner but consistently skips explanations; declared autonomous but asks
+# for Gate on every low-risk decision). Debounced across sessions to avoid over-reacting.
+# Reviewed at /gse:compound Axe 3; may propose /gse:hug --update with user consent.
+profile_drift_signals: {}              # map of { dimension → { observations: int, last_seen, direction, evidence: [] } }
+
+# Coach agent — workflow-axes scratchpad (transient)
+# Accumulates observations from velocity/health/quality/engagement/deviation/sustainability axes
+# during the current sprint. Consumed and cleared at sprint close by /gse:compound Axe 2.
+workflow_observations: []              # list of { axis, moment, observation, evidence, severity, timestamp }
 
 last_activity: ""                      # e.g., /gse:produce
 last_activity_date: ""                 # ISO 8601 timestamp

@@ -122,14 +122,24 @@ dashboard:
                                        # (spec §7 automatic regeneration policy). Raise for
                                        # bursty projects, lower for ultra-reactive feedback.
 
-# --- Section 15: Pedagogy (tutor agent, spec P14) ---
-pedagogy:
-  enabled: true                        # Tutor agent invocations. Set false to disable all proactive preambles.
+# --- Section 15: Coach (unified pedagogy + workflow monitoring, spec P14) ---
+coach:
+  enabled: true                        # Master switch for the coach agent. Set false to disable all axes.
                                        # /gse:learn remains available for manual learning sessions.
-  max_preambles_per_sprint: 3          # Cap to prevent preamble saturation. Sprint-scoped.
-  proactive_gap_detection: true        # Tutor monitors friction patterns (repeated questions, hesitations,
-                                       # explicit confusion) to infer competency gaps and propose preambles.
-                                       # Set false for pure explicit-goals mode.
+  max_preambles_per_sprint: 3          # Cap on pedagogy preambles per sprint (prevents saturation).
+  max_advice_per_check: 3              # Cap on workflow `advise` blocks returned per coach invocation.
+  proactive_gap_detection: true        # Pedagogy axis monitors friction patterns (repeated questions,
+                                       # hesitations, explicit confusion) to infer competency gaps.
+                                       # Set false for pure explicit-goals pedagogy.
+  axes:                                # Per-axis toggles. Disabled axes are never invoked.
+    pedagogy: true                     # 1. Explicit learning_goals + inferred gaps → 5-option P14 preambles
+    profile_calibration: true          # 2. Drift between declared HUG profile and observed behavior
+    sprint_velocity: true              # 3. Pace vs complexity budget; stall detection
+    workflow_health: true              # 4. Broken flow sequences, uncompleted transitions
+    quality_trends: true               # 5. Test pass-rate, review findings, design debt trends
+    engagement_pattern: true           # 6. P16 acceptance-streak / pushback_dismissed observation
+    process_deviation: true            # 7. Sanctioned activities bypassed (e.g., produce without preview)
+    sustainability: true               # 8. Session length / cadence drift from profile
 
 # --- Section 14: Compound (end-of-sprint capitalization) ---
 compound:

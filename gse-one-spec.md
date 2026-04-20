@@ -400,7 +400,7 @@ GSE-One is built for a fundamental asymmetry: the **user has the intent** but th
 
 3. **Version control isolation** — Every task is developed in its own git worktree, branched from the sprint branch. The `main` branch is always stable. Merges are formal decisions with user validation. The user never needs to learn git commands — the agent handles branching, merging, and cleanup transparently. (P12)
 
-4. **Adaptive knowledge transfer** — The agent acts as a tutor alongside its engineering role. It inserts contextual explanations during activities, proposes learning sessions at natural workflow transitions, and produces persistent learning notes grounded in the user's actual project. As the user learns, the agent progressively steps back. (P14)
+4. **Adaptive knowledge transfer** — The agent acts as a coach alongside its engineering role. It inserts contextual explanations during activities, proposes learning sessions at natural workflow transitions, and produces persistent learning notes grounded in the user's actual project. As the user learns, the agent progressively steps back. (P14)
 
 5. **External source reuse** — Projects can bootstrap from existing code, whether from the user's other projects or from public repositories. The agent scans, evaluates compatibility, and imports with full provenance traceability. (Section 4)
 
@@ -441,7 +441,7 @@ An agent is a named role that shapes how the coding agent reasons about a specif
 | **ux-advocate** | Evaluates user experience and accessibility. | `/gse:preview`, `/gse:review` |
 | **guardrail-enforcer** | Monitors and enforces guardrail compliance (P11). Cross-cutting, always active. | All activities |
 | **devil-advocate** | Challenges the agent's own productions for AI integrity (P16). | `/gse:review` |
-| **tutor** | Manages user upskilling (P14). Evaluates contextual pedagogical relevance based on explicit `learning_goals` and inferred competency gaps; proposes 5-option P14 preambles with precise, context-aware topics; maintains LRN- learning notes; holds extensible pedagogical recipes (user-editable and self-updatable via compound Axe 3). | Activity start (when learning_goals set), Gate decisions with high pedagogical load, `/gse:compound` Axe 3, inferred gap triggers |
+| **coach** | Observes the AI+user collaboration across **8 axes** — pedagogy (P14: explicit learning goals + inferred gaps, 5-option P14 preambles, LRN- notes); profile calibration (drift between declared profile and observed behavior); sprint velocity; workflow health (stalls, friction); quality trends (test pass-rate, review findings); engagement pattern (P16 pushback, acceptance streaks); process deviation (activity skips, shortcuts); sustainability (session length, cadence). Each axis is individually toggleable. Holds extensible **coaching recipes** (both pedagogical and workflow) — user-editable and self-updatable via compound Axe 3. | Activity start (pedagogy axis when learning_goals set); sprint close and mid-sprint stall (velocity/health/quality); end of Gate sequences (engagement); activity-skip events (process deviation); session-boundary events (sustainability); `/gse:compound` Axe 3 (all axes + recipe curation) |
 
 ---
 
@@ -796,8 +796,8 @@ The following behaviors are executed by the orchestrator agent during activities
 | **Risk escalation** | High-risk condition detected during any activity | Interrupt current flow, trigger Gate interaction | P7 (risk classification) |
 | **Process discipline** | Every transition between lifecycle phases | The next step in the GSE lifecycle is always the default action. Shortcuts or alternatives are never proposed proactively — only if the user asks or a Gate exposes them. | P1 (iterative), P2 (agile) |
 
-### P14 — Knowledge Transfer (Tutoring)
-GSE-One acts as a **tutor** alongside its engineering companion role. Knowledge transfer operates in two complementary modes:
+### P14 — Knowledge Transfer (Coaching)
+GSE-One acts as a **coach** alongside its engineering companion role. Knowledge transfer operates in two complementary modes:
 
 #### Contextual mode (subtle, within activities)
 During any activity, the agent detects **learning opportunities** — moments where a concept the user doesn't fully grasp is directly relevant to what they are doing. When this happens, the agent inserts a brief, non-intrusive explanation calibrated to the user's level (P9).
@@ -899,7 +899,7 @@ The agent maintains a lightweight **competency map** in the HUG profile (`.gse/p
 - Competency gaps detected — with project relevance
 - Notes produced — index of all learning notes with topics
 
-This map is used to calibrate both the contextual tips and the proactive proposals, and to progressively adjust the user's effective expertise level over time. As the user learns, the agent naturally shifts from Gate-tier to Inform-tier decisions, from verbose to concise explanations, and from frequent to rare guardrails — the tutoring works itself out of a job.
+This map is used to calibrate both the contextual tips and the proactive proposals, and to progressively adjust the user's effective expertise level over time. As the user learns, the agent naturally shifts from Gate-tier to Inform-tier decisions, from verbose to concise explanations, and from frequent to rare guardrails — the coaching works itself out of a job.
 
 #### Progressive expertise by domain
 

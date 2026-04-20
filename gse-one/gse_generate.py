@@ -75,7 +75,7 @@ ACTIVITY_NAMES = [
 SPECIALIZED_AGENTS = [
     "requirements-analyst.md", "architect.md", "test-strategist.md",
     "code-reviewer.md", "security-auditor.md", "ux-advocate.md",
-    "guardrail-enforcer.md", "devil-advocate.md", "tutor.md",
+    "guardrail-enforcer.md", "devil-advocate.md", "coach.md",
 ]
 
 PLUGIN_DESCRIPTION = (

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0] - 2026-04-19
+
+Layers impacted: **spec**, **design**, **implementation** (tutor agent merged into unified `coach` agent)
+
+### Changed
+- **Tutor agent merged into unified `coach` agent** (AMÉL-16 from training feedback). The v0.36 `tutor` and the earlier proto-`coach` observation concern are now a single specialized sub-agent (`agents/coach.md`) observing the AI+user collaboration along **8 axes** grouped into two categories:
+  - **Pedagogy** (axis 1, ex-tutor): explicit `learning_goals` + inferred competency gaps → 5-option P14 preambles, LRN- learning notes.
+  - **Workflow** (axes 2–8): profile calibration (HUG drift), sprint velocity, workflow health, quality trends, engagement pattern (P16 acceptance/pushback), process deviation, sustainability (session cadence).
+- **Per-axis toggles** in `config.yaml → coach.axes.*` — users disable what's irrelevant (e.g., sustainability off for async solo work, engagement off when P16 is already visible enough). Master switch `coach.enabled` and per-invocation caps (`max_preambles_per_sprint`, `max_advice_per_check`) preserved.
+- **Invocation contract** — orchestrator passes a `moment` tag (`activity_start:/gse:*`, `sprint_close`, `mid_sprint_stall`, `gate_sequence_end`, `activity_skip_event`, `session_boundary`, `compound_axe_3`, `inferred_gap_trigger`, `profile_drift_recurrence`); coach returns zero or more YAML blocks (`skip | propose | advise`) materialized as P14 Gates (pedagogy) or Inform/Gate lines (workflow).
+- Specialized-agent count unchanged at 9 — `tutor.md` removed, `coach.md` added.
+
+### Added
+- **`profile_drift_signals{}` field** in `status.yaml` — persistent map of HUG-profile drift observations, debounced across sessions, consumed by profile-calibration axis at `/gse:compound` Axe 3 to propose `/gse:hug --update`.
+- **`workflow_observations[]` field** in `status.yaml` — transient scratchpad for velocity/health/quality/engagement/deviation/sustainability observations during the sprint, cleared at sprint close after consumption by compound.
+- **Coaching recipes section** in `agents/coach.md` — extensible, tagged `for: pedagogy | workflow | both`, dual-maintenance (user-editable + agent-updatable via `/gse:compound` Axe 3). Replaces the v0.36 tutor "Pedagogical recipes" section with broader scope.
+
+### Removed
+- `gse-one/src/agents/tutor.md` (content absorbed into `coach.md`).
+- `pedagogy:` section in `config.yaml` templates (replaced by `coach:` section with the same defaults plus per-axis toggles).
+- *Tutor agent — Design Mechanics* subsection in `gse-one-implementation-design.md` (replaced by *Coach agent — Design Mechanics* covering all 8 axes).
+
+### Rationale
+Both the tutor (pedagogy) and the proto-coach (workflow monitoring) read from overlapping signal sources — `profile.yaml`, `status.yaml` history, activity transitions, P16 counters. Keeping them as two separate agents duplicates the signal-reading layer and splits extensibility (two recipes files, two sets of toggles, two invocation contracts). A single unified agent holds the full observational picture in one fresh-context invocation, exposes a single extensibility surface (recipes tagged per axis), and lets users turn observation on/off dimension by dimension rather than all-or-nothing. The 8-axis framing makes the agent's mandate legible while preserving P14 pedagogy semantics bit-for-bit (same 5-option gate, same persistence fields, same anti-spam caps).
+
 ## [0.36.0] - 2026-04-20
 
 Layers impacted: **spec**, **design**, **implementation** (new agent + orchestrator + config/status templates + generator)

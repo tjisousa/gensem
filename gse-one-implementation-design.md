@@ -2123,36 +2123,60 @@ At start of `/gse:tests --run` or `/gse:produce`:
 - Compare current framework (from package manifest) with `config.yaml → testing.framework`
 - If different → Inform: "Framework changed from X to Y. Update config?"
 
-**Tutor agent — Design Mechanics (spec P14 + `agents/tutor.md`):**
+**Coach agent — Design Mechanics (spec P14 + `agents/coach.md`):**
 
-The tutor is a dedicated specialized sub-agent responsible for the **pedagogical dimension** of GSE-One. Modeled after the other advocates (architect, security-auditor, ux-advocate, devil-advocate): separate agent file, fresh context on invocation, narrow mandate.
+The coach is a dedicated specialized sub-agent responsible for **observing the AI+user collaboration** along 8 axes — pedagogy (P14) plus seven workflow-monitoring axes. Modeled after the other advocates (architect, security-auditor, ux-advocate, devil-advocate): separate agent file, fresh context on invocation, narrow but extensible mandate.
 
-**Why a dedicated agent (and not orchestrator-inline):**
-- Keeps the orchestrator lean — no inline pedagogical reasoning algorithm
-- Fresh context = objective evaluation (pedagogical judgment not polluted by project-execution details)
-- Extensible: the `agents/tutor.md` file contains a *"Pedagogical recipes"* section that both the user (manual edit) and the agent (auto-update via `/gse:compound` Axe 3) can maintain
-- Pattern consistent with `devil-advocate.md` (invoked at specific moments, returns a verdict, orchestrator acts on it)
+**Why a single unified agent (and not orchestrator-inline nor two separate agents):**
+- Keeps the orchestrator lean — no inline pedagogical or workflow-monitoring algorithm
+- Fresh context = objective evaluation across axes; the agent holds the full observational picture
+- Prevents duplication: both pedagogy and workflow observation read from overlapping signal sources (profile, status history, activity transitions, P16 counters) — a single agent reads once
+- Extensible: the `agents/coach.md` file contains a *"Coaching recipes"* section (tagged per axis) that both the user (manual edit) and the agent (auto-update via `/gse:compound` Axe 3) can maintain
+- Individual axes toggleable via `config.yaml → coach.axes.<axis>` — users disable what's irrelevant
+
+**The 8 axes:**
+
+| # | Axis | Category | Purpose |
+|---|------|----------|---------|
+| 1 | Pedagogy | Pedagogy | Explicit `learning_goals` + inferred competency gaps → 5-option P14 preambles, LRN- notes |
+| 2 | Profile calibration | Workflow | Drift between declared profile (HUG) and observed behavior → proposes `/gse:hug --update` |
+| 3 | Sprint velocity | Workflow | Pace vs complexity budget; stall detection (`sessions_without_progress`) |
+| 4 | Workflow health | Workflow | Uncompleted transitions, activity skips, broken flow sequences |
+| 5 | Quality trends | Workflow | Trend in test pass-rate, review findings, design debt across recent sprints |
+| 6 | Engagement pattern | Workflow | P16 `consecutive_acceptances` near threshold; `pushback_dismissed` abuse |
+| 7 | Process deviation | Workflow | Sanctioned activities bypassed (e.g., produce without preview, fix without review) |
+| 8 | Sustainability | Workflow | Session length / cadence drift from profile; fatigue signals |
 
 **Invocation contract:**
 
-Invoked by the orchestrator at:
-- Activity start (any of the 15 lifecycle activities) when `profile.yaml → dimensions.learning_goals` is non-empty AND `config.yaml → pedagogy.enabled: true`
-- Before a Gate decision with high pedagogical load (stack choice, architecture, persistence strategy)
-- After detected friction patterns (repeated questions, hesitations, explicit confusion — if `proactive_gap_detection: true`)
-- During `/gse:compound` Axe 3 (competency capitalization)
+Invoked by the orchestrator with a `moment` tag. Each axis is activated by specific moments:
 
-**Inputs passed to the tutor:**
-- Activity name + what it will concretely exercise (technique, pattern, tasks)
-- `profile.yaml → dimensions.learning_goals` (free text)
-- `docs/learning/LRN-*` (list + metadata)
-- `status.yaml → learning_preambles[]` (previous interactions and responses)
-- `status.yaml → detected_gaps[]` (for inferred-gap trigger)
+| Moment | Axes activated |
+|--------|----------------|
+| `activity_start:/gse:*` | Pedagogy (if `learning_goals` non-empty and cap not exhausted) |
+| `sprint_close` (end of `/gse:compound` Axe 2) | Velocity, Health, Quality |
+| `mid_sprint_stall` (when `sessions_without_progress ≥ 2`) | Velocity, Health |
+| `gate_sequence_end` (after P16 counter transitions) | Engagement |
+| `activity_skip_event` | Process deviation |
+| `session_boundary` (end of session, resume, long gap) | Sustainability |
+| `compound_axe_3` | All 8 axes + recipe curation |
+| `inferred_gap_trigger` (friction pattern detected, if `proactive_gap_detection: true`) | Pedagogy |
+| `profile_drift_recurrence` | Profile calibration |
 
-**Outputs (returned to orchestrator):**
+**Inputs passed to the coach:**
+- `moment` tag + activity name (when applicable)
+- `profile.yaml` (all dimensions)
+- `docs/learning/LRN-*` (list + metadata) — pedagogy axis
+- `status.yaml` snapshot (health dimensions, P16 counters, `learning_preambles[]`, `detected_gaps[]`, `profile_drift_signals`, `workflow_observations[]`, `activity_history[]`, `sessions_without_progress`)
+- `.gse/plan.yaml` (current sprint state, completed/pending activities)
+- Relevant fragment of `.gse/backlog.yaml` when velocity/quality axes are active
+
+**Outputs (returned to orchestrator — zero or more blocks):**
 
 ```yaml
-tutor_decision:
-  verdict: skip | propose
+# Pedagogy axis outputs
+- verdict: skip | propose
+  axis: pedagogy
   # if skip:
   reason: "already covered (LRN-002)" | "previously declined" | "cap reached" | "no overlap" | ...
   # if propose:
@@ -2163,37 +2187,51 @@ tutor_decision:
     example: "{concrete 3-10 line example}"
     pitfall: "{common mistake + fix hint}"
   suggested_depth: quick | deep
+
+# Workflow axes outputs
+- verdict: advise
+  axis: velocity | health | quality | engagement | deviation | sustainability | profile-calibration
+  severity: inform | gate
+  observation: "{1-2 sentences of what the coach has noticed}"
+  evidence: ["{concrete signal 1}", "{concrete signal 2}"]
+  suggestion: "{actionable next step — may cite an existing command like /gse:hug --update}"
 ```
 
-On `propose`, the orchestrator presents the 5-option P14 Gate to the user. On Quick or Deep acceptance, the tutor writes the learning note (LRN-NNN) and persists the interaction.
+On `propose` (pedagogy), the orchestrator presents the 5-option P14 Gate. On `advise` with `severity: inform`, the orchestrator emits a one-line Inform note. On `advise` with `severity: gate`, the orchestrator presents a 3-option Gate (*Adopt / Defer / Discuss*). Every invocation respects `coach.max_advice_per_check` (default 3 blocks returned across all workflow axes).
 
 **Persistence model:**
 
-| Field | Location | Lifecycle |
-|-------|----------|-----------|
-| `learning_preambles[]` | `.gse/status.yaml` | Per-project, survives pauses/resumes |
-| `detected_gaps[]` | `.gse/status.yaml` | Per-project, reviewed at each `/gse:compound` |
-| Learning notes | `docs/learning/LRN-*.md` | Per-project, durable artefacts with traces |
-| Pedagogical recipes | `gse-one/plugin/agents/tutor.md` Recipes section | **Edit destination:** the user-local copy in `.claude/agents/tutor.md` / `.cursor/agents/tutor.md` (per-project recipes) OR the shipped template (shared defaults) |
+| Field | Location | Axis | Lifecycle |
+|-------|----------|------|-----------|
+| `learning_preambles[]` | `.gse/status.yaml` | Pedagogy | Per-project, survives pauses/resumes |
+| `detected_gaps[]` | `.gse/status.yaml` | Pedagogy (inferred) | Per-project, reviewed at each `/gse:compound` |
+| Learning notes | `docs/learning/LRN-*.md` | Pedagogy | Per-project, durable artefacts with traces |
+| `profile_drift_signals{}` | `.gse/status.yaml` | Profile calibration | Per-project, persistent — feeds `/gse:hug --update` proposals |
+| `workflow_observations[]` | `.gse/status.yaml` | Velocity, Health, Quality, Engagement, Deviation, Sustainability | Transient — cleared at sprint close after consumption by compound |
+| Coaching recipes | `gse-one/plugin/agents/coach.md` Recipes section | All axes (tagged `for: pedagogy | workflow | both`) | **Edit destination:** the user-local copy in `.claude/agents/coach.md` / `.cursor/agents/coach.md` (per-project) OR the shipped template (shared defaults) |
 
-**Pedagogical recipes — dual maintenance:**
+**Coaching recipes — dual maintenance:**
 
-1. **User-edit path:** user manually edits the project-local `tutor.md` copy to add project-specific or personal pedagogy (e.g., "prefer code examples in TypeScript", "always include a security caveat when discussing auth").
-2. **Agent auto-update path:** during `/gse:compound` Axe 3, if the tutor observes that a specific presentation strategy worked well (or poorly), it proposes a new recipe or update to the user via Gate. Approved updates are written to the same project-local file.
+1. **User-edit path:** user manually edits the project-local `coach.md` copy to add project-specific observation strategies (e.g., "prefer code examples in TypeScript" for the pedagogy axis, "treat >2h sessions as fatigue signal" for sustainability).
+2. **Agent auto-update path:** during `/gse:compound` Axe 3, if the coach observes that a specific presentation or observation strategy worked well (or poorly), it proposes a new recipe or update to the user via Gate. Approved updates are written to the same project-local file. Recipes are tagged `for: pedagogy | workflow | both` so curation remains scoped.
 
 **Anti-spam architecture:**
 
-- Sprint cap (`pedagogy.max_preambles_per_sprint`) — hard budget per sprint
-- Per-topic permanent suppress (`not-interested` response)
-- Per-topic activity-scope suppress (`not-now` response)
-- LRN deduplication (if LRN exists on the topic, don't re-propose unless user requests refresh)
-- Empty-goals skip: if `learning_goals` is empty AND `proactive_gap_detection: false`, the tutor is never invoked
+- Sprint cap (`coach.max_preambles_per_sprint`) — hard budget for pedagogy preambles per sprint
+- Per-invocation cap (`coach.max_advice_per_check`) — hard cap on workflow `advise` blocks returned per invocation (default 3)
+- Per-topic permanent suppress (pedagogy: `not-interested` response)
+- Per-topic activity-scope suppress (pedagogy: `not-now` response)
+- LRN deduplication (pedagogy: if LRN exists on the topic, don't re-propose unless user requests refresh)
+- Drift-signal debouncing (profile calibration: require N consistent observations before proposing `/gse:hug --update`, to avoid over-reacting to a single off-day)
+- Empty-goals skip: pedagogy axis never invoked if `learning_goals` is empty AND `proactive_gap_detection: false`
+- Per-axis disable: any axis with `config.yaml → coach.axes.<axis>: false` is never invoked
 
 **Failure modes:**
 
-- Tutor sub-agent fails to return → orchestrator proceeds without preamble, logs an Inform note
-- `learning_goals` malformed → tutor skips with "invalid profile input" reason; orchestrator surfaces a warning
-- Multiple topics match → tutor picks the most contextually relevant (matching the activity's current work); cap enforced
+- Coach sub-agent fails to return → orchestrator proceeds without preamble/advice, logs an Inform note
+- `learning_goals` malformed → coach skips pedagogy axis with "invalid profile input" reason; orchestrator surfaces a warning; other axes continue
+- Multiple pedagogy topics match → coach picks the most contextually relevant (matching the activity's current work); sprint cap enforced
+- Workflow axis has insufficient signal (new project, empty history) → coach returns no block for that axis rather than speculating
 
 **Policy tests — Design Mechanics (spec §6 Policy column):**
 
