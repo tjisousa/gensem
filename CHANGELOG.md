@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.38.1] - 2026-04-20
+
+Layers impacted: **documentation**
+
+### Added
+- **`docs/training-feedback-report.md`** — a pedagogical report (~20 pages, English) recapping the 20 improvements from the DLH training-feedback cycle. One card per AMÉL with uniform structure (problem / what we did / before-after / go further), a typed synthesis table (🛡 / 🔧 / 📐 / 🎯 / 🤝), sections on reshaped/deferred items and intentionally out-of-scope observations, plus release-chronology, glossary, and install annexes. Written without learner attributions; links point to commits and spec/design anchors.
+
 ## [0.38.0] - 2026-04-20
 
 Layers impacted: **milestone** (no code / spec / design changes)
