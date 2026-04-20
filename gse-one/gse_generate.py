@@ -157,8 +157,18 @@ def generate(clean: bool = False) -> None:
     print(f"Root: {ROOT}\n")
 
     if clean and PLUGIN.exists():
-        shutil.rmtree(PLUGIN)
-        print("  cleaned plugin/\n")
+        # Preserve plugin/tools/: this is the only subdirectory not managed by
+        # the generator (hand-maintained per CLAUDE.md). Wiping it would delete
+        # critical runtime scripts (e.g., dashboard.py) the generator cannot
+        # reconstruct.
+        for child in PLUGIN.iterdir():
+            if child.name == "tools":
+                continue
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        print("  cleaned plugin/ (preserved tools/)\n")
 
     # 1. Activities → Skills (Claude Code) + Commands (Cursor)
     activity_count = sum(1 for n in ACTIVITY_NAMES if (ACTIVITIES_DIR / f"{n}.md").exists())
@@ -683,6 +693,12 @@ def verify() -> None:
 
     print(f"  Agents:      {agents}/{len(SPECIALIZED_AGENTS)} specialized + orchestrator={'OK' if orchestrator else 'MISSING'}")
     print(f"  Templates:   {templates}")
+
+    # Hand-maintained tools (not regenerated) — presence is critical because
+    # the dashboard hook invokes plugin/tools/dashboard.py at runtime.
+    dashboard = PLUGIN / "tools" / "dashboard.py"
+    print(f"  Tools:       {'OK' if dashboard.exists() else 'MISSING dashboard.py'}")
+    if not dashboard.exists(): errors.append("Missing plugin/tools/dashboard.py (hand-maintained, not regenerated)")
 
     if agents < len(SPECIALIZED_AGENTS): errors.append(f"Missing {len(SPECIALIZED_AGENTS)-agents} specialized agents")
     if not orchestrator: errors.append("Missing gse-orchestrator.md")

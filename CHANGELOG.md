@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.1] - 2026-04-20
+
+Layers impacted: **implementation** (generator)
+
+### Fixed
+- **Generator `--clean` no longer wipes `plugin/tools/`.** The previous `shutil.rmtree(PLUGIN)` erased the hand-maintained `plugin/tools/` directory, which is the only subtree not regenerated from `src/` (per `CLAUDE.md`). Running `gse_generate.py --clean` silently deleted runtime-critical scripts like `dashboard.py` — discovered when a commit-in-progress showed `dashboard.py` as deleted. `--clean` now iterates `plugin/`'s children and skips `tools/`.
+- **Hard verify check for `plugin/tools/dashboard.py`.** `verify()` now fails with a non-zero exit and an explicit error when the dashboard script is missing, instead of producing only a silent `WARNING`. Any future accidental deletion is surfaced immediately in CI.
+
+### Rationale
+The bug was latent: the generator's `--clean` flag assumed `plugin/` was fully reproducible from `src/`, but `plugin/tools/` is a deliberate asymmetry. Encoding the asymmetry directly in the clean logic (rather than only in documentation) removes the footgun. The hard verify check is defense-in-depth — if `plugin/tools/dashboard.py` disappears for any other reason (mis-merge, human error), the next `--verify` run catches it.
+
 ## [0.37.0] - 2026-04-19
 
 Layers impacted: **spec**, **design**, **implementation** (tutor agent merged into unified `coach` agent)
