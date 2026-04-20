@@ -2124,7 +2124,7 @@ At start of `/gse:tests --run` or `/gse:produce`:
 - If different → Inform: "Framework changed from X to Y. Update config?"
 
 **Complexity budget ranges (G-025):**
-Use the spec §8.1 range table. Agent selects within range based on context, presents as Inform.
+Use the spec §8.1 range table. Agent selects within range based on context, presents as Inform. One point captures **coupled effort + complexity for the AI + user pair** (spec P10 / §8.1) with an indicative temporal anchor of 1 pt ≈ 1 pair-session hour. For maintenance work (refactoring, tests, docs, renaming, bug-fixing), apply the **Cost Assessment Grid for Maintenance Work** from spec Appendix B: four criteria (fan-out, review burden, rework risk, coupling) → 0 pt / 1 pt / 2-5 pt per item. The pre-v0.34 "zero-cost items" blanket rule is deprecated — agents must size maintenance activities case-by-case.
 
 **Team matching algorithm (G-026):**
 User detection in priority order:

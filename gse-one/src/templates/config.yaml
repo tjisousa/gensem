@@ -41,7 +41,15 @@ guardrails:
 
 # --- Section 6: Complexity ---
 complexity:
-  budget_per_sprint: 10                # directional tool, not precise constraint
+  budget_per_sprint: 10                # Directional tool, not precise constraint.
+                                       # One point measures coupled effort + complexity for
+                                       # the AI + user pair (code added + AI generation +
+                                       # human review). Indicative anchor: 1 pt ≈ 1
+                                       # pair-session hour. A 10-pt sprint ≈ 1-3 working
+                                       # days with AI (or 1-2 weeks solo human, ~10× speedup).
+                                       # See spec P10 / §8.1 and Appendix B for the full
+                                       # semantics and the Cost Assessment Grid for
+                                       # Maintenance Work (refactoring, tests, docs).
 
 # --- Section 7: Health ---
 health:

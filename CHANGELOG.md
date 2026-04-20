@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.34.0] - 2026-04-20
+
+Layers impacted: **spec**, **design**, **implementation** (P10 principle + activity plan + config template)
+
+### Added
+- **Semantic redefinition of the complexity point** (AMÉL-10 from training feedback). One complexity point now officially measures **coupled effort and complexity for the AI + user pair**: code complexity added + AI generation effort + human review effort, treated as a single scalar because these dimensions are entangled in practice.
+- **Indicative temporal anchor**: 1 point ≈ 1 pair-session hour (AI generation + user review + decision). A 10-point sprint ≈ 1-3 working days with AI, or ~1-2 weeks for a solo human without AI (speedup ratio typically 10×, varying 5-20× by domain — CRUD-standard ~15-20×, algorithmic / research ~3-5×). The anchor is **indicative, not prescriptive** — spec §2 "Sprint = complexity-boxed, no fixed duration" is preserved.
+- **Appendix B in spec: Cost Assessment Grid for Maintenance Work** — four-criteria grid (fan-out, review burden, rework risk, coupling) yielding 0 / 1 / 2-5 pt for refactoring, tests, docs, renaming, bug-fixing. Replaces the pre-v0.34 "zero-cost items" blanket rule that underestimated maintenance load.
+- Full definition propagated to: spec §2 P10, spec §8.1 Concept, spec glossary (2 entries), P10 principle file (new "Definition of a complexity point" + "Temporal anchor (indicative)" sections), config.yaml template (enriched comment), design doc G-025 mechanics note.
+
+### Changed
+- **`/gse:plan` sizing scale** — the S/M/L letter scale (S=1, M=3, L=5) is abandoned. Tasks are now sized directly in integer complexity points (typically 1-6 from the P10 cost table). Rationale: the letter scale required a mental translation step between two coexisting scales (learner05 training feedback); with the new semantic unifying complexity + effort in a single unit, the letter scale became redundant.
+- **P10 principle rule 8** replaced: the "zero-cost items" blanket (refactoring / tests / docs / bug fixes / removals = 0 pt always) becomes a case-by-case judgment using the new Appendix B grid. Removing code / dependencies remains a simplification credit (negative points) regardless of scale.
+- Spec §8.1 and glossary entries updated with the temporal anchor and the new definition.
+- `config.yaml` template comment for `complexity.budget_per_sprint` now explains the pair-effort semantics and the indicative temporal anchor.
+
+### Preserved
+- Sprint = complexity-boxed, no fixed duration (spec §2). The temporal anchor is a calibration aid, not a deadline.
+- P10 cost table values (1-6 pt per decision type) unchanged — only the semantic interpretation is enriched.
+- Simplification credit rule — unchanged.
+- Default budget values — config.yaml defaults to 10 pt/sprint; spec §8 recommendations remain 15/12/8 for foundation/feature/stabilization sprint types.
+- Backward compatibility — existing `complexity: 3` in backlog.yaml files is valid as-is with the enriched interpretation.
+
+### Fixed
+- Translation friction observed in training session learner05 ("Two scales coexist [P10 fine-grained and S/M/L] which took a mental translation step"). One unit now — complexity points with a pair-effort semantic.
+- Underestimation of sprint load when the sprint is mostly maintenance (previously zero-cost under the blanket rule). The grid forces honest sizing.
+
 ## [0.33.0] - 2026-04-19
 
 Layers impacted: **spec**, **design**, **implementation** (activities preview + produce)

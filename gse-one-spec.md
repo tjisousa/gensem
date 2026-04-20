@@ -729,7 +729,13 @@ Examples:
 ### P10 — Complexity Budget
 A sprint that accumulates too many features, dependencies, or architectural changes becomes unmanageable — tests are skipped, reviews are superficial, and defects slip through. Users rarely perceive this risk because each addition feels small in isolation, but complexity compounds.
 
-To prevent this, each sprint has a **complexity budget** — a finite number of points representing the maximum amount of new complexity the sprint can absorb. Every planned task consumes points based on what it introduces (a new dependency costs 1–2 points, an architectural change costs 3–5). The agent tracks the running total and makes it visible throughout the sprint (see Section 8).
+To prevent this, each sprint has a **complexity budget** — a finite number of points representing the maximum amount of work the sprint can absorb.
+
+**Definition of a complexity point.** One point measures **coupled effort and complexity for the AI + user pair** — the three tightly-linked factors a unit of work adds to the project: (1) code complexity added (maintenance risk, coupling), (2) AI generation effort (production + iteration), (3) human review effort (reading, validation, decisions). Because these factors are entangled in practice — complex code takes longer to generate AND requires more review AND raises future maintenance — a single scalar captures them adequately.
+
+**Temporal anchor (indicative).** As a ballpark calibration: **1 point ≈ 1 pair-session hour** — one focused hour of AI generation + user review. A 10-point sprint therefore ≈ 1-3 working days of AI + user sessions. Solo human equivalent (without AI): 1 point ≈ 0.5-1 working day (speedup ratio typically 10×, varying 5-20× by domain: 15-20× on CRUD-standard work, 5-10× on unfamiliar-domain learning, 3-5× on algorithmic or research problems). The anchor is **indicative, not prescriptive** — spec §2 "Sprint = complexity-boxed, no fixed duration" is preserved. The ballpark helps users sense the size of their commitments; it is not a deadline.
+
+Every planned task consumes points based on what it introduces (a new dependency costs 1–2 points, an architectural change costs 3–5). The agent tracks the running total and makes it visible throughout the sprint (see Section 8).
 
 **Role in the methodology:**
 - During **PLAN**, the agent evaluates whether planned tasks fit within the budget. If the total exceeds the budget, a Gate decision is presented (not Hard — complexity estimates are imprecise by nature): continue with overrun, reduce scope, defer to next sprint, or discuss. The budget is a directional tool, not a rigid constraint.
@@ -1723,7 +1729,11 @@ The git hygiene score (0–10) is computed from:
 
 ### 8.1 Concept
 
-Every sprint has a complexity budget — a finite capacity for new complexity. Each addition to the project has a cost:
+Every sprint has a complexity budget — a finite capacity for new work. One **complexity point** measures **coupled effort and complexity for the AI + user pair** (see P10 for the full definition): code complexity added + AI generation effort + human review effort, treated as a single scalar because these three factors are entangled in practice.
+
+**Temporal anchor (indicative).** 1 point ≈ 1 pair-session hour (AI generation + user review + decision). A 10-point sprint ≈ 1-3 working days of AI+user sessions. Solo human (without AI) equivalent: 1 point ≈ 0.5-1 working day, speedup ratio typically 10× (range 5-20× depending on domain — CRUD-standard ~15-20×, algorithmic / research problems ~3-5×). This anchor is **indicative, not prescriptive** — spec §2 *"Sprint = complexity-boxed, no fixed duration"* is preserved. The ballpark helps users sense the size of their commitments; it is not a deadline.
+
+Each addition to the project has a cost:
 
 | Action | Cost Range | Guidance |
 |--------|-----------|----------|
@@ -1753,11 +1763,9 @@ The budget per sprint is calibrated by project size and team context (via HUG). 
 
 **Simplification credit:** Removing complexity earns negative points. Removing an unused dependency (−1 pt), eliminating a dead abstraction layer (−2 pt), or consolidating two config systems into one (−1 pt) frees budget. The agent actively looks for simplification opportunities.
 
-**Zero-cost items:** The following do NOT consume complexity budget:
-- Renaming, reformatting, documentation
-- Bug fixes that don't change architecture
-- Tests (testing reduces risk, not adds complexity)
-- Removing code or dependencies
+**Maintenance work — case-by-case assessment (replaces the previous "zero-cost items" blanket rule):** refactoring, test writing, documentation, renaming, bug-fixing, and other maintenance activities have **highly variable pair effort**. Some are trivial (a typo fix, a single docstring) and genuinely cost zero points. Others consume real pair-session hours (rewriting documentation for a whole subsystem, refactoring a public API across 50 call sites, building a comprehensive test harness). Treating them all as zero-cost underestimates sprint load and misleads budgeting.
+
+The agent therefore assesses each maintenance task case-by-case using the **Cost Assessment Grid for Maintenance Work** (see Appendix B) with four criteria: fan-out, review burden, rework risk, coupling introduction. The grid yields 0 pt, 1 pt, or 2-5 pt depending on how many criteria are non-trivial. Removing code or dependencies remains a **simplification credit** (negative points) regardless of scale — removal reduces future pair effort.
 
 ### 8.2 Visualization
 
@@ -2892,7 +2900,7 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | 14 | **Worktree** | An isolated workspace for developing one task without affecting others |
 | 15 | **Feature branch** | A git branch where a single task is developed |
 | 16 | **Review** | Multi-perspective quality check of completed work, including AI self-review |
-| 17 | **Complexity budget** | A point-based limit on how much new complexity a sprint can absorb |
+| 17 | **Complexity budget** | A point-based limit on the total work a sprint can absorb. One point measures **coupled effort + complexity for the AI + user pair** (code complexity added + AI generation + human review). Indicative temporal anchor: 1 pt ≈ 1 pair-session hour; 10-pt sprint ≈ 1-3 working days |
 | 18 | **Confidence level** | How certain the agent is about a claim: Verified, High, Moderate, or Low |
 | 19 | **HUG** | The profiling activity that teaches the agent who you are and how to work with you |
 | 20 | **Spike** | A time-boxed experiment to answer a technical question — code is thrown away |
@@ -2913,7 +2921,7 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 | **Validation gate** | A human-in-the-loop checkpoint between activities where the user confirms readiness to proceed |
 | **Decision tier** | Classification of a decision by reversibility and impact: Auto, Inform, or Gate |
 | **Consequence horizon** | Projection of an option's impact at three time scales: now, 3 months, 1 year |
-| **Complexity budget** | Finite capacity for new complexity within a sprint, measured in points |
+| **Complexity budget** | Finite capacity for work within a sprint, measured in complexity points. A point captures **coupled effort + complexity for the AI + user pair**: code complexity added, AI generation effort, human review effort (treated as a single scalar because entangled in practice). Indicative temporal anchor: 1 pt ≈ 1 pair-session hour (solo human ~0.5-1 day; speedup ratio 5-20× depending on domain) |
 | **Composite risk** | When 3 or more risk dimensions are Moderate, the decision escalates to Gate tier — multiple moderate risks compound |
 | **Guardrail** | Agent-initiated protection against high-cost decisions, calibrated by user expertise |
 | **Health score** | Composite metric (0–10) reflecting project quality across 8 dimensions |
@@ -2993,7 +3001,43 @@ AD-HOC              /gse:task
 
 ---
 
-## Appendix B — Maintainer Guide
+## Appendix B — Cost Assessment Grid for Maintenance Work
+
+Used by `/gse:plan` and `/gse:task` to size maintenance activities (refactoring, tests, documentation, renaming, bug-fixing, and other upkeep work). Replaces the pre-v0.34 "zero-cost items" blanket rule that classified all such work as free — in practice, large-scope maintenance consumes real pair effort and must be budgeted.
+
+### Four criteria the agent evaluates
+
+| Criterion | Question the agent asks |
+|-----------|-------------------------|
+| **Fan-out** | How many files / modules / test files are touched by this work? |
+| **Review burden** | How much time will the user spend reading the change to validate it? |
+| **Rework risk** | How likely is this to need multiple iterations (the first attempt misses edge cases)? |
+| **Coupling** | Does this introduce new connections between modules, or expose new surfaces? |
+
+Each criterion is assessed as **trivial** or **non-trivial** based on project context (a small project's "whole codebase refactor" may still be trivial; a large project's "rename one public API" may be substantial).
+
+### Scale
+
+| Verdict | Point cost | Examples |
+|---------|-----------|----------|
+| All four criteria trivial | **0 pt** | Rename a local variable; fix a typo in a comment; write one docstring; add a blank line for readability; format a single file |
+| Exactly one criterion non-trivial | **1 pt** | Add 10 unit tests for an existing function; refactor a single module (no public API change); update the README for one feature; rename an internal helper used in 3-5 places |
+| Two or more criteria non-trivial, OR structural impact | **2-5 pt** | Rewrite documentation for a whole subsystem (2 pt); refactor a public API across 30+ call sites (3 pt); build an integration test harness for a new subsystem (3 pt); restructure error handling across all modules (4-5 pt) |
+
+### Usage
+
+- **At planning time (`/gse:plan`):** the agent sizes each backlog item using this grid if the item is maintenance-flavored.
+- **At task-creation time (`/gse:task`):** the agent applies the grid to estimate the complexity of ad-hoc tasks.
+- **At review time (`/gse:review`):** if actual pair effort diverged significantly from the estimate, the gap is surfaced as a learning for next sprint's calibration.
+- **User override:** the agent presents its estimate with a brief justification. The user may override via a Gate if the assessment feels off.
+
+### Simplification credit (unchanged)
+
+Removing code or dependencies still earns **negative points** (1-2 pt credit) regardless of scale — removal reduces future pair effort and frees sprint budget. See P10 "Simplification credit" and spec §8.1.
+
+---
+
+## Appendix C — Maintainer Guide
 
 This section helps anyone maintaining, extending, or debugging GSE-One understand the architecture and avoid cascading inconsistencies.
 

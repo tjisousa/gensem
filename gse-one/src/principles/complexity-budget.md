@@ -1,17 +1,39 @@
 # P10 — Complexity Budget
 
 **Category:** Risk & Communication
-**Principle:** Each sprint has a finite complexity budget; every decision that adds complexity is costed, tracked, and checked against the budget.
+**Principle:** Each sprint has a finite budget of complexity points; every unit of work is costed, tracked, and checked against the budget.
 
 ## Description
 
 Complexity is the primary enemy of maintainable software. It accumulates invisibly — one dependency here, one abstraction layer there — until the project becomes incomprehensible. GSE-One makes complexity visible and finite by assigning each sprint a complexity budget measured in points.
 
-Every decision that adds complexity has a known cost. The agent tracks consumption against the budget and raises warnings when the budget is at risk. This creates a natural pressure toward simplicity: if a sprint has 15 points and a framework dependency costs 3, the team must consciously choose to spend those points.
+## Definition of a complexity point
+
+One complexity point measures **coupled effort and complexity for the AI + user pair** — what a unit of work adds to the project along three tightly-linked dimensions:
+
+1. **Code complexity added** — maintenance risk, coupling, cognitive load of the resulting system
+2. **AI generation effort** — time for the coding agent to produce the work (including iterations)
+3. **Human review effort** — time for the user to read, validate, and decide
+
+These three dimensions are **entangled in practice** — complex code takes longer to generate AND requires more review AND raises future maintenance. A single scalar captures them adequately without pretending they are separable.
+
+## Temporal anchor (indicative)
+
+As a ballpark calibration:
+
+- **1 point ≈ 1 pair-session hour** — one focused hour of AI generation + user review + decision-making for the AI + user team working together.
+- **Solo human equivalent (without AI): 1 point ≈ 0.5-1 working day.** Speedup ratio typically ~10×, with domain variance:
+  - CRUD / standard web work: ~15-20× faster with AI
+  - Unfamiliar-domain learning: ~5-10× faster
+  - Algorithmic, research, or novel-problem work: ~3-5× faster
+
+A **10-point sprint** therefore takes ballpark **1-3 working days** of AI + user sessions (or ~1-2 weeks solo human without AI).
+
+**This anchor is indicative, not prescriptive.** The methodology's *"Sprint = complexity-boxed, no fixed duration"* principle (spec §2) is preserved. The ballpark helps users sense the size of their commitments — it is not a deadline. Variance of ±50% is normal and expected.
 
 ## Operational Rules
 
-1. **Complexity cost table** — Standard costs for common complexity-adding decisions:
+1. **Complexity cost table** — Standard costs for common decisions. Each point is interpretable as a pair-session hour equivalent:
 
    | Decision | Cost | Rationale |
    |----------|------|-----------|
@@ -75,11 +97,18 @@ Every decision that adds complexity has a known cost. The agent tracks consumpti
 
 7. **Simplification credit** — Removing complexity earns negative points. Removing an unused dependency (-1 pt), eliminating a dead abstraction layer (-2 pt), or consolidating two config systems into one (-1 pt) frees budget. The agent actively looks for simplification opportunities.
 
-8. **Zero-cost items** — The following do NOT consume complexity budget:
-   - Renaming, reformatting, documentation
-   - Bug fixes that don't change architecture
-   - Tests (testing reduces risk, not adds complexity)
-   - Removing code/dependencies
+8. **Maintenance work — case-by-case assessment** (replaces the pre-v0.34 "zero-cost items" blanket rule): refactoring, test writing, documentation, renaming, and bug-fixing have **highly variable pair effort**. Some are trivial and genuinely cost zero points (fix a typo, write one docstring, rename a local variable). Others consume real pair-session hours (rewrite the documentation of a subsystem, refactor a public API across many call sites, build a comprehensive integration test harness). The agent sizes each maintenance activity case-by-case using the **Cost Assessment Grid for Maintenance Work** (spec Appendix B), with four criteria:
+   - **Fan-out** — how many files / modules / test files are touched?
+   - **Review burden** — time the user will spend validating the change?
+   - **Rework risk** — likelihood of multiple iterations?
+   - **Coupling** — does this introduce new connections or expose new surfaces?
+
+   Grid result:
+   - All four trivial → **0 pt** (typo, single docstring, local rename)
+   - One criterion non-trivial → **1 pt** (10 tests for existing code, single-module refactor)
+   - Two or more non-trivial, or structural impact → **2-5 pt** (subsystem doc rewrite, public API refactor, integration harness)
+
+   **Removing code or dependencies is NOT maintenance** — it is a *simplification credit* (negative points, see rule 7) regardless of scale.
 
 ## Examples
 

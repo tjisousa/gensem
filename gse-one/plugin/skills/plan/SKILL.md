@@ -124,7 +124,7 @@ Compute total complexity of selected items:
 For each selected item:
 1. Set `sprint: {next_sprint_number}`
 2. Set `status: planned`
-3. Set `complexity: S|M|L`
+3. Set `complexity: <integer>` — complexity points from the P10 cost table (typically 1-6). For maintenance work (refactoring, tests, docs), use the Cost Assessment Grid for Maintenance Work (spec Appendix B) — values range from 0 (trivial) to 5 (structural impact). One point ≈ one pair-session hour (indicative anchor, see P10).
 
 Increment sprint number in `status.yaml`.
 
@@ -184,11 +184,11 @@ goal: "Short sprint goal description"
 tasks:
   - id: TASK-010
     order: 1
-    complexity: M                    # S (1pt) | M (3pt) | L (5pt)
+    complexity: 3                    # integer points (P10 unit) — 1 pt ≈ 1 pair-session hour (indicative)
     branch: "gse/sprint-{NN}/feat/rate-limiting"
   - id: TASK-011
     order: 2
-    complexity: S
+    complexity: 1
     branch: "gse/sprint-{NN}/feat/notifications"
 
 budget:
