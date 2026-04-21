@@ -17,6 +17,19 @@ This is the **gensem** repository — the source for the GSE-One plugin, an AI e
 - `_LOCAL/` — Local-only files (gitignored via `/_*/` pattern)
 - `VERSION` — Single version source, read by generator and installer
 
+## Agent archetypes
+
+The 11 agents in `src/agents/` deliberately use **4 structural archetypes**. Differences reflect agent roles — don't force one-size-fits-all uniformity.
+
+| Archetype | Agent(s) | Standard sections |
+|---|---|---|
+| **Identity** | `gse-orchestrator` | Role / Activated by / Perspective / Core Principles (P1-P16) / Skill activation / Sub-agent dispatch |
+| **Reviewer** (output to `review.md` via `/gse:review`) | `architect`, `code-reviewer`, `security-auditor`, `requirements-analyst`, `devil-advocate`, `guardrail-enforcer`, `ux-advocate`, `test-strategist` | Role / Activated by / Perspective / Checklist / Output Format |
+| **Operational** (multi-step workflow execution) | `deploy-operator` | Role / Activated by / Perspective / Required readings / Core Principles / Anti-patterns / Output Format |
+| **Observational** (8-axis monitoring) | `coach` | Role / Activated by / Perspective / 8 axes / Invocation contract / Evaluation algorithm / Output Formats (plural) / Anti-spam / Recipes / Persistence |
+
+Common to all 11: YAML frontmatter with `name` + `description`; opening `**Role:**` + `**Activated by:**` lines; `## Perspective` section. Finding outputs use `RVW-NNN` + `perspective:` field (reviewer archetype only) per spec §6.5 and the canonical 3-tier severity scale `HIGH / MEDIUM / LOW` (+ P15 escalation to CRITICAL).
+
 ## Critical rules
 
 ### Build pipeline — mandatory for every commit to main

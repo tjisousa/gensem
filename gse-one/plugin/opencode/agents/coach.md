@@ -76,7 +76,7 @@ Each axis has its own evaluation:
 4. If nothing meaningful: silent skip.
 5. Respect the per-invocation cap (`coach.max_advice_per_check`, default 3) — if multiple axes have something to say, prioritize by severity (HIGH > MEDIUM > LOW).
 
-## Output formats
+## Output Formats
 
 ### Pedagogy axis — skip
 

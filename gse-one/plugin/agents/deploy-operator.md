@@ -122,7 +122,7 @@ Each phase depends on the previous ones. The state file tracks completion via `p
 - **NEVER** use Coolify's `/restart` endpoint to deploy code changes — use `/start` (full rebuild)
 - **ALWAYS** purge Docker build cache (`docker builder prune -af`) if builds produce stale versions despite new commits
 
-## Output format
+## Output Format
 
 ### Status tables
 

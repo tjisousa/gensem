@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.9] - 2026-04-21
+
+Layers impacted: **implementation**, **docs** (agents uniformity + archetype documentation)
+
+**Methodology coherence pass — ninth batch (final mechanical pass)** from the /gse-audit run against v0.45.0. Closes the agent-file uniformity findings while deliberately preserving legitimate archetype differences.
+
+### Fixed
+- **Output Format heading casing** unified across agents:
+  - `deploy-operator.md`: "Output format" (lowercase f) → "Output Format"
+  - `coach.md`: "Output formats" (lowercase f) → "Output Formats" (plural preserved — coach legitimately has 3 output formats: skip, propose, advise)
+  - 8 other agents already on "Output Format" — unchanged.
+- **gse-orchestrator.md header** — added canonical `**Role:**` and `**Activated by:**` lines + wrapped the opening narrative in `## Perspective`. All 10 other agents use this structure; the orchestrator was the sole exception. Now any parser / `/gse-audit` sub-agent / forker reading the agent frontmatter finds consistent metadata.
+
+### Added
+- **CLAUDE.md `## Agent archetypes` section** documenting the 4 deliberate structural archetypes:
+  - **Identity** (gse-orchestrator) — orchestrator-specific structure
+  - **Reviewer** (8 agents) — Checklist + Output Format pattern (output to review.md)
+  - **Operational** (deploy-operator) — Required readings + Core Principles + Anti-patterns
+  - **Observational** (coach) — 8 axes + Invocation contract + Recipes + Persistence
+  
+  This documentation prevents future confusion about "why don't all agents have the same structure" — the differences are intentional and reflect distinct agent roles. The common elements (frontmatter, Role/Activated by/Perspective, finding output format) are called out.
+
+### Notes
+- Closes Prop 15 of the Prop 1-15 audit treatment plan. 14 of 15 props completed; 1 item deferred (design §14 Open Questions status labeling, pending per-row judgment).
+- No spec or design edit — purely agent file uniformity + developer documentation.
+
 ## [0.47.8] - 2026-04-21
 
 Layers impacted: **implementation**, **templates** (state management cluster pass)
