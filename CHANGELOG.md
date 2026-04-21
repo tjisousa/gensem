@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.4] - 2026-04-21
+
+Layers impacted: **spec**, **implementation**, **templates** (sprint lifecycle schema drift pass)
+
+**Methodology coherence pass — fourth batch** from the /gse-audit run against v0.45.0. Targets sprint lifecycle schema inconsistencies: DEC destination drift, ghost TASK status value, branch_status enum split, missing sprint template, PREVIEW sequence formulation, and hardcoded sprint-01 placeholders.
+
+### Added
+- **`src/templates/sprint/preview.md`** template. Previously, `preview.md` activity wrote `preview_variant`, `scaffold_path`, and `Inform-tier Decisions` to a file with no template reference — each sprint invented the schema. The new template formalizes: gse: namespace with `preview_variant` / `scaffold_path` frontmatter; sections for UI, API, Architecture, Data, Feature Walkthroughs, Import previews; Inform-tier Decisions closure section.
+- **MANIFEST.yaml** entry for `sprint/preview.md → docs/sprints/sprint-{NN}/preview.md` (created_by: /gse:preview, scope: sprint).
+
+### Fixed
+- **DEC-NNN destination** in plan.md:50 corrected from `docs/sprints/sprint-{NN}/decisions.md` (sprint-local, not read by downstream) to `.gse/decisions.md` (canonical — template, MANIFEST, design all agree). Restores P6 traceability of decisions made during Open Questions Gate.
+- **`status: ready` ghost value** removed from produce.md:91 selector. `ready` was not in the `backlog.yaml` enum (`open | planned | in-progress | review | fixing | done | delivered | deferred`) and no activity transitioned into it — dead code. Produce now selects only `status: planned`.
+- **`branch_status` enum** in plan.md:163 aligned from `planned | created | merged | abandoned` to the canonical `null | planned | active | merged | deleted` (matches backlog.yaml template + produce.md + deliver.md + backlog.md — 4 out of 5 sources). `created` and `abandoned` were unused anywhere.
+- **`micro` removed from plan-summary.md template mode line** (Micro mode has no plan.yaml, so plan-summary is never generated for Micro — the option was unreachable).
+- **Sprint templates branch hardcoded `sprint-01`** replaced by placeholder `gse/sprint-{NN}/integration` across 6 files (reqs.md, design.md, tests.md, review.md, release.md, compound.md) with explicit "replaced at instantiation by /gse:<activity>" comment. Sprint 2+ artifacts now carry their correct sprint branch.
+
+### Changed
+- **PREVIEW in Full-mode sequence** reconciled across 3 documents. Previously: spec §14 treated PREVIEW as baseline always-included; plan.md §7 baseline excluded PREVIEW with "insert conditionally if domain ∈ {web, mobile}"; design §10.1 baseline excluded PREVIEW with "plus preview after design for web/mobile" addendum. Now all three agree on spec §14 semantics: **PREVIEW is in the Full-mode baseline sequence** `[collect, assess, plan, reqs, design, preview, tests, produce, review, deliver]`. At PLAN-time, when `project.domain ∉ {web, mobile}`, PREVIEW is moved to `workflow.skipped` with an explicit reason. Plan.md §7 and design §10.1 reformulated accordingly.
+- **plan.md §7 "Conditional insertions"** renamed to "Conditional adjustments at PLAN-time" and clarified: PREVIEW is moved to skipped (not inserted), FIX is inserted after review (when findings exist).
+
+### Notes
+- MANIFEST.yaml now declares 21 templates (was 20). Grand totals in design §12 will reconcile the new template count in a future count-refresh pass.
+
 ## [0.47.3] - 2026-04-21
 
 Layers impacted: **spec**, **design** (structural cleanup pass)

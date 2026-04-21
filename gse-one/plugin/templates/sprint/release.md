@@ -2,7 +2,7 @@
 gse:
   type: release
   sprint: 1
-  branch: gse/sprint-01/integration
+  branch: gse/sprint-{NN}/integration    # replaced at instantiation by /gse:deliver
   traces:
     implements: []                     # all delivered TASK IDs
   status: draft                        # draft | approved

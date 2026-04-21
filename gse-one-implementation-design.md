@@ -2662,7 +2662,7 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 
 | Mode | workflow.expected |
 |------|-------------------|
-| Full | `[collect, assess, plan, reqs, design, tests, produce, review, deliver]` (plus `preview` after `design` for web/mobile) |
+| Full | `[collect, assess, plan, reqs, design, preview, tests, produce, review, deliver]` (preview is in baseline per spec §14; moved to `workflow.skipped` at PLAN-time when `project.domain ∉ {web, mobile}`) |
 | Lightweight | `[plan, reqs, produce, deliver]` |
 | Micro | no `plan.yaml` — orchestrator falls back to file-existence checks |
 

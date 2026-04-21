@@ -2,7 +2,7 @@
 gse:
   type: requirement
   sprint: 1                            # numeric sprint number
-  branch: gse/sprint-01/integration     # sprint branch
+  branch: gse/sprint-{NN}/integration    # replaced at instantiation by /gse:reqs
   elicitation_summary: ""              # Step 0 output: user's needs in their own words + agent reformulation
   traces:
     derives_from: []                   # e.g., [PLN-NNN] — plan that scheduled these REQs

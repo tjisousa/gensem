@@ -79,6 +79,12 @@ templates:
     scope: sprint
     description: Test strategy (pyramid, unit/integration/E2E/policy)
 
+  - source: sprint/preview.md
+    target: docs/sprints/sprint-{NN}/preview.md
+    created_by: /gse:preview
+    scope: sprint
+    description: Pre-code visual/structural preview (static wireframes or scaffold) + Inform-tier decisions
+
   - source: sprint/review.md
     target: docs/sprints/sprint-{NN}/review.md
     created_by: /gse:review

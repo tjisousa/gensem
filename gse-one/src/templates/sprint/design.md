@@ -2,7 +2,7 @@
 gse:
   type: design
   sprint: 1
-  branch: gse/sprint-01/integration
+  branch: gse/sprint-{NN}/integration    # replaced at instantiation by /gse:design
   traces:
     derives_from: []                   # e.g., [TASK-005] — task that triggered this design work
     implements: []                     # e.g., [REQ-001, REQ-002] — requirements addressed

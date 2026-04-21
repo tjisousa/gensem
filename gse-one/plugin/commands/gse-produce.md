@@ -90,7 +90,7 @@ Report the count per file (one-line summary) and remind the user that these plac
 
 If the count is zero (all placeholders already replaced in a previous PRODUCE pass), mention it briefly and move on.
 
-Read `backlog.yaml` and identify tasks for the current sprint with `status: planned` or `status: ready`.
+Read `backlog.yaml` and identify tasks for the current sprint with `status: planned`.
 
 If multiple tasks are pending:
 1. Sort by priority (P1 > P2 > P3), then by dependency order

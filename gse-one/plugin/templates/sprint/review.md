@@ -2,7 +2,7 @@
 gse:
   type: review
   sprint: 1
-  branch: gse/sprint-01/integration
+  branch: gse/sprint-{NN}/integration    # replaced at instantiation by /gse:review
   traces:
     implements: []                     # reviewed TASK IDs
   status: draft                        # draft | reviewed | approved

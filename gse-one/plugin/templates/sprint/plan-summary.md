@@ -13,7 +13,7 @@ gse:
 # Sprint {NN} — Plan Summary
 
 **Goal:** _One-sentence sprint goal (from plan.yaml.goal)._
-**Mode:** _full | lightweight | micro_ | **Budget:** _{total}_ pts (_{consumed}_ consumed, _{remaining}_ remaining)
+**Mode:** _full | lightweight_ | **Budget:** _{total}_ pts (_{consumed}_ consumed, _{remaining}_ remaining)
 **Period:** _{plan.yaml.created} → {now}_
 
 ## Tasks

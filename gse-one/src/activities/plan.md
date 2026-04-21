@@ -47,7 +47,7 @@ Before selecting items or creating the plan, scan for pending Open Questions (`O
 
 5. **Record resolutions** — for each resolved question:
    - Update the origin artefact's `## Open Questions` entry **in place**: set `status: resolved`, fill `resolved_at`, `resolved_in: PLAN`, `answer`, `answered_by`, `confidence` (P15 tag), `traces`.
-   - If the resolution is substantial (`impact: scope-shaping` or `impact: architectural`), create a `DEC-NNN` in `docs/sprints/sprint-{NN}/decisions.md` with `traces.derives_from: [OQ-NNN]` and a short rationale.
+   - If the resolution is substantial (`impact: scope-shaping` or `impact: architectural`), create a `DEC-NNN` in `.gse/decisions.md` with `traces.derives_from: [OQ-NNN]` and a short rationale.
 
 6. **Scope-shaping propagation** — for any question resolved with `impact: scope-shaping`, refresh `backlog.yaml` task sizings affected by the resolution. If an assigned sprint exists and the change would push the plan over budget, raise a tactical replan notice (Inform-tier).
 
@@ -131,14 +131,14 @@ Increment sprint number in `status.yaml`.
 
 | Mode | workflow.expected |
 |------|-------------------|
-| **Full** | `[collect, assess, plan, reqs, design, tests, produce, review, deliver]` |
-| **Full (design skipped)** | `[collect, assess, plan, reqs, tests, produce, review, deliver]` |
+| **Full** | `[collect, assess, plan, reqs, design, preview, tests, produce, review, deliver]` |
+| **Full (design skipped)** | `[collect, assess, plan, reqs, preview, tests, produce, review, deliver]` |
 | **Lightweight** | `[plan, reqs, produce, deliver]` |
 | **Micro** | (no plan.yaml is created in Micro mode) |
 
-Conditional insertions:
-- Insert `preview` after `design` if `config.yaml → project.domain` is `web` or `mobile`
-- Insert `fix` after `review` if review produces findings (recorded when review completes)
+Conditional adjustments at PLAN-time:
+- If `config.yaml → project.domain ∉ {web, mobile}`, move `preview` to `workflow.skipped` with reason `preview skipped — non-UI domain`. (PREVIEW stays in the baseline sequence per spec §14 but is explicitly skipped when not relevant.)
+- `fix` is **not** in `workflow.expected` initially; it is inserted after `review` if review produces findings (recorded when review completes).
 
 LC03 activities (`compound`, `integrate`) are tracked in `status.yaml`, not in this sprint's `plan.yaml`.
 
@@ -160,7 +160,7 @@ LC03 activities (`compound`, `integrate`) are tracked in `status.yaml`, not in t
    ```yaml
    git:
      branch: "gse/sprint-02/feat/rate-limiting"
-     branch_status: planned  # planned | created | merged | abandoned
+     branch_status: planned  # null | planned | active | merged | deleted
    ```
 
 4. **Record branch name on each task** in `plan.yaml.tasks[].branch` for quick lookup during PRODUCE.

@@ -2,7 +2,7 @@
 gse:
   type: test
   sprint: 1
-  branch: gse/sprint-01/integration
+  branch: gse/sprint-{NN}/integration    # replaced at instantiation by /gse:tests
   traces:
     derives_from: []                   # e.g., [TASK-005] — task being tested
     implements: []                     # e.g., [REQ-001, DES-001] — what these tests validate
