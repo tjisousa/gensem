@@ -213,7 +213,7 @@ PRODUCE invokes the **canonical test run** defined in spec §6.3. The seven cano
 3. In `supervised` mode: require **double confirmation** ("This is unusual — please confirm again").
 4. **Do not invoke** the canonical run.
 
-**Pre-condition B — no tests exist** and the artefact type warrants testing. Read `profile.yaml → user.it_expertise`:
+**Pre-condition B — no tests exist** and the artefact type warrants testing. Read `profile.yaml → dimensions.it_expertise`:
 - **beginner**: Auto-generate tests, inform user ("I've created tests for this task.")
 - **intermediate**: Propose ("This task should have tests. Shall I generate them?")
 - **expert**: Propose with options ("No tests found. Options: generate unit tests / generate integration tests / skip / discuss")

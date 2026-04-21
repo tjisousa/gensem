@@ -179,7 +179,7 @@ Risk coverage target: 100% of high-risk modules (security, Gate decisions, impor
 
 ### Adaptation to User Expertise (Spec 6.6)
 
-The agent's testing behavior adapts to the user's level (`profile.yaml → user.it_expertise`):
+The agent's testing behavior adapts to the user's level (`profile.yaml → dimensions.it_expertise`):
 
 | Level | Agent's Testing Behavior |
 |-------|------------------------|
@@ -223,17 +223,18 @@ Each test has a unique identifier:
 
 ```yaml
 ---
-id: TST-{NNN}
-artefact_type: test
-title: "Test description"
-level: unit | integration | e2e | visual | performance
-sprint: {NN}
-status: draft
-created: {date}
-author: agent
-traces:
-  derives_from: [REQ-{NNN}]
-  tests: [SRC-{NNN}]
+gse:
+  type: test
+  level: unit | integration | e2e | visual | performance | policy
+  sprint: {NN}
+  branch: gse/sprint-{NN}/integration
+  status: draft                        # draft | reviewed | approved
+  created: "{YYYY-MM-DD}"
+  updated: "{YYYY-MM-DD}"
+  traces:
+    derives_from: []                   # e.g., [TASK-005] — task being tested
+    implements: [REQ-{NNN}]            # requirements + design elements validated
+    decided_by: []                     # e.g., [DEC-007] — shaping decisions (esp. for policy tests)
 ---
 ```
 

@@ -420,11 +420,8 @@ def collect_data():
     data["user_name"] = (profile.get("user.name")
                          or profile.get("name")
                          or "Unknown")
-    data["it_expertise"] = (profile.get("dimensions.it_expertise")
-                            or profile.get("it_expertise")
-                            or "unknown")
+    data["it_expertise"] = profile.get("dimensions.it_expertise") or "unknown"
     data["decision_involvement"] = (profile.get("dimensions.decision_involvement")
-                                    or profile.get("decision_involvement")
                                     or "collaborative")
 
     # Living sprint plan (.gse/plan.yaml) — optional, present in Full/Lightweight modes

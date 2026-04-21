@@ -41,30 +41,34 @@ Priorities:
 Findings are reported as structured entries with OWASP category reference:
 
 ```
-SEC-001 [CRITICAL] — Hardcoded API key in source code
+RVW-001 [HIGH] — Hardcoded API key in source code
+  perspective: security-auditor
   OWASP: A07:2021 — Identification and Authentication Failures
   Location: src/config.py, line 12
   Code: API_KEY = "sk-live-abc123def456"
   Detail: Production API key is committed to version control.
-  Impact: Key exposure if repository is public or compromised.
+  Impact: Active exploitation possible if the repository is public or compromised — attacker gains direct API access. Immediate credential rotation required.
   Fix: Move to environment variable; add to .gitignore; rotate the exposed key immediately.
 
-SEC-002 [HIGH] — Missing rate limiting on login endpoint
+RVW-002 [HIGH] — Missing rate limiting on login endpoint
+  perspective: security-auditor
   OWASP: A07:2021 — Identification and Authentication Failures
   Location: src/routes/auth.py, line 30
   Detail: /api/login has no rate limiting, enabling brute-force attacks.
   Impact: Attacker can attempt unlimited password guesses.
   Fix: Add rate limiting (e.g., 5 attempts per minute per IP) using middleware or API gateway.
 
-SEC-003 [MEDIUM] — Verbose error response exposes stack trace
+RVW-003 [MEDIUM] — Verbose error response exposes stack trace
+  perspective: security-auditor
   OWASP: A05:2021 — Security Misconfiguration
   Location: src/middleware/error_handler.py, line 15
   Detail: Production error handler returns full Python traceback to the client.
   Fix: Return generic error message in production; log full trace server-side only.
 ```
 
-Severity levels:
-- **CRITICAL** — Actively exploitable vulnerability; immediate fix required
-- **HIGH** — Significant vulnerability that requires near-term remediation
+Severity levels (baseline):
+- **HIGH** — Significant vulnerability requiring near-term remediation. For actively exploitable issues, describe the exploitation vector in the Impact field; the severity stays HIGH.
 - **MEDIUM** — Security weakness that should be addressed in current sprint
 - **LOW** — Hardening opportunity or defense-in-depth improvement
+
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5 / §Devil-Advocate P15 integration). The agent never emits CRITICAL directly.

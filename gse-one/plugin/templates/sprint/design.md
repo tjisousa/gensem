@@ -4,8 +4,10 @@ gse:
   sprint: 1
   branch: gse/sprint-01/integration
   traces:
-    derives_from: []                   # e.g., [REQ-001, REQ-002]
-    decided_by: []                     # e.g., [DEC-001]
+    derives_from: []                   # e.g., [TASK-005] — task that triggered this design work
+    implements: []                     # e.g., [REQ-001, REQ-002] — requirements addressed
+    tested_by: []                      # e.g., [TST-007] — tests verifying the design
+    decided_by: []                     # e.g., [DEC-001] — shaping decisions
   status: draft                        # draft | reviewed | approved
   created: ""
   updated: ""
@@ -19,7 +21,7 @@ _High-level description of the system architecture for this sprint's scope._
 
 ## Design Decisions
 
-### D01 — {decision title}
+### DES-001 — {decision title}
 
 - **Context:** {what situation or requirement drives this decision}
 - **Options Considered:**
@@ -29,10 +31,10 @@ _High-level description of the system architecture for this sprint's scope._
 - **Decision:** {chosen option}
 - **Rationale:** {why this option was chosen over alternatives}
 - **Trade-offs:** {what is sacrificed or accepted}
-- **Requirements:** R01, R02
+- **Implements:** REQ-001, REQ-002
 - **Status:** proposed | accepted | superseded
 
-### D02 — {decision title}
+### DES-002 — {decision title}
 
 - **Context:** {what situation or requirement drives this decision}
 - **Options Considered:**
@@ -41,7 +43,7 @@ _High-level description of the system architecture for this sprint's scope._
 - **Decision:** {chosen option}
 - **Rationale:** {why this option was chosen}
 - **Trade-offs:** {what is sacrificed or accepted}
-- **Requirements:** R03
+- **Implements:** REQ-003
 - **Status:** proposed | accepted | superseded
 
 ## Component Diagram

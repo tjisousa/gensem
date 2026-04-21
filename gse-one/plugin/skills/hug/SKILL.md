@@ -85,7 +85,7 @@ Report inferences (in the user's chosen language): "Based on what I can see, I'l
 
 ### Step 2 — Interview (Only Unresolved Dimensions)
 
-The 12 HUG dimensions are:
+The 13 HUG dimensions are:
 
 | # | Dimension | Scale / Values | Purpose |
 |---|-----------|---------------|---------|
@@ -98,7 +98,7 @@ The 12 HUG dimensions are:
 | 7 | **Decision involvement** | autonomous / collaborative / supervised | Control Gate frequency and agent autonomy |
 | 8 | **Project domain** | web / api / cli / data / mobile / embedded / other | Calibrate default tech stack and test pyramid |
 | 9 | **Team context** | solo / pair / small-team / large-team | Adjust collaboration ceremonies |
-| 10 | **Learning goals** | free text (optional) | Activate proactive LEARN at relevant moments |
+| 10 | **Learning goals** | list of short goal strings (optional) | Activate proactive LEARN at relevant moments |
 | 11 | **Contextual tips** | on / off | Enable/disable inline micro-explanations |
 | 12 | **Emoji** | on / off | Enable/disable emoji in chat output (default: on) |
 | 13 | **User name** | free text (optional) | Display name in dashboard and artefacts. For beginners: "What name should I use for you in the project? (You can skip this.)" Store in `profile.yaml` under `user.name`. If skipped, defaults to git user name or "Unknown". |
@@ -256,6 +256,8 @@ Save the profile as YAML:
 ```yaml
 # .gse/profile.yaml
 version: 1
+created: 2026-01-15
+updated: 2026-01-15
 user:
   name: "Nicolas"
   git_email: "nicolas@example.com"
@@ -272,16 +274,16 @@ dimensions:
   decision_involvement: collaborative
   project_domain: api
   team_context: solo
-  learning_goals: "Rust async patterns, property-based testing"
-  contextual_tips: on
-  emoji: on
+  learning_goals:
+    - "Rust async patterns"
+    - "property-based testing"
+  contextual_tips: true
+  emoji: true
 inferred:
   it_expertise: true
   project_domain: true
   team_context: true
   language.chat: true
-created: 2026-01-15
-updated: 2026-01-15
 ```
 
 ### Step 5.5 — Dashboard Initialization

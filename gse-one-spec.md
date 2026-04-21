@@ -1534,7 +1534,7 @@ A **canonical test run** is the single procedure executed identically whether in
 
 #### Inline summary (mandatory at step 6)
 
-The summary adapts to `profile.yaml → user.it_expertise`.
+The summary adapts to `profile.yaml → dimensions.it_expertise`.
 
 **For beginner users:** Map test names to feature descriptions derived from REQS acceptance criteria. Use ✅/❌ indicators. When tests fail and are then fixed, show the correction explicitly (`✅ corrigé ← était en échec`). The user sees that every feature is verified and that problems are caught and fixed — without any jargon or file names.
 

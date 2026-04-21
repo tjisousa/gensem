@@ -69,7 +69,7 @@ Content is calibrated using the user profile:
 | `it_expertise` | Technical depth, assumed prerequisites |
 | `abstraction_capability` | Examples-first (concrete) vs theory-first (abstract) |
 | `preferred_verbosity` | Length and detail level |
-| `mother_tongue` | Language of explanation |
+| `language.chat` | Language of explanation |
 
 **Quick mode structure:**
 1. One-sentence definition

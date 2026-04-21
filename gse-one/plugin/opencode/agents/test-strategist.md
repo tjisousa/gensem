@@ -81,25 +81,32 @@ Focus: are the written tests meaningful?
 Findings are reported as structured entries:
 
 ```
-TST-001 [CRITICAL] — No tests for authentication flow
+RVW-001 [HIGH] [IMPL] — No tests for authentication flow
+  perspective: test-strategist
   Location: sprint/S01/test-strategy.md
   Detail: The login/logout/token-refresh flow has zero test cases despite being high-risk.
-  Coverage impact: Requirements R05, R06, R07 have no test coverage.
+  Coverage impact: Requirements REQ-005, REQ-006, REQ-007 have no test coverage.
   Suggestion: Add unit tests for token validation, integration tests for auth middleware, E2E test for login flow.
 
-TST-002 [WARNING] — Test pyramid imbalance: 90% E2E, 10% unit
+RVW-002 [MEDIUM] [STRATEGY] — Test pyramid imbalance: 90% E2E, 10% unit
+  perspective: test-strategist
   Location: Test suite analysis
   Detail: For a web app domain, expected ratio is ~50/30/20 but current is 10/0/90.
   Impact: Slow CI feedback loop, brittle tests, poor fault localization.
   Suggestion: Extract business logic tests to unit level; convert UI-independent checks to integration tests.
 
-TST-003 [INFO] — Test evidence lacks environment metadata
+RVW-003 [LOW] [IMPL] — Test evidence lacks environment metadata
+  perspective: test-strategist
   Location: sprint/S01/test-report.md
   Detail: Test report does not include Python version, OS, or dependency versions.
   Suggestion: Add environment section to test campaign template.
 ```
 
-Severity levels:
-- **CRITICAL** — High-risk area with no test coverage or tests that always pass (vacuous)
-- **WARNING** — Coverage gap, pyramid imbalance, or flaky tests detected
-- **INFO** — Missing best practice or improvement opportunity
+Tags `[STRATEGY]` / `[TST-SPEC]` / `[IMPL]` are orthogonal to severity — they indicate which of the three review tiers produced the finding (see spec §6.5).
+
+Severity levels (baseline):
+- **HIGH** — High-risk area with no test coverage, vacuous tests that always pass, or systematic coverage gap. HIGH findings on STRATEGY or TST-SPEC tiers block `/gse:produce` (Hard guardrail per spec §6.5).
+- **MEDIUM** — Coverage gap, pyramid imbalance, or flaky tests detected
+- **LOW** — Missing best practice or improvement opportunity
+
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5). The agent never emits CRITICAL directly.

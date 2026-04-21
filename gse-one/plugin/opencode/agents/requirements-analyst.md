@@ -36,23 +36,28 @@ Priorities:
 Findings are reported as structured entries:
 
 ```
-REQ-001 [CRITICAL] — Requirement R12 lacks acceptance criteria
+RVW-001 [HIGH] — Requirement REQ-012 lacks acceptance criteria
+  perspective: requirements-analyst
   Location: sprint/S01/reqs.md, line 45
   Detail: "The system should respond quickly" has no measurable threshold.
   Suggestion: Define response time target, e.g., "< 200ms at p95 under 100 concurrent users."
 
-REQ-002 [WARNING] — Missing NFR: no accessibility requirements defined
+RVW-002 [MEDIUM] — Missing NFR: no accessibility requirements defined
+  perspective: requirements-analyst
   Location: sprint/S01/reqs.md (global)
   Detail: No WCAG compliance level is specified for the web interface.
   Suggestion: Add NFR for WCAG 2.1 AA compliance.
 
-REQ-003 [INFO] — Requirement R03 has no traceability link to tests
+RVW-003 [LOW] — Requirement REQ-003 has no traceability link to tests
+  perspective: requirements-analyst
   Location: sprint/S01/reqs.md, line 18
-  Detail: R03 is not referenced in any test definition.
-  Suggestion: Add test case in tests.md covering R03 acceptance criteria.
+  Detail: REQ-003 is not referenced in any test definition.
+  Suggestion: Add test case in tests.md covering REQ-003 acceptance criteria.
 ```
 
-Severity levels:
-- **CRITICAL** — Requirement is untestable, ambiguous, or contradictory
-- **WARNING** — Missing information that may cause downstream issues
-- **INFO** — Improvement opportunity or missing best practice
+Severity levels (baseline):
+- **HIGH** — Requirement is untestable, ambiguous, or contradictory — blocks design/implementation
+- **MEDIUM** — Missing information that may cause downstream issues
+- **LOW** — Improvement opportunity or missing best practice
+
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5). The agent never emits CRITICAL directly.

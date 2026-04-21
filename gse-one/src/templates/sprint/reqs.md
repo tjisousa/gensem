@@ -5,7 +5,8 @@ gse:
   branch: gse/sprint-01/integration     # sprint branch
   elicitation_summary: ""              # Step 0 output: user's needs in their own words + agent reformulation
   traces:
-    implements: []                     # e.g., [TASK-001] — requirements this doc implements
+    derives_from: []                   # e.g., [PLN-NNN] — plan that scheduled these REQs
+    decided_by: []                     # e.g., [DEC-NNN] — shaping decisions
   status: draft                        # draft | reviewed | approved
   created: ""
   updated: ""
@@ -13,10 +14,14 @@ gse:
 
 # Requirements — Sprint {sprint}
 
+> ID convention: REQ-001..REQ-099 for functional requirements, REQ-101..REQ-199
+> for non-functional requirements. The `type` field per REQ remains authoritative.
+
 ## Functional Requirements
 
-### R01 — {title}
+### REQ-001 — {title}
 
+- **Type:** functional
 - **Actor:** {who}
 - **Capability:** {what}
 - **Rationale:** {why}
@@ -24,10 +29,11 @@ gse:
 - **Acceptance Criteria:**
   1. {measurable criterion 1}
   2. {measurable criterion 2}
-- **Traces:** Design: D01 | Tests: T01, T02
+- **Traces:** implements (DES-001) | tested_by (TST-001, TST-002)
 
-### R02 — {title}
+### REQ-002 — {title}
 
+- **Type:** functional
 - **Actor:** {who}
 - **Capability:** {what}
 - **Rationale:** {why}
@@ -35,26 +41,29 @@ gse:
 - **Acceptance Criteria:**
   1. {measurable criterion 1}
   2. {measurable criterion 2}
-- **Traces:** Design: — | Tests: —
+- **Traces:** implements (—) | tested_by (—)
 
 ## Non-Functional Requirements
 
-### NFR01 — Performance
+### REQ-101 — Performance
 
+- **Type:** non-functional
 - **Metric:** {e.g., response time}
 - **Target:** {e.g., < 200ms at p95}
 - **Measurement:** {how it will be verified}
 - **Priority:** Must | Should | Could
 
-### NFR02 — Security
+### REQ-102 — Security
 
+- **Type:** non-functional
 - **Metric:** {e.g., OWASP compliance}
 - **Target:** {e.g., no critical vulnerabilities}
 - **Measurement:** {how it will be verified}
 - **Priority:** Must | Should | Could
 
-### NFR03 — Accessibility
+### REQ-103 — Accessibility
 
+- **Type:** non-functional
 - **Metric:** {e.g., WCAG level}
 - **Target:** {e.g., WCAG 2.1 AA}
 - **Measurement:** {how it will be verified}
@@ -62,13 +71,13 @@ gse:
 
 ## Traceability Matrix
 
-| Req ID | Design | Tests | Status   |
-|--------|--------|-------|----------|
-| R01    |        |       | draft    |
-| R02    |        |       | draft    |
-| NFR01  |        |       | draft    |
-| NFR02  |        |       | draft    |
-| NFR03  |        |       | draft    |
+| Req ID  | Design | Tests | Status   |
+|---------|--------|-------|----------|
+| REQ-001 |        |       | draft    |
+| REQ-002 |        |       | draft    |
+| REQ-101 |        |       | draft    |
+| REQ-102 |        |       | draft    |
+| REQ-103 |        |       | draft    |
 
 ## Quality Coverage Matrix
 

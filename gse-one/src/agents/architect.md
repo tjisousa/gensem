@@ -38,29 +38,35 @@ Priorities:
 Findings are reported as structured entries:
 
 ```
-DES-001 [CRITICAL] — Circular dependency between AuthService and UserService
-  Location: sprint/S01/design.md, section "Service Layer"
+RVW-001 [HIGH] — Circular dependency between AuthService and UserService
+  perspective: architect
+  Location: sprint/S01/design.md, section "Service Layer" (DES-012)
   Detail: AuthService depends on UserService for profile data, and UserService depends on AuthService for permission checks.
   Impact: Makes independent testing and deployment impossible.
   Suggestion: Extract permission logic into a shared PermissionService or use an event-based decoupling pattern.
 
-DES-002 [WARNING] — No failure mode documented for external API dependency
-  Location: sprint/S01/design.md, section "Integration Layer"
+RVW-002 [MEDIUM] — No failure mode documented for external API dependency
+  perspective: architect
+  Location: sprint/S01/design.md, section "Integration Layer" (DES-018)
   Detail: The PaymentGateway integration has no fallback or circuit breaker defined.
   Suggestion: Document timeout, retry, and fallback behavior for the payment API.
 
-DES-003 [INFO] — Technology choice lacks alternatives analysis
-  Location: sprint/S01/design.md, section "Database"
+RVW-003 [LOW] — Technology choice lacks alternatives analysis
+  perspective: architect
+  Location: sprint/S01/design.md, section "Database" (DES-005)
   Detail: PostgreSQL is chosen but no comparison with alternatives is documented.
   Suggestion: Add a brief ADR (Architecture Decision Record) with criteria and alternatives evaluated.
 
-DES-004 [INFO] — Framework isolation opportunity
+RVW-004 [LOW] — Framework isolation opportunity
+  perspective: architect
   Location: sprint/S01/design.md, section "Component Decomposition"
   Detail: The design uses Streamlit across all pages with business logic (budget computation, category aggregation) intermixed in page modules. A framework-free `src/domain/` module would keep that logic testable without Streamlit and replaceable if the UI framework changes.
   Suggestion: Add a DEC — "framework-free domain module" — and flag a policy test enforcing `src/domain/** must not import streamlit`. See policy tests (spec §6.1).
 ```
 
-Severity levels:
-- **CRITICAL** — Structural flaw that will cause systemic issues (circular deps, layering violations)
-- **WARNING** — Missing consideration that may cause problems at scale or during evolution
-- **INFO** — Best practice not followed; improvement opportunity
+Severity levels (baseline):
+- **HIGH** — Structural flaw that will cause systemic issues (circular deps, layering violations, framework isolation absent on heavy-UI projects with non-trivial business logic)
+- **MEDIUM** — Missing consideration that may cause problems at scale or during evolution
+- **LOW** — Best practice not followed; improvement opportunity
+
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5). The agent never emits CRITICAL directly.

@@ -59,7 +59,7 @@ Every agent action must match one of the three decision tiers defined in P7:
 
 ## Calibration by Expertise (Spec Section 9.4)
 
-Guardrail sensitivity is calibrated by the HUG profile (`profile.yaml → user.it_expertise`):
+Guardrail sensitivity is calibrated by the HUG profile (`profile.yaml → dimensions.it_expertise`):
 
 | User Expertise | Soft | Hard | Emergency |
 |---------------|------|------|-----------|

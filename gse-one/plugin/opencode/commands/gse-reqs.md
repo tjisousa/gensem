@@ -318,15 +318,16 @@ Save requirements to `docs/sprints/sprint-{NN}/reqs.md`:
 
 ```yaml
 ---
-id: DOC-{NNN}
-artefact_type: doc
-title: "Sprint {NN} Requirements"
-sprint: {NN}
-status: draft
-created: {date}
-author: pair
-traces:
-  derives_from: [PLN-{NNN}]
+gse:
+  type: requirement
+  sprint: {NN}
+  branch: gse/sprint-{NN}/integration
+  status: draft                        # draft | reviewed | approved
+  created: "{YYYY-MM-DD}"
+  updated: "{YYYY-MM-DD}"
+  traces:
+    derives_from: [PLN-{NNN}]          # Plan that scheduled this sprint's REQs
+    decided_by: []                     # e.g., [DEC-NNN] — shaping decisions
 ---
 ```
 

@@ -4,13 +4,19 @@ gse:
   sprint: 1
   branch: gse/sprint-01/integration
   traces:
+    derives_from: []                   # e.g., [TASK-005] — task being tested
     implements: []                     # e.g., [REQ-001, DES-001] — what these tests validate
+    decided_by: []                     # e.g., [DEC-007] — shaping decisions (esp. for policy tests)
   status: draft                        # draft | reviewed | approved
   created: ""
   updated: ""
 ---
 
 # Test Definitions — Sprint {sprint}
+
+> Test ID convention: TST-001..TST-009 for unit tests, TST-010..TST-019 for
+> integration, TST-020..TST-029 for E2E, TST-030..TST-039 for policy tests.
+> Frontmatter `level:` field remains authoritative; ID ranges are visual convenience.
 
 ## Test Strategy
 
@@ -21,9 +27,9 @@ gse:
 
 ## Unit Tests
 
-### T01 — {test title}
+### TST-001 — {test title}
 
-- **Tests requirement:** R01
+- **Implements:** REQ-001
 - **Component:** {module or class under test}
 - **Scenario:** {what is being tested}
 - **Given:** {preconditions}
@@ -33,9 +39,9 @@ gse:
   - {edge case 1}
   - {edge case 2}
 
-### T02 — {test title}
+### TST-002 — {test title}
 
-- **Tests requirement:** R01
+- **Implements:** REQ-001
 - **Component:** {module or class under test}
 - **Scenario:** {what is being tested}
 - **Given:** {preconditions}
@@ -44,9 +50,9 @@ gse:
 
 ## Integration Tests
 
-### T10 — {test title}
+### TST-010 — {test title}
 
-- **Tests requirement:** R01, R02
+- **Implements:** REQ-001, REQ-002
 - **Components:** {components interacting}
 - **Scenario:** {integration scenario}
 - **Setup:** {fixtures, test data, external mocks}
@@ -58,9 +64,9 @@ gse:
 
 ## End-to-End Tests
 
-### T20 — {test title}
+### TST-020 — {test title}
 
-- **Tests requirement:** R01
+- **Implements:** REQ-001
 - **User flow:** {complete user journey}
 - **Preconditions:** {system state, test user}
 - **Steps:**
@@ -76,7 +82,7 @@ gse:
 > Derived from design decisions (DEC-) and architecture rules in design.md.
 > Baseline: 5% of test pyramid (spec §6). Raisable to 10-15% for strict-architecture projects.
 
-### T30 — {rule name}
+### TST-030 — {rule name}
 
 - **Enforces:** {one-sentence rule, e.g., "src/domain/** must not import src/ui/**"}
 - **Source:** {DEC-NNN or design.md section reference}
@@ -93,10 +99,10 @@ gse:
 
 ## Coverage Map
 
-| Requirement | Unit Tests | Integration | E2E  | Risk Level |
-|-------------|-----------|-------------|------|------------|
-| R01         | T01, T02  | T10         | T20  | high       |
-| R02         |           | T10         |      | medium     |
+| Requirement | Unit Tests       | Integration | E2E      | Risk Level |
+|-------------|------------------|-------------|----------|------------|
+| REQ-001     | TST-001, TST-002 | TST-010     | TST-020  | high       |
+| REQ-002     |                  | TST-010     |          | medium     |
 
 ## Notes
 

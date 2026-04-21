@@ -23,9 +23,10 @@ Priorities:
 ## Integration with P15 Confidence Signaling
 
 Confidence-severity escalation rules:
-- **High confidence** findings: standard severity assessment
-- **Moderate confidence** findings: severity is escalated one level (INFO -> WARNING, WARNING -> CRITICAL)
-- **Low confidence** findings: automatically flagged as CRITICAL, require user verification before proceeding
+- **Verified / High confidence** findings: standard severity assessment
+- **Moderate confidence** findings: severity is escalated one level (LOW → MEDIUM, MEDIUM → HIGH)
+- **Low confidence** findings: automatically flagged as HIGH, require user verification before proceeding
+- **Verified but wrong** (a previously Verified claim that turns out to be false): escalated to CRITICAL — this is the most dangerous failure mode (false certainty). This is the only path by which any reviewer finding reaches severity CRITICAL.
 
 ## Checklist
 
@@ -55,38 +56,46 @@ Confidence-severity escalation rules:
 Findings are tagged with [AI-INTEGRITY] and include severity:
 
 ```
-[AI-INTEGRITY] DEVIL-001 [CRITICAL] — Referenced library does not exist
+RVW-001 [HIGH] [AI-INTEGRITY] — Referenced library does not exist
+  perspective: devil-advocate
   Check: Hallucination hunt
   Detail: Agent recommended using 'fastapi-auth-jwt' package, but no such package exists on PyPI.
   Confidence: LOW — Agent stated high confidence but the artifact is fabricated.
   Impact: User would waste time trying to install a non-existent package.
   Action: Remove reference; suggest verified alternatives (python-jose, PyJWT, authlib).
 
-[AI-INTEGRITY] DEVIL-002 [WARNING] — Assumption not validated by user
+RVW-002 [MEDIUM] [AI-INTEGRITY] — Assumption not validated by user
+  perspective: devil-advocate
   Check: Assumption challenge
   Detail: Agent assumed PostgreSQL as the database without asking the user. Design decisions are built on this assumption.
   Confidence: MODERATE — Reasonable default but not confirmed.
   Impact: All design artifacts may need revision if user prefers a different database.
   Action: Ask user to confirm database choice before proceeding with design.
 
-[AI-INTEGRITY] DEVIL-003 [WARNING] — Complaisance detected
+RVW-003 [MEDIUM] [AI-INTEGRITY] — Complaisance detected
+  perspective: devil-advocate
   Check: Complaisance detection
   Detail: User requested removing all input validation "to keep things simple." Agent complied without noting the security implications.
   Confidence: HIGH — This is a clear case of complaisance.
   Impact: Application is now vulnerable to injection attacks.
   Action: Reintroduce security concern; present trade-off between simplicity and security explicitly.
 
-[AI-INTEGRITY] DEVIL-004 [INFO] — Temporal validity concern
+RVW-004 [LOW] [AI-INTEGRITY] — Temporal validity concern
+  perspective: devil-advocate
   Check: Temporal validity
   Detail: Agent referenced Create React App for project setup. CRA is no longer actively maintained as of 2023; Vite or Next.js are recommended alternatives.
   Confidence: MODERATE — CRA still works but is not the current best practice.
   Action: Update recommendation to current tooling; note migration path if CRA was already chosen.
 ```
 
-Severity levels:
-- **CRITICAL** — Hallucination, fabricated reference, or dangerous complaisance; must be corrected before proceeding
-- **WARNING** — Unvalidated assumption or potential complaisance; should be addressed in current activity
-- **INFO** — Temporal concern or minor assumption; note for user awareness
+The tag `[AI-INTEGRITY]` is orthogonal to severity — it identifies the finding as a devil-advocate / P16 concern.
+
+Severity levels (baseline):
+- **HIGH** — Hallucination, fabricated reference, or dangerous complaisance; must be corrected before proceeding
+- **MEDIUM** — Unvalidated assumption or potential complaisance; should be addressed in current activity
+- **LOW** — Temporal concern or minor assumption; note for user awareness
+
+Note: CRITICAL is produced only via the P15 "Verified but wrong" escalation (see § Integration with P15 Confidence Signaling above). It marks the most dangerous failure mode — false certainty — and is applied at review merge time, not emitted directly by the agent.
 
 ## Mode: focused-review (Root-Cause Discipline escalation)
 

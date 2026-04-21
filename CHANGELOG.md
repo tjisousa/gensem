@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.2] - 2026-04-21
+
+Layers impacted: **spec**, **implementation** (schema + artefact identification pass)
+
+**Methodology coherence pass — second batch** from the /gse-audit run against v0.45.0. Addresses profile.yaml schema drift (major — activities and agents were divided between two reading paths), QA severity scale harmonization across 6 reviewer agents, and sprint template artefact identification (IDs + frontmatter namespace).
+
+### Fixed
+- **profile.yaml root structure** split into `user: {name, git_email}` + `dimensions: {13}` (previously flat under `user:`). The split was already used by 8 consumers (plan, fix, coach×4, orchestrator×2) but contradicted by 4 (produce, tests, guardrail-enforcer, spec §1537). The 4 flat readers are now aligned on `dimensions.*`.
+- **6 dimension enum values** aligned on `hug.md` Step 2 canonical interview spec: `scientific_expertise` → `practitioner` (was proficient), `abstraction_capability` → `concrete-first | balanced | abstract-first`, `preferred_verbosity` → `terse | normal | detailed`, `domain_background` → free text (was closed enum), `decision_involvement` → `autonomous | collaborative | supervised`, `team_context` adds `pair`.
+- **project_domain enum fused** into 9 values: `web | api | cli | data | mobile | embedded | library | scientific | other` (combines hug's `api/data/other` and template's `library/scientific`).
+- **learning_goals type** unified as list of strings (was `[]` in template, `"free text"` in hug.md example — incompatible).
+- **contextual_tips / emoji** standardized on native YAML booleans `true/false` (hug.md example had `on/off` strings).
+- **hug.md "12 HUG dimensions" → "13"** (table has 13 rows; spec §14.1 says "all 13").
+- **learn.md `mother_tongue` → `language.chat`** (non-existent dimension corrected).
+- **QA severity scale** harmonized on `HIGH | MEDIUM | LOW` (spec §6.5 canonical) across 6 reviewer agents: security-auditor (was CRITICAL/HIGH/MEDIUM/LOW), requirements-analyst, architect, test-strategist, ux-advocate, devil-advocate (all were CRITICAL/WARNING/INFO). CRITICAL is now reserved exclusively for the P15 "Verified but wrong" escalation applied at review merge time.
+- **Finding ID format** unified to `RVW-NNN` with `perspective: <agent-name>` field across all 7 reviewer agents (previously each had own prefix: SEC-, REQ-, DES-, TST-, UX-, DEVIL-). Eliminates collisions with artefact IDs (REQ-, DES-, TST- are reserved for Requirements, Design decisions, Test specs per spec §P6).
+- **sprint/review.md template** severity table: 6 rows (CRITICAL/HIGH/WARNING/MEDIUM/LOW/INFO) → 4 rows (CRITICAL/HIGH/MEDIUM/LOW) with note explaining CRITICAL is P15 escalation only.
+- **Sprint template body IDs** aligned on canonical prefixes: reqs.md uses `REQ-001..REQ-099` (functional) and `REQ-101..REQ-199` (non-functional) — was `R01/R02/NFR01/NFR02/NFR03`. design.md uses `DES-001/DES-002` — was `D01/D02`. tests.md uses `TST-001..TST-009` (unit), `TST-010..TST-019` (integration), `TST-020..TST-029` (E2E), `TST-030..TST-039` (policy) — was `T01/T02/T10/T20/T30`.
+- **Activity Persist step frontmatter** for reqs/design/tests aligned on orchestrator §331 `gse:` namespace (was flat `id/artefact_type/title/author`). Canonical traces fields: `derives_from`, `implements`, `tested_by`, `decided_by`. Removed non-canonical `implemented_by` (design.md) and `tests: [SRC-]` (tests.md).
+
+### Changed
+- **profile.yaml template** gains meta fields (`version: 1`, `inferred: {}`, `created`, `updated`) previously present in hug.md Step 5 example only. `expertise_domains` and `competency_map` unchanged (agent-populated, not asked at HUG).
+- **hug.md Step 5 YAML example** updated to reflect new template shape (split structure, list learning_goals, bool flags, no `on/off` strings).
+- **dashboard.py** profile reading simplified from `dimensions.X OR flat X` fallback to canonical `dimensions.X` only (both `it_expertise` and `decision_involvement`).
+- **devil-advocate P15 escalation rules** rewritten to match the 3+1 tier structure: Moderate → one-level escalation (LOW→MEDIUM, MEDIUM→HIGH); Low → HIGH + user verification; Verified-but-wrong → CRITICAL (only path to CRITICAL).
+- **test-strategist severity blocks** now document that `[STRATEGY] [TST-SPEC] [IMPL]` tags are orthogonal to severity (they identify review tier, not severity level).
+- **sprint/design.md template traces** extended to 4 canonical fields (was 2: `derives_from`, `decided_by`; added: `implements`, `tested_by`).
+- **Test level added to `gse:` namespace** (`gse.level: unit | integration | e2e | visual | performance | policy`) in tests.md activity Persist step.
+- **Requirements references in design.md template** renamed from "Requirements: R01, R02" to "Implements: REQ-001, REQ-002" (aligns with canonical `implements` trace).
+
+### Notes
+- Not backward-compatible for old profile.yaml with flat structure (schema change; users must re-run `/gse:hug --update` after upgrade — or the agent auto-detects and migrates on first read, which is a TODO for a future minor).
+- No activity, agent, or principle added/removed — only schema/descriptions harmonized.
+- `git_email` kept as denormalization in `user:` for dashboard/coach read performance (source of truth remains `git config user.email`).
+
 ## [0.47.1] - 2026-04-21
 
 Layers impacted: **spec**, **design**, **implementation** (3-layer coherence pass)

@@ -38,25 +38,30 @@ Priorities:
 Findings are reported as structured entries:
 
 ```
-UX-001 [CRITICAL] — Form submission silently fails with no feedback
+RVW-001 [HIGH] — Form submission silently fails with no feedback
+  perspective: ux-advocate
   Location: Registration flow, step 2
   Detail: If email validation fails server-side, the form resets with no error message.
-  User impact: User repeatedly fills the form without understanding what is wrong.
+  User impact: User repeatedly fills the form without understanding what is wrong. Blocks a core task.
   Suggestion: Display inline error message next to the email field: "This email is already registered."
 
-UX-002 [WARNING] — Insufficient color contrast on secondary buttons
+RVW-002 [MEDIUM] — Insufficient color contrast on secondary buttons
+  perspective: ux-advocate
   Location: Global component library, Button variant="secondary"
   Detail: Light gray text (#999) on white background has contrast ratio 2.8:1 (WCAG AA requires 4.5:1).
   User impact: Low-vision users cannot read button labels.
   Suggestion: Darken text color to at least #767676 for 4.5:1 contrast ratio.
 
-UX-003 [INFO] — No empty state for project list
+RVW-003 [LOW] — No empty state for project list
+  perspective: ux-advocate
   Location: Dashboard, "My Projects" section
   Detail: New users see a blank area with no guidance on how to create their first project.
   Suggestion: Add empty state with illustration and "Create your first project" call-to-action.
 ```
 
-Severity levels:
-- **CRITICAL** — User cannot complete a core task or accessibility barrier blocks usage
-- **WARNING** — Significant friction or WCAG violation that degrades experience
-- **INFO** — Polish opportunity or enhancement for better user satisfaction
+Severity levels (baseline):
+- **HIGH** — User cannot complete a core task, or accessibility barrier blocks usage for a class of users (describe the blocked flow or disability in the Impact field)
+- **MEDIUM** — Significant friction or WCAG violation that degrades experience
+- **LOW** — Polish opportunity or enhancement for better user satisfaction
+
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5). The agent never emits CRITICAL directly.

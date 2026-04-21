@@ -208,17 +208,18 @@ Save the design document to `docs/sprints/sprint-{NN}/design.md`:
 
 ```yaml
 ---
-id: DES-{NNN}
-artefact_type: design
-title: "Sprint {NN} Design"
-sprint: {NN}
-status: draft
-created: {date}
-author: pair
-traces:
-  derives_from: [REQ-{NNN}, ...]
-  tested_by: []
-  implemented_by: []
+gse:
+  type: design
+  sprint: {NN}
+  branch: gse/sprint-{NN}/integration
+  status: draft                        # draft | reviewed | approved
+  created: "{YYYY-MM-DD}"
+  updated: "{YYYY-MM-DD}"
+  traces:
+    derives_from: []                   # e.g., [TASK-005] — task that triggered this design
+    implements: [REQ-{NNN}, ...]       # requirements addressed
+    tested_by: []                      # e.g., [TST-007] — tests verifying the design
+    decided_by: []                     # e.g., [DEC-001] — shaping decisions
 ---
 ```
 
