@@ -89,6 +89,7 @@ class Finding:
     fix_hint: str = ""
     location: str = ""
     file: str = ""  # canonical file path (relative to repo root) for cluster mapping
+    job_id: str = "python-engine"  # which job produced this finding (for traceability)
 
 
 @dataclass
@@ -424,42 +425,76 @@ def audit_cross_refs() -> list:
 
 
 def audit_numeric() -> list:
+    """Scan all relevant markdown and Python files for numeric claims that
+    drift from reality (commands, agents, principles, modes).
+
+    Extended in v0.47.0 to scan gse_generate.py, activities, agents, and
+    repo-level docs (previously only spec + design).
+    """
     findings: list = []
     consts = _extract_constants()
     n_act = len(consts["ACTIVITY_NAMES"])
     n_ag = len(consts["SPECIALIZED_AGENTS"])
+    n_principles = 16  # P1-P16
+    n_modes = 3  # Micro, Lightweight, Full
 
-    spec = _read_text(REPO_ROOT / "gse-one-spec.md")
-    design = _read_text(REPO_ROOT / "gse-one-implementation-design.md")
+    # Files to scan for numeric claims
+    files_to_scan = []
+    for name in ("gse-one-spec.md", "gse-one-implementation-design.md",
+                 "README.md", "CLAUDE.md", "CHANGELOG.md"):
+        p = REPO_ROOT / name
+        if p.exists():
+            files_to_scan.append(p)
 
-    # Check for numeric claims in spec
-    for doc_name, text in [("spec", spec), ("design", design)]:
-        # "N commands"
-        for m in re.finditer(r"(\d+)\s+commands?\b", text):
-            claimed = int(m.group(1))
-            if claimed != n_act and claimed not in (n_act - 1, n_act + 1):
-                findings.append(
-                    Finding(
-                        "numeric",
-                        "warning",
-                        f"{doc_name} claims '{claimed} commands' — actual ACTIVITY_NAMES count is {n_act}",
-                        f"text: ...{text[max(0, m.start()-30):m.end()+30]}...",
-                        f"Update to '{n_act} commands'",
-                        location=f"{doc_name}",
-                    )
+    gen_py = GSE_ONE / "gse_generate.py"
+    if gen_py.exists():
+        files_to_scan.append(gen_py)
+
+    if (SRC / "activities").exists():
+        files_to_scan.extend(sorted((SRC / "activities").glob("*.md")))
+    if (SRC / "agents").exists():
+        files_to_scan.extend(sorted((SRC / "agents").glob("*.md")))
+
+    # Patterns: (regex, expected value, human label)
+    patterns = [
+        (re.compile(r"(\d+)\s+specialized\b", re.IGNORECASE), n_ag,
+         "specialized"),
+        (re.compile(r"(\d+)\s+commands?\b", re.IGNORECASE), n_act, "commands"),
+        (re.compile(r"(\d+)\s+principles?\b", re.IGNORECASE), n_principles,
+         "principles"),
+    ]
+
+    # Scan each file; aggregate by (file, pattern, claimed_value) to list
+    # all line numbers
+    for f in files_to_scan:
+        text = _read_text(f)
+        try:
+            rel = f.relative_to(REPO_ROOT)
+        except ValueError:
+            rel = f
+        lines = text.split("\n")
+        for pattern, expected, what in patterns:
+            claims_by_value: dict = {}
+            for i, line in enumerate(lines, 1):
+                for m in pattern.finditer(line):
+                    claimed = int(m.group(1))
+                    # Tolerate off-by-one (includes/excludes orchestrator etc.)
+                    if claimed != expected and abs(claimed - expected) > 1:
+                        claims_by_value.setdefault(claimed, []).append(i)
+            for claimed, line_nums in claims_by_value.items():
+                lines_summary = (
+                    ", ".join(str(n) for n in line_nums[:6])
+                    + (" ..." if len(line_nums) > 6 else "")
                 )
-        # "N specialized agents"
-        for m in re.finditer(r"(\d+)\s+specialized(?:\s+agents?|\s+roles?)?", text):
-            claimed = int(m.group(1))
-            if claimed != n_ag:
                 findings.append(
                     Finding(
                         "numeric",
                         "warning",
-                        f"{doc_name} claims '{claimed} specialized' — actual SPECIALIZED_AGENTS count is {n_ag}",
-                        f"text: ...{text[max(0, m.start()-30):m.end()+30]}...",
-                        f"Update to '{n_ag} specialized'",
-                        location=f"{doc_name}",
+                        f"{rel.name} claims '{claimed} {what}' — actual is {expected}",
+                        f"{len(line_nums)} occurrence(s) at lines: {lines_summary}",
+                        f"Update to '{expected} {what}'",
+                        location=str(rel),
+                        file=str(rel),
                     )
                 )
 
@@ -468,7 +503,9 @@ def audit_numeric() -> list:
             Finding(
                 "numeric",
                 "info",
-                f"numeric claims consistent: {n_act} commands, {n_ag} specialized agents",
+                f"numeric claims consistent across {len(files_to_scan)} files "
+                f"({n_act} commands, {n_ag} specialized agents, "
+                f"{n_principles} principles)",
             )
         )
     return findings
@@ -1082,7 +1119,10 @@ def _build_parser() -> argparse.ArgumentParser:
 def _save_report(rendered: str, fmt: str, save_to: Optional[Path] = None) -> Path:
     """Write the rendered report to disk. Returns the saved path.
 
-    Default: `_LOCAL/audits/audit-<ISO-timestamp>.<ext>` + copy to `latest.<ext>`.
+    Default filename format (v0.47.0+): `audit-YYYY-MM-DD-HHMMSS-vX.Y.Z.<ext>`
+    The date + version combo is readable and uniquely identifies each run.
+    A convenience copy is also written as `latest.<ext>`.
+
     With save_to explicitly set: that exact path (no latest copy).
     """
     ext = "json" if fmt == "json" else "md"
@@ -1093,9 +1133,10 @@ def _save_report(rendered: str, fmt: str, save_to: Optional[Path] = None) -> Pat
 
     audits_dir = REPO_ROOT / "_LOCAL" / "audits"
     audits_dir.mkdir(parents=True, exist_ok=True)
-    # Timestamp safe for filenames (no colons)
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
-    main_path = audits_dir / f"audit-{ts}.{ext}"
+    # Date + time + version: readable and unique across same-day runs
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
+    version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip() or "unknown"
+    main_path = audits_dir / f"audit-{ts}-v{version}.{ext}"
     main_path.write_text(rendered, encoding="utf-8")
 
     # Convenience copy — always overwritten

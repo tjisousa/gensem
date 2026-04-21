@@ -118,17 +118,25 @@ The auditor operates across **6 dimensions**, each with ~4 canonical checks. Thi
 
 ## Output format (for each Finding produced)
 
+Every finding MUST include `job_id` for traceability — this is how the orchestrator knows which of the 20 parallel jobs produced each finding, and it enables filtered re-runs (`--job <id>`).
+
 ```yaml
 job_id: spec-file-quality | deploy-cluster | methodology-design-critique | ...
 category: A | B | C | D | E
 severity: error | warning | info | recommendation
 title: short one-line summary
 location: file path, optional :line
+file: relative file path (for cluster mapping)
 detail: longer evidence (excerpt, counts, etc.)
 fix_hint: concrete suggestion (when obvious)
 direction: downward | upward | none     # only meaningful for bidirectional jobs
 impact: high | medium | low             # only meaningful for severity=recommendation
 ```
+
+The orchestrator in Phase 4 uses `job_id` to:
+- Track which jobs produced findings (completion visibility)
+- Enable `--job <id>` re-runs in future audits
+- De-duplicate findings across jobs (when two jobs catch the same issue from different angles, merge detail + retain both `job_id`s)
 
 Example:
 

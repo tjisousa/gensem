@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.0] - 2026-04-21
+
+Layers impacted: **tooling** (repo-level, not plugin)
+
+**Audit reliability pass** — based on observations from the first full `/gse-audit` run against v0.45.0 (which produced 45 errors / 85 warnings / 31 recommendations spontaneously with excellent clustering, but revealed concrete gaps in the tool itself). Addresses: Python engine missing numeric drift in gse_generate.py, skill's save phase being too permissive, missing per-job completion tracking, absent finding→job traceability, and preservation of LLM-natural behaviors across future LLM versions.
+
+### Added
+- **`job_id` field** in the `Finding` dataclass (`gse-one/audit.py`) and in the agent's required output format (`methodology-auditor.md`). Python-engine findings carry `job_id="python-engine"`; each LLM sub-agent MUST tag its findings with its catalog `job.id`. This enables traceability (which job produced what) and filtered re-runs in future versions.
+- **Per-job completion tracking** in Phase 4 aggregation: the orchestrator now records and reports "N/20 jobs completed" in the summary. Skipped or errored sub-agents are explicitly called out.
+- **Table of Contents** at the top of the report (required when > 100 lines). Lists Summary, Clusters, Warnings, Info, Strategic recommendations per critique job, Conclusion.
+- **Phase 5 quality requirements** section in the skill: documents 7 LLM-natural behaviors observed in real audits (thematic clustering, precise citations, strategic tables with Impact/Direction, fix-priority lists, files-to-consult-first, action-oriented phrasing, separation of immediate vs future horizons). Preserves quality against future LLM regression.
+
+### Changed
+- **`audit_numeric()` extended** to scan: spec, design, README, CLAUDE.md, CHANGELOG.md, gse_generate.py, all activity files, all agent files. Previously only spec + design — missing 7 occurrences in `gse_generate.py`. Now also detects "N principles" drift (not just "N commands" and "N specialized"). Finding aggregation is per-file: one warning per (file, pattern, claimed_value) with all line numbers listed, instead of N warnings per N occurrences.
+- **Filename format** for saved reports changed to `audit-YYYY-MM-DD-HHMMSS-vX.Y.Z.md` (was `audit-<ISO-timestamp>.md`). More readable, includes version for trace continuity across releases. Adopted from observed behavior in a spontaneous manual save by Claude Code.
+- **Phase 6 save made MANDATORY** in the skill (was "unless --no-save"). Explicit procedure: mkdir → compute filename with VERSION + UTC date+time → Write 2 files (timestamped + latest.md) → verify via `ls` → report exact path to user. Rationale stated: audit trail is the primary value of running an audit.
+- **Phase 4 aggregation** now prescribes thematic clustering of findings (Cluster 1 — Count drift, Cluster 2 — Schema drift, etc.) as a quality REQUIREMENT, not optional. Observed spontaneously by LLM in real runs; now codified so future LLMs don't regress.
+- **Sub-agent prompt template** enriched: `job_id` field now REQUIRED in output, with explicit examples of all Finding fields (category, severity, location, file, detail, fix_hint, direction, impact).
+
+### Notes
+- A1 (actionable synthesis prescription), A2 (multi-location merging prescription), B2 (atomic fix commit suggestions) were considered but abandoned as redundant — the LLM produces these spontaneously with high quality. Phase 5 quality requirements capture the essence to prevent regression.
+- C1 (impact-sorted recommendations) was already present in Principle 7 of the agent and naturally implemented by the LLM.
+- `audit.py` total file count expanded from 6 to 7 scan targets (gse_generate.py + repo-level docs). Expected to catch ~2-3× more numeric drift findings.
+
 ## [0.46.0] - 2026-04-21
 
 Layers impacted: **tooling** (repo-level, not plugin)
