@@ -3,17 +3,26 @@
 """GSE-One methodology repository auditor — deterministic checks only.
 
 Usage:
-    python3 gse-one/audit.py                       # full, markdown output
+    python3 gse-one/audit.py                       # full, markdown output + auto-save
     python3 gse-one/audit.py --format json         # for CI / scripting
     python3 gse-one/audit.py --category version    # only one category
     python3 gse-one/audit.py --cluster deploy-cluster  # only files in a cluster
     python3 gse-one/audit.py --list-clusters       # show catalog clusters
     python3 gse-one/audit.py --fail-on error       # exit 1 on errors
+    python3 gse-one/audit.py --no-save             # stdout only, don't save
+    python3 gse-one/audit.py --save-to <path>      # explicit output path
+
+By default the report is saved to `_LOCAL/audits/audit-<ISO-timestamp>.md`
+(and copied to `_LOCAL/audits/latest.md` for convenience). The `_LOCAL/`
+directory is gitignored, so saved reports never leak into git. Use
+`--no-save` to disable the auto-save (stdout only).
 
 For reasoning-based checks (LLM), use the `/gse-audit` slash command in
 Claude Code — it invokes this script for deterministic checks, then
 performs semantic reasoning via the methodology-auditor agent across 20
-audit jobs defined in .claude/audit-jobs.json.
+audit jobs defined in .claude/audit-jobs.json. The slash command saves
+its augmented report (deterministic + LLM findings) to the same
+`_LOCAL/audits/` directory.
 
 This tool audits the gensem repo itself (not user projects). It lives in
 gse-one/ alongside gse_generate.py (both are maintainer tools).
@@ -1056,7 +1065,44 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Exit non-zero if findings at this severity or higher",
     )
+    p.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Do not save the report to _LOCAL/audits/ (stdout only)",
+    )
+    p.add_argument(
+        "--save-to",
+        metavar="PATH",
+        default=None,
+        help="Explicit output file path (overrides default _LOCAL/audits/audit-<ts>.md)",
+    )
     return p
+
+
+def _save_report(rendered: str, fmt: str, save_to: Optional[Path] = None) -> Path:
+    """Write the rendered report to disk. Returns the saved path.
+
+    Default: `_LOCAL/audits/audit-<ISO-timestamp>.<ext>` + copy to `latest.<ext>`.
+    With save_to explicitly set: that exact path (no latest copy).
+    """
+    ext = "json" if fmt == "json" else "md"
+    if save_to:
+        save_to.parent.mkdir(parents=True, exist_ok=True)
+        save_to.write_text(rendered, encoding="utf-8")
+        return save_to
+
+    audits_dir = REPO_ROOT / "_LOCAL" / "audits"
+    audits_dir.mkdir(parents=True, exist_ok=True)
+    # Timestamp safe for filenames (no colons)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+    main_path = audits_dir / f"audit-{ts}.{ext}"
+    main_path.write_text(rendered, encoding="utf-8")
+
+    # Convenience copy — always overwritten
+    latest_path = audits_dir / f"latest.{ext}"
+    latest_path.write_text(rendered, encoding="utf-8")
+
+    return main_path
 
 
 def _filter_by_cluster(report: Report, job_id: str) -> Report:
@@ -1168,10 +1214,18 @@ def main(argv: Optional[list] = None) -> int:
     if args.cluster:
         report = _filter_by_cluster(report, args.cluster)
 
-    if args.format == "json":
-        print(render_json(report))
-    else:
-        print(render_markdown(report))
+    rendered = render_json(report) if args.format == "json" else render_markdown(report)
+    print(rendered)
+
+    # Auto-save to _LOCAL/audits/ unless --no-save
+    if not args.no_save:
+        try:
+            save_to = Path(args.save_to) if args.save_to else None
+            saved_path = _save_report(rendered, args.format, save_to)
+            rel = saved_path.relative_to(REPO_ROOT) if saved_path.is_absolute() else saved_path
+            print(f"\n(saved to: {rel})", file=sys.stderr)
+        except Exception as e:  # noqa: BLE001
+            print(f"\nwarning: could not save report: {e}", file=sys.stderr)
 
     if args.fail_on == "error" and report.errors():
         return 1

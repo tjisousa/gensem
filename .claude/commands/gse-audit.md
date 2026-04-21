@@ -32,6 +32,8 @@ The audit covers **20 jobs** in 5 categories, listed in `.claude/audit-jobs.json
 | `--strategic-only` | Run only Category E (4 qualitative critique jobs) |
 | `--format <json\|md>` | Output format (default: md) |
 | `--fail-on <error\|warning>` | Exit non-zero if findings at this severity or higher |
+| `--no-save` | Do not save the report to `_LOCAL/audits/` |
+| `--save-to <path>` | Explicit output file path (overrides default) |
 | `--help` | Show this usage guide |
 
 ## Required readings
@@ -215,6 +217,30 @@ If `--format json`: emit structured JSON with the same two-section structure (`c
 If `--fail-on error` and errors > 0: exit with non-zero indication.
 If `--fail-on warning` and (errors > 0 or warnings > 0): exit with non-zero.
 Recommendations NEVER trigger exit codes (they are proposals, not defects).
+
+### Phase 6 — Save the augmented report
+
+Unless `--no-save` was passed, write the final rendered report to:
+
+```
+_LOCAL/audits/audit-<ISO-timestamp>.md
+```
+
+Also copy it (overwrite) to `_LOCAL/audits/latest.md` for convenience (always points to the most recent run).
+
+Use the Bash tool to `mkdir -p _LOCAL/audits/` before writing, and the Write tool to create the file. Both filename variants.
+
+The `_LOCAL/` directory is gitignored (via `/_*/` in `.gitignore`), so saved audit reports never leak into commits. Forkers can safely accumulate audit history in their working tree without polluting their repo.
+
+Example filename: `_LOCAL/audits/audit-2026-04-21T07-15-30Z.md`.
+
+If `--save-to <path>` was passed, write to that exact path instead (no `latest.md` copy). Useful for CI exports or integrating into external reporting.
+
+After saving, report to the user:
+
+> Full audit saved to `_LOCAL/audits/audit-<timestamp>.md` (and `latest.md`).
+
+**Note:** The Python engine (`audit.py`) saves its own deterministic-only report when invoked standalone. When `/gse-audit` runs the full flow, the skill invokes the engine with `--no-save --format json` to skip engine-side saving, then the skill saves the AUGMENTED report (Python findings + LLM findings from the 20 sub-agents) in Phase 6. No duplicate files.
 
 ## Invocation examples
 

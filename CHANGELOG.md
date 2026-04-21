@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.46.0] - 2026-04-21
+
+Layers impacted: **tooling** (repo-level, not plugin)
+
+### Added
+- **Automatic audit persistence** — `/gse-audit` slash command and `audit.py` CLI now save their reports to `_LOCAL/audits/` by default. Two files produced per run:
+  - `_LOCAL/audits/audit-<ISO-timestamp>.md` — timestamped archive (one per run, accumulates)
+  - `_LOCAL/audits/latest.md` — convenience copy, always overwritten (points to the most recent run)
+  
+  The `_LOCAL/` directory is gitignored (via `/_*/` in `.gitignore`), so audit history never leaks into commits. Forkers accumulate their own audit trail locally without polluting their repo.
+
+- **`--no-save` flag** on `audit.py` and `/gse-audit` to disable persistence (stdout only).
+- **`--save-to <path>` flag** for explicit output path (useful for CI artifact export or integration with external reporting).
+
+### Changed
+- **`gse-one/audit.py`** — default behavior is now to save + print. Previously: print only. Breaking change in default output, but opt-out via `--no-save` restores the old behavior.
+- **`.claude/commands/gse-audit.md`** — new Phase 6 "Save the augmented report" documents the skill-side save (deterministic findings + LLM findings + strategic recommendations merged before persistence). The skill invokes `audit.py --no-save --format json` internally to avoid duplicate engine-side saves.
+- **README "Auditing the plugin" section** — documents the new `_LOCAL/audits/` default, `latest.md` convenience, and save flags.
+
+### Notes
+- When the skill runs a full audit, only ONE file is saved (the augmented report). When `audit.py` is invoked standalone, its deterministic-only report is saved.
+- Historical audits can be compared diffing two files under `_LOCAL/audits/`.
+
 ## [0.45.0] - 2026-04-21
 
 Layers impacted: **tooling** (repo-level, not plugin)

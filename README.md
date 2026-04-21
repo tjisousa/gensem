@@ -388,9 +388,24 @@ python3 gse-one/audit.py --category version   # single category
 python3 gse-one/audit.py --cluster deploy-cluster   # filter to cluster
 python3 gse-one/audit.py --list-clusters      # list available jobs
 python3 gse-one/audit.py --fail-on error      # exit code 1 on errors (CI)
+python3 gse-one/audit.py --no-save            # stdout only, don't save to disk
+python3 gse-one/audit.py --save-to report.md  # explicit output path
 ```
 
 Pure Python stdlib. **Optional dependency:** `pip install pyyaml` enables YAML schema validation.
+
+### Report persistence (default behavior)
+
+Every audit run (slash command OR CLI) **automatically saves** its report to:
+
+```
+_LOCAL/audits/audit-<ISO-timestamp>.md    # timestamped archive
+_LOCAL/audits/latest.md                   # convenience copy, always overwritten
+```
+
+`_LOCAL/` is gitignored, so audit history accumulates locally without ever reaching git. Use `--no-save` to disable, or `--save-to <path>` for an explicit location (e.g., CI artifact export).
+
+The `/gse-audit` slash command saves the **augmented** report (deterministic findings + LLM findings from 20 sub-agents + strategic recommendations). The `audit.py` CLI saves the **deterministic-only** report when invoked standalone. No duplicate files when the skill invokes the engine internally.
 
 ### What the audit covers (20 jobs, 5 categories)
 
