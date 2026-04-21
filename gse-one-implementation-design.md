@@ -26,7 +26,7 @@ gse-one/
 ├── src/                                 # Shared source of truth
 │   ├── principles/                      # 16 principle definitions (P1-P16)
 │   ├── activities/                      # 23 activity definitions
-│   ├── agents/                          # 9 agent roles (8 specialized + gse-orchestrator)
+│   ├── agents/                          # 11 agent roles (10 specialized + gse-orchestrator)
 │   │   ├── gse-orchestrator.md          # Identity agent — source for both platforms
 │   │   ├── requirements-analyst.md
 │   │   ├── architect.md
@@ -35,16 +35,18 @@ gse-one/
 │   │   ├── security-auditor.md
 │   │   ├── ux-advocate.md
 │   │   ├── guardrail-enforcer.md
-│   │   └── devil-advocate.md
-│   └── templates/                       # 19 templates
+│   │   ├── devil-advocate.md
+│   │   ├── coach.md
+│   │   └── deploy-operator.md
+│   └── templates/                       # 28 templates (+ MANIFEST.yaml descriptor)
 │
 ├── plugin/                              # Single deployable directory (Claude + Cursor + opencode)
 │   ├── .claude-plugin/plugin.json       # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json       # Cursor manifest
 │   ├── skills/                          # 23 skills (shared, `name:` field included)
 │   ├── commands/                        # 23 flat /gse-<name>.md (Cursor + opencode)
-│   ├── agents/                          # 9 agents (shared, incl. orchestrator)
-│   ├── templates/                       # 19 templates (shared)
+│   ├── agents/                          # 11 agents (shared, incl. orchestrator)
+│   ├── templates/                       # 28 templates (shared)
 │   ├── rules/
 │   │   └── gse-orchestrator.mdc         # Cursor-only (ignored by Claude/opencode)
 │   ├── hooks/
@@ -54,7 +56,7 @@ gse-one/
 │   └── opencode/                        # opencode-specific subtree
 │       ├── skills/                      # 23 skills with injected `name:`
 │       ├── commands/                    # 23 gse-<name>.md slash commands
-│       ├── agents/                      # 8 specialized (`mode: subagent`)
+│       ├── agents/                      # 10 specialized (`mode: subagent`)
 │       ├── plugins/gse-guardrails.ts    # Native TS plugin (transpiled from hooks.claude.json)
 │       ├── AGENTS.md                    # Orchestrator body wrapped in markers
 │       └── opencode.json                # Default permissions + version marker
@@ -123,8 +125,8 @@ ONE directory (`plugin/`) serves both platforms. Shared components — skills, a
 | `hooks/hooks.cursor.json` | ignored | **used** | Cursor hook format (camelCase) |
 | `rules/gse-orchestrator.mdc` | ignored | **used** | Cursor always-on methodology rule |
 | `skills/` (23) | **shared** | **shared** | All activity skills |
-| `agents/` (9 in source, 8 for Cursor) | **shared** (9: 8 specialized + orchestrator) | **shared** (8: specialized only) | Agent roles for sub-agent delegation |
-| `templates/` (15) | **shared** | **shared** | All artefact/config templates |
+| `agents/` (11 in source, 10 for Cursor) | **shared** (11: 10 specialized + orchestrator) | **shared** (10: specialized only) | Agent roles for sub-agent delegation |
+| `templates/` (28) | **shared** | **shared** | All artefact/config templates |
 
 Claude ignores the `rules/` directory silently. Cursor ignores `settings.json` silently. The orchestrator agent (`agents/gse-orchestrator.md`) exists in the source `plugin/` directory for Claude Code, but the installer **excludes it from Cursor** installations — Cursor loads the orchestrator identity via `rules/gse-orchestrator.mdc` instead, avoiding double-loading of the same ~400-line content.
 
@@ -2069,18 +2071,31 @@ scaffold_path: ""  # populated only if variant: scaffold, e.g., "./" or "fronten
 ```yaml
 timestamp: 2026-04-11T16:30:00
 user: alice
-sprint: 3
-phase: LC02
-last_activity: /gse:produce
 last_task: TASK-038
-status_snapshot: <copy of status.yaml>
-backlog_sprint_snapshot: <current sprint items from backlog.yaml>
-git:
+note: "Working on auth module, 2 tests remain"
+
+status_snapshot:
+  current_phase: LC02
+  current_sprint: 3
+  last_activity: /gse:produce
+  last_activity_timestamp: 2026-04-11T16:28:00
+  health_score: 7.5
+
+backlog_sprint_snapshot:
+  tasks:
+    TASK-038:
+      status: in-progress
+      complexity: 3
+      branch: gse/sprint-03/feat/auth
+
+git_state:
   current_branch: gse/sprint-03/feat/auth
   worktrees:
-    - branch: gse/sprint-03/feat/auth
+    - path: .worktrees/sprint-03-feat-auth
+      branch: gse/sprint-03/feat/auth
+      task: TASK-038
       last_commit: abc123
-notes: "Working on auth module, 2 tests remain"
+      clean: false
 ```
 
 **State loading priority (spec §12.6):**
@@ -2403,7 +2418,7 @@ CI is not yet set up — listed as future work in `TESTING.md`. The test foundat
 
 ## 6. Methodology Deployment: Cross-Platform Parity
 
-The GSE-One methodology is loaded as the agent's permanent identity on both platforms through a dual-mechanism approach, ensuring identical behavior regardless of the tool used.
+The GSE-One methodology is loaded as the agent's permanent identity on all three supported platforms (Claude Code, Cursor, opencode) through a per-platform delivery mechanism, ensuring identical behavior regardless of the tool used.
 
 ### 6.1 Claude Code: Agent Reference
 
@@ -2430,25 +2445,46 @@ alwaysApply: true
 
 The body following this frontmatter is identical to the body of `agents/gse-orchestrator.md`.
 
-### 6.3 Generation and Parity
+### 6.3 opencode: AGENTS.md Embedding
 
-Both files are generated from the same source: `src/agents/gse-orchestrator.md`. The generator:
+opencode loads the methodology from `AGENTS.md` at the worktree root (or `~/.config/opencode/AGENTS.md` in plugin mode). GSE-One delivers the orchestrator body wrapped between surgical merge markers so the installer can update methodology content without disturbing user content:
+
+```markdown
+<!-- GSE-ONE START -->
+...orchestrator body (identical to Claude/Cursor)...
+<!-- GSE-ONE END -->
+```
+
+The installer:
+1. Creates `AGENTS.md` if absent
+2. If present, replaces only the block between `GSE-ONE START` and `GSE-ONE END` markers
+3. Leaves any user content outside the markers untouched
+
+Hooks on opencode are delivered as a **native TypeScript plugin** (`plugins/gse-guardrails.ts`) transpiled from `hooks/hooks.claude.json` at generation time — the same guardrail logic, expressed in opencode's `tool.execute.before/after` hook API.
+
+Specialized agents ship under `opencode/agents/` with `mode: subagent` frontmatter and the `tools:` list translated from string form to opencode's object form. Skills and commands are generated under `opencode/skills/<name>/SKILL.md` and `opencode/commands/gse-<name>.md` respectively.
+
+### 6.4 Generation and Parity
+
+All three platform outputs are generated from the same source: `src/agents/gse-orchestrator.md`. The generator:
 
 1. Extracts the body (everything after the YAML frontmatter `---...---`)
-2. Wraps the body with **agent frontmatter** for Claude Code (`name`, `description` fields)
-3. Wraps the same body with **.mdc frontmatter** for Cursor (`description`, `alwaysApply` fields)
-4. Verifies body parity at generation time — if the two generated bodies differ, the generator reports `DIVERGENT!`
+2. Wraps the body with **agent frontmatter** for Claude Code (`name`, `description` fields) → `agents/gse-orchestrator.md`
+3. Wraps the same body with **.mdc frontmatter** for Cursor (`description`, `alwaysApply` fields) → `rules/gse-orchestrator.mdc`
+4. Embeds the same body between `<!-- GSE-ONE START -->` / `<!-- GSE-ONE END -->` markers for opencode → `opencode/AGENTS.md`
+5. Verifies body parity at generation time — if the three generated bodies differ, the generator reports `DIVERGENT!`
 
-This ensures that Claude Code and Cursor users experience the exact same methodology, decision logic, and orchestration behavior.
+This ensures that Claude Code, Cursor, and opencode users experience the exact same methodology, decision logic, and orchestration behavior.
 
-### 6.4 Installer Differentiation
+### 6.5 Installer Differentiation
 
-Although the `plugin/` source directory contains both `agents/gse-orchestrator.md` and `rules/gse-orchestrator.mdc`, the installer (`install.py`) ensures each platform only receives the appropriate file:
+Although the `plugin/` source directory contains `agents/gse-orchestrator.md`, `rules/gse-orchestrator.mdc`, and `opencode/AGENTS.md` side by side, the installer (`install.py`) ensures each platform only receives the appropriate file:
 
-- **Claude Code:** Receives `agents/gse-orchestrator.md` (loaded via `settings.json → "agent"`). The `.mdc` file is ignored by Claude.
-- **Cursor:** Receives `rules/gse-orchestrator.mdc` (loaded via `alwaysApply: true`). The installer **excludes** `agents/gse-orchestrator.md` from Cursor installations to prevent the orchestrator content from being loaded twice — once as an always-on rule and once as a named agent.
+- **Claude Code:** Receives `agents/gse-orchestrator.md` (loaded via `settings.json → "agent"`). The `.mdc` file and the `opencode/` subtree are ignored by Claude.
+- **Cursor:** Receives `rules/gse-orchestrator.mdc` (loaded via `alwaysApply: true`). The installer **excludes** `agents/gse-orchestrator.md` from Cursor installations to prevent double-loading the orchestrator.
+- **opencode:** Receives `opencode/AGENTS.md` at the worktree root (or `~/.config/opencode/` in plugin mode). The installer merges surgically between `<!-- GSE-ONE START/END -->` markers, leaving any user content outside the markers untouched.
 
-Cursor still receives the 8 specialized agents (`code-reviewer.md`, `architect.md`, etc.) in `agents/` for sub-agent delegation during REVIEW and other activities.
+All three platforms still receive the 10 specialized agents (`code-reviewer.md`, `architect.md`, etc.) for sub-agent delegation during REVIEW and other activities. On Claude Code and Cursor they live in `agents/`; on opencode they live in `opencode/agents/` with `mode: subagent` frontmatter.
 
 ---
 
@@ -2538,12 +2574,13 @@ Cursor uses camelCase event names (`preToolUse`, `postToolUse`), a top-level `ve
 
 ### 7.3 Format Differences Summary
 
-| Aspect | Claude Code | Cursor |
-|--------|------------|--------|
-| Event names | PascalCase (`PreToolUse`) | camelCase (`preToolUse`) |
-| `type` field | Required (`"type": "command"`) | Omitted (implicit) |
-| `version` field | Absent | Required (`"version": 1`) |
-| Hook commands | Identical (cross-platform Python) | Identical (cross-platform Python) |
+| Aspect | Claude Code | Cursor | opencode |
+|--------|------------|--------|----------|
+| Delivery mechanism | `hooks/hooks.claude.json` (JSON) | `hooks/hooks.cursor.json` (JSON) | `opencode/plugins/gse-guardrails.ts` (native TS plugin) |
+| Event names | PascalCase (`PreToolUse`) | camelCase (`preToolUse`) | camelCase (`tool.execute.before/after`) |
+| `type` field | Required (`"type": "command"`) | Omitted (implicit) | N/A (TS function) |
+| `version` field | Absent | Required (`"version": 1`) | N/A |
+| Hook commands | Identical (cross-platform Python) | Identical (cross-platform Python) | Transpiled to TypeScript at generation |
 
 ---
 
@@ -2618,7 +2655,7 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 3. Pop the next item from `workflow.pending` → `workflow.active`; record conditional skips in `workflow.skipped` with reason.
 4. Evaluate non-blocking coherence: `budget_pressure` (>80% consumed with tasks remaining), `significant_scope_drift` (>50% tasks changed), `velocity_risk` (produce phase only).
 5. React by mode: Full → Inform; Lightweight → one-line Inform; Micro → silent.
-6. Update `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `lifecycle_phase`).
+6. Update `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_phase`).
 
 **Archival** — At DELIVER Step 9, the orchestrator reads `.gse/plan.yaml`, generates `docs/sprints/sprint-{NN}/plan-summary.md` (using the `plan-summary.md` template), and sets `plan.yaml.status: completed`. The snapshot is read-only — never consumed by the orchestrator, only used for human reference and COMPOUND process-deviation analysis.
 
@@ -2645,35 +2682,39 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 
 | Step | Input | Output | Shared? |
 |------|-------|--------|---------|
-| 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc` | Body identical, frontmatter differs |
-| 2 | `src/activities/*.md` (23) | `plugin/skills/<name>/SKILL.md` | Shared |
-| 3 | `src/agents/*.md` (10 specialized) | `plugin/agents/<name>.md` | Shared |
-| 4 | `src/templates/*` (19) | `plugin/templates/*` | Shared |
+| 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc` + `plugin/opencode/AGENTS.md` (wrapped in markers) | Body identical across 3 outputs, frontmatter/wrapper differs |
+| 2 | `src/activities/*.md` (23) | `plugin/skills/<name>/SKILL.md` + `plugin/commands/gse-<name>.md` + `plugin/opencode/skills/<name>/SKILL.md` + `plugin/opencode/commands/gse-<name>.md` | Shared body; opencode skills inject `name:` frontmatter |
+| 3 | `src/agents/*.md` (10 specialized) | `plugin/agents/<name>.md` + `plugin/opencode/agents/<name>.md` (with `mode: subagent`) | Shared body; opencode agents translate `tools:` to object form |
+| 4 | `src/templates/*` (28) | `plugin/templates/*` | Shared across platforms via `~/.gse-one` registry |
 | 5 | `src/references/*.md` | `plugin/references/*.md` | Shared — consulted by agents at runtime |
-| 6 | Constants | `plugin/.claude-plugin/plugin.json` + `plugin/.cursor-plugin/plugin.json` | Two manifests |
-| 7 | Shared shell commands | `plugin/hooks/hooks.claude.json` + `plugin/hooks/hooks.cursor.json` | Same logic, different format |
+| 6 | Constants | `plugin/.claude-plugin/plugin.json` + `plugin/.cursor-plugin/plugin.json` + `plugin/opencode/opencode.json` | Three manifests |
+| 7 | Shared shell commands | `plugin/hooks/hooks.claude.json` + `plugin/hooks/hooks.cursor.json` + `plugin/opencode/plugins/gse-guardrails.ts` (transpiled TS) | Same logic, three formats |
 | 8 | — | `plugin/settings.json` | Claude-only |
 
 ---
 
 ## 12. File Inventory
 
-| Category | Shared | Claude-only | Cursor-only | Source |
-|----------|--------|-------------|-------------|--------|
-| Skills | 23 | — | — | 23 activities |
-| Agents | 9 (incl. orchestrator) | — | — | 9 agents |
-| Templates | 19 | — | — | 19 templates |
-| Manifest | — | 1 | 1 | — |
-| Rules | — | — | 1 (.mdc) | from orchestrator |
-| Hooks | — | 1 | 1 | shared constants |
-| Settings | — | 1 | — | — |
-| **Total** | **51** | **3** | **3** | **51 sources** |
+| Category | Shared | Claude-only | Cursor-only | opencode-only | Source |
+|----------|--------|-------------|-------------|---------------|--------|
+| Skills | 23 | — | — | 23 (regenerated with `name:` injection) | 23 activities |
+| Commands | — | — | 23 | 23 | 23 activities (reused) |
+| Agents | 11 (incl. orchestrator) | — | — | 10 specialized (excl. orchestrator) | 11 agents |
+| Templates | 28 | — | — | — | 28 templates |
+| Manifest | — | 1 | 1 | 1 (`opencode.json`) | constants |
+| Rules | — | — | 1 (.mdc) | — | from orchestrator |
+| Hooks | — | 1 | 1 | 1 (`gse-guardrails.ts`) | shared constants |
+| Settings | — | 1 | — | — | — |
+| AGENTS.md | — | — | — | 1 (from orchestrator) | from orchestrator |
+| **Total** | **62** | **3** | **26** | **59** | **62 sources** |
 
-Grand total: **57 files**. Generator: ~400 lines.
+Grand total: **150 files**. Generator: ~900 lines.
 
 ---
 
 ## 13. Implementation Priorities
+
+> **Note on opencode:** The four phases below document the original Claude+Cursor roadmap executed through v0.30.x. opencode support was added as a separate follow-up effort (v0.31+) covering: generator outputs for `opencode/skills/`, `opencode/commands/`, `opencode/agents/` (with `mode: subagent`), `opencode/AGENTS.md` (marker-wrapped orchestrator), `opencode/opencode.json`, and `opencode/plugins/gse-guardrails.ts` (hooks transpiled from `hooks.claude.json`). See §11.1 for the full generation step table.
 
 ### Phase 1 — Foundation + Git (week 1)
 
@@ -2694,7 +2735,7 @@ Grand total: **57 files**. Generator: ~400 lines.
 12. Add learn skill with contextual tips + proactive proposals + learning notes
 13. Add remaining activity sources (8 remaining)
 14. Add remaining principle sources (6 remaining)
-15. Add all 8 agents + Cursor P14 always-on rule
+15. Add all 10 specialized agents + Cursor orchestrator always-on rule (`.mdc`)
 16. Add hooks (git guardrails)
 17. Test full LC02 cycle with learning integration
 

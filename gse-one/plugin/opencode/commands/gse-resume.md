@@ -33,7 +33,7 @@ Before executing, read (in priority order — load essential state first, defer 
 
 1. If `--list` is specified:
    - List all files in `.gse/checkpoints/` sorted by date (newest first)
-   - Display: timestamp, sprint, phase, note (if any)
+   - Display: timestamp, status_snapshot.current_sprint, status_snapshot.current_phase, note (if any)
    - Exit
 
 2. If `--checkpoint FILE` is specified:
@@ -97,7 +97,7 @@ Present a summary of where the user left off:
 ```
 SESSION RESUMED
   Paused: {checkpoint_timestamp} ({relative time, e.g., "2 days ago"})
-  Sprint: S{NN} ({lifecycle_phase})
+  Sprint: S{NN} ({current_phase})
   Last activity: {last_activity}
   Last task: TASK-{ID} ({task_title})
 ```
@@ -130,7 +130,7 @@ This is more precise than `status.yaml.last_activity` alone (which says "where w
 
 Determine the next action using, in priority order:
 1. **Primary — `.gse/plan.yaml.workflow.active`** if `plan.yaml` exists with `status: active`. The workflow's `active` field is the declarative source of truth for "what comes next" (see orchestrator Decision Tree). This is more reliable than inferring from `last_activity`.
-2. **Fallback — checkpoint `last_activity`** if `plan.yaml` is absent (Micro mode or pre-v0.20 projects). Use the table below.
+2. **Fallback — `status_snapshot.last_activity`** if `plan.yaml` is absent (Micro mode or pre-v0.20 projects). Use the table below.
 
 | Checkpoint State | Proposed Action |
 |------------------|-----------------|

@@ -34,7 +34,7 @@ Display high-level project state:
 
 ```
 PROJECT: {project_name}
-Sprint:  S{NN} ({lifecycle_phase})
+Sprint:  S{NN} ({current_phase})
 Phase:   {current phase description}
 Last:    {last_activity} on {last_activity_timestamp}
 Health:  {overall_score}/10

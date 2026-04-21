@@ -3,22 +3,21 @@
 # Target: .gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml
 # This is the AUTHORITATIVE schema — pause.md references this template.
 
-checkpoint:
-  timestamp: ""                           # ISO 8601
-  user: ""                                # profile.yaml user name
-  sprint: 1                               # Sprint number
-  phase: ""                               # LC00 | LC01 | LC02 | LC03
-  last_activity: ""                       # e.g., /gse:produce
-  last_task: ""                           # e.g., TASK-001
-  note: ""                                # Optional user note (--note flag)
+# --- Checkpoint metadata (flat top-level) ---
+timestamp: ""                             # ISO 8601 — creation time
+user: ""                                  # From profile.yaml → user.name
+last_task: ""                             # Session context (current TASK at pause)
+note: ""                                  # From --note flag, else empty
 
+# --- Status snapshot (structured mirror of status.yaml) ---
 status_snapshot:
-  lifecycle_phase: ""
+  current_phase: ""                       # LC00 | LC01 | LC02 | LC03
   current_sprint: 1
-  last_activity: ""
+  last_activity: ""                       # e.g., /gse:produce
   last_activity_timestamp: ""             # ISO 8601
   health_score: 0.0                       # Overall health score 0-10
 
+# --- Backlog snapshot (current sprint items) ---
 backlog_sprint_snapshot:
   tasks: {}
     # keyed by TASK ID:
@@ -27,6 +26,7 @@ backlog_sprint_snapshot:
     #   complexity: 3
     #   branch: gse/sprint-01/feat/auth  # or null
 
+# --- Git state (branches and worktrees) ---
 git_state:
   current_branch: ""
   worktrees: []

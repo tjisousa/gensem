@@ -136,15 +136,15 @@ gse-one/
 ├── src/                        # Shared source of truth
 │   ├── principles/             # 16 core principles (P1-P16)
 │   ├── activities/             # 23 activity definitions
-│   ├── agents/                 # 9 agents (8 specialized + orchestrator)
-│   └── templates/              # 19 artefact & config templates
+│   ├── agents/                 # 11 agents (10 specialized + orchestrator)
+│   └── templates/              # 28 artefact & config templates
 ├── plugin/                     # Single deployable directory (3 platforms)
 │   ├── .claude-plugin/         # Claude Code manifest
 │   ├── .cursor-plugin/         # Cursor manifest
 │   ├── skills/                 # 23 skills (shared, with name: field)
 │   ├── commands/               # 23 /gse-<name>.md (Cursor)
-│   ├── agents/                 # 9 agents (shared)
-│   ├── templates/              # 19 templates (shared)
+│   ├── agents/                 # 11 agents (shared)
+│   ├── templates/              # 28 templates (shared)
 │   ├── tools/                  # Python tools (dashboard, etc.)
 │   ├── rules/                  # 1 .mdc (Cursor-only, ignored by Claude/opencode)
 │   ├── hooks/                  # 2 hooks files (Claude + Cursor)

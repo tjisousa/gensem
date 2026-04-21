@@ -57,11 +57,11 @@ Report: "Auto-committed {N} worktree(s) with changes."
 Create a checkpoint file at `.gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml` using the checkpoint.yaml template (`plugin/templates/checkpoint.yaml` — authoritative schema). Populate all fields from the current session state:
 
 - `checkpoint.timestamp`: current ISO 8601 timestamp
-- `checkpoint.user`: from `profile.yaml → user.name`
-- `checkpoint.sprint`, `checkpoint.phase`: from `status.yaml`
-- `checkpoint.last_activity`, `checkpoint.last_task`: from current session context
-- `checkpoint.note`: from `--note` flag if provided, else empty
-- `status_snapshot`: extract `lifecycle_phase`, `current_sprint`, `last_activity`, `last_activity_timestamp`, `health.score` from `status.yaml`
+- `timestamp`: ISO 8601 current time
+- `user`: from `profile.yaml → user.name`
+- `last_task`: current TASK from session context (e.g., task the user was producing)
+- `note`: from `--note` flag if provided, else empty
+- `status_snapshot`: extract `current_phase`, `current_sprint`, `last_activity`, `last_activity_timestamp`, `health.score` from `status.yaml`
 - `backlog_sprint_snapshot.tasks`: for each TASK in current sprint, record `status`, `complexity`, `branch`
 - `git_state.current_branch`: from `git branch --show-current`
 - `git_state.worktrees[]`: from `git worktree list`, for each: `path`, `branch`, `task` (from backlog), `last_commit` (HEAD hash), `clean` (from `git status`)
@@ -80,7 +80,7 @@ Create a checkpoint file at `.gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml`
 SESSION PAUSED
   Checkpoint: .gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml
   Auto-committed: {N} worktree(s)
-  Sprint: S{NN} ({lifecycle_phase})
+  Sprint: S{NN} ({current_phase})
   Active tasks: {count}
   
   Resume with: /gse:resume

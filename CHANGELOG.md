@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.1] - 2026-04-21
+
+Layers impacted: **spec**, **design**, **implementation** (3-layer coherence pass)
+
+**Methodology coherence pass — first batch** from the /gse-audit run against v0.45.0. Addresses 5 clusters of drift across spec, design, and src/ that had accumulated over the last minor versions (coach + deploy-operator added without propagating counts; opencode added without backfilling the design doc; activity-side writes using stale schema field names; checkpoint schema diverging from spec; template/descriptor confusion).
+
+### Fixed
+- **Agent count** — "8 specialized" updated to "10 specialized" (and "9 agents" → "11 agents") in spec §1.1.4, gse-one-implementation-design §3.1/§3.3/§6.4/§12, gse_generate.py docstrings/comments, and gse-one/README.md. The source-of-truth (SPECIALIZED_AGENTS list in gse_generate.py) was already correct; only descriptions were stale.
+- **Template count** — "15" (spec) and "19" (design) replaced by the actual count of 28 artifact templates across spec §1.1.4, design §3.1/§3.3/§11.1/§12, gse_generate.py docstrings, and README. MANIFEST.yaml is now explicitly flagged as a descriptor (not itself a template).
+- **Schema field `lifecycle_phase` → `current_phase`** across 9 source files (5 activities + orchestrator + checkpoint template + design text + go.md reading path). Spec §12.4, status.yaml template, and dashboard.py were already canonical; the drift was confined to activity-side writes/reads. Fixes a silent bug where /gse:compound and /gse:deliver wrote to a field the dashboard never read, leaving the phase display stuck at LC00.
+- **design §12 inventory totals recomputed** — Shared 51→62, Grand total 57→150 (adding opencode-only column with 59 files counted correctly for the first time).
+
+### Changed
+- **design §6 Cross-Platform Parity** restructured to include opencode as a first-class platform (§6.3 "opencode: AGENTS.md Embedding" inserted, §6.4/§6.5 renumbered, §6 intro updated from "both platforms" to "all three supported platforms", §6.4 "Generation and Parity" extended to cover 3 outputs + 3-way body parity verification, §6.5 "Installer Differentiation" extended with opencode installer merging between GSE-ONE START/END markers).
+- **design §7.3 Format Differences** adds an opencode column documenting native TS plugin delivery (`plugins/gse-guardrails.ts`) vs Claude/Cursor JSON hooks.
+- **design §11.1 Generation Steps** extends each row to show all opencode outputs (opencode/skills/, opencode/commands/, opencode/agents/, opencode/AGENTS.md, opencode.json, gse-guardrails.ts).
+- **design §13 Implementation Priorities** — added an introductory note stating the 4 phases document the original Claude+Cursor roadmap; opencode was a separate follow-up effort (v0.31+); fixed Phase 2 Step 15 from "8 agents + Cursor P14 always-on rule" to "10 specialized agents + Cursor orchestrator always-on rule".
+- **checkpoint.yaml schema** refactored to flat top-level (no `checkpoint:` wrapper), zero duplication between checkpoint metadata and `status_snapshot` block, with explicit structured sub-blocks for `status_snapshot`, `backlog_sprint_snapshot`, and `git_state`. Obsolete duplicate fields removed: `checkpoint.sprint`, `checkpoint.phase`, `checkpoint.last_activity` (kept only in `status_snapshot` where they belong).
+- **spec §12.5 and design §5.16 checkpoint schemas** updated to match the new flat + structured template schema (previously spec had `status_snapshot: <copy of status.yaml>` as a free string and used `git:` / `notes:`; now aligned with template: structured subblocks, `git_state:`, `note:` singular).
+- **pause.md Step 2** — rewrote the checkpoint field mapping to reflect the flat schema (removed writes to obsolete `checkpoint.sprint`, `checkpoint.phase`, `checkpoint.last_activity` duplicates).
+- **resume.md** — Step 1 --list display now references `status_snapshot.current_sprint/current_phase`; Step 5 fallback references `status_snapshot.last_activity` instead of non-existent `checkpoint.last_activity`.
+
+### Notes
+- Not backward-compatible for old `checkpoint-*.yaml` files (schema change). Checkpoints are short-lived session artifacts so this is acceptable; running a fresh /gse:pause after upgrading produces the new schema.
+- No activity, agent, or principle was added or removed — only the descriptions counting them and the schema names used in their workflow text.
+- All modifications applied after a deep audit using /gse-audit; the audit output is archived in _LOCAL/audits/ (gitignored).
+
 ## [0.47.0] - 2026-04-21
 
 Layers impacted: **tooling** (repo-level, not plugin)

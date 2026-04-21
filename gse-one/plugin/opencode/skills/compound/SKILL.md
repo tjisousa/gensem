@@ -204,7 +204,7 @@ Feed the user's learning journey:
 2. Update `status.yaml`:
    - `last_activity: compound`
    - `last_activity_timestamp: {now}`
-   - `lifecycle_phase: LC03`
+   - `current_phase: LC03`
 3. Report capitalization summary:
    - Patterns documented: {count}
    - Lessons learned: {count}

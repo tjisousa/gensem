@@ -195,7 +195,7 @@ Remove backup tags older than `backup_retention_days` (default: 30):
 3. Update `status.yaml`:
    - `last_activity: deliver`
    - `last_activity_timestamp: {now}`
-   - `lifecycle_phase: LC03` (transition to capitalization)
+   - `current_phase: LC03` (transition to capitalization)
    - **Refresh all 8 health dimension scores** using the same formulas as review (final snapshot for the delivered sprint). This ensures the dashboard health radar reflects the state at delivery time.
 4. Report delivery summary:
    - Tasks delivered

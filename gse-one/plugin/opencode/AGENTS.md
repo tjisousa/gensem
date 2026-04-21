@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.47.0 -->
+<!-- gse-one-version: 0.47.1 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -481,7 +481,7 @@ Update `plan.yaml.coherence.last_evaluated` after each evaluation.
 | Field | status.yaml | plan.yaml | Authority |
 |-------|-------------|-----------|-----------|
 | `current_sprint` | ✓ | ✓ (convenience) | status.yaml |
-| `lifecycle_phase` | ✓ (LC00/01/02/03) | — | status.yaml |
+| `current_phase` | ✓ (LC00/01/02/03) | — | status.yaml |
 | `last_activity` | ✓ | Derived from `workflow.active` | status.yaml (cursor) |
 | `last_activity_timestamp` | ✓ | In `workflow.completed[-1].completed_at` | status.yaml (cursor) |
 | Health scores | ✓ | — | status.yaml |

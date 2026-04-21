@@ -306,12 +306,12 @@ GSE-One delivers its methodology as a **single plugin directory** (`plugin/`) th
 | Artifact | Files | Claude Code | Cursor | opencode |
 |----------|-------|:-----------:|:------:|:--------:|
 | Skills (23) | `skills/<name>/SKILL.md` | Loaded | Loaded | Via `opencode/skills/` |
-| Specialized agents (8) | `agents/<name>.md` | Loaded | Loaded | Via `opencode/agents/` (`mode: subagent`) |
+| Specialized agents (10) | `agents/<name>.md` | Loaded | Loaded | Via `opencode/agents/` (`mode: subagent`) |
 | Orchestrator (identity) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Not installed | Not installed |
 | Orchestrator (identity) | `rules/gse-orchestrator.mdc` | Ignored | `alwaysApply: true` | Ignored |
 | Orchestrator (identity) | `opencode/AGENTS.md` | Ignored | Ignored | Loaded (always-on, worktree root) |
 | Commands (23) | `commands/gse-<name>.md` | Ignored | Loaded | Via `opencode/commands/` |
-| Templates (15) | `templates/*` | Loaded | Loaded | Shared via registry tools |
+| Templates (28) | `templates/*` | Loaded | Loaded | Shared via registry tools |
 | Hooks (3) | `hooks/hooks.claude.json` | Loaded | Ignored | Ignored |
 | Hooks (3) | `hooks/hooks.cursor.json` | Ignored | Loaded | Ignored |
 | Hooks (3) | `opencode/plugins/gse-guardrails.ts` | Ignored | Ignored | Native TS plugin |
@@ -2350,22 +2350,40 @@ Checkpoints (saved by `/gse:pause`, loaded by `/gse:resume`):
 
 ```yaml
 # .gse/checkpoints/checkpoint-2026-04-10-1630.yaml
+# Flat top-level checkpoint metadata; state blocks below.
+
 timestamp: 2026-04-10T16:30:00
 user: alice
-sprint: 3
-phase: LC02
-last_activity: /gse:produce
 last_task: TASK-038
-status_snapshot: <copy of status.yaml>
-backlog_sprint_snapshot: <current sprint items from backlog.yaml>
-git:
+note: "Working on auth module, tests passing, 2 tests remain"
+
+status_snapshot:                          # Structured mirror of status.yaml
+  current_phase: LC02
+  current_sprint: 3
+  last_activity: /gse:produce
+  last_activity_timestamp: 2026-04-10T16:28:00
+  health_score: 7.5
+
+backlog_sprint_snapshot:                  # Current sprint tasks with state
+  tasks:
+    TASK-038:
+      status: in-progress
+      complexity: 3
+      branch: gse/sprint-03/feat/auth
+
+git_state:                                # Branches and worktrees
   current_branch: gse/sprint-03/feat/auth
   worktrees:
-    - branch: gse/sprint-03/feat/auth
+    - path: .worktrees/sprint-03-feat-auth
+      branch: gse/sprint-03/feat/auth
+      task: TASK-038
       last_commit: abc123
-    - branch: gse/sprint-03/feat/dashboard
+      clean: false
+    - path: .worktrees/sprint-03-feat-dashboard
+      branch: gse/sprint-03/feat/dashboard
+      task: TASK-039
       last_commit: def456
-notes: "Working on auth module, tests passing, 2 tests remain"
+      clean: true
 ```
 
 ### 12.6 State Loading Priority

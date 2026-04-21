@@ -97,7 +97,7 @@ This step is a **safety net** for cases where HUG Step 4 was interrupted or the 
 
 ### Step 3 — Determine Next Action (Decision Tree)
 
-Read `status.yaml` fields: `current_sprint`, `lifecycle_phase`, `last_activity`, `last_activity_timestamp`, AND `.gse/plan.yaml` when it exists.
+Read `status.yaml` fields: `current_sprint`, `current_phase`, `last_activity`, `last_activity_timestamp`, AND `.gse/plan.yaml` when it exists.
 
 **Primary source — `.gse/plan.yaml`:** When `plan.yaml` exists with `status: active`, use `workflow.active` and `workflow.pending` to decide the next activity. This is more robust than checking for individual artefact files.
 

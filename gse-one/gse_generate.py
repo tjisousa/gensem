@@ -10,8 +10,8 @@ Mono-plugin architecture: ONE directory deployable on Claude Code, Cursor and op
 Source layout:
     src/principles/    → 16 principle definitions (P1-P16)
     src/activities/    → 23 activity definitions (→ skills for Claude, commands for Cursor/opencode)
-    src/agents/        → 9 agent roles (8 specialized + gse-orchestrator)
-    src/templates/     → 15 artefact & config templates
+    src/agents/        → 11 agent roles (10 specialized + gse-orchestrator)
+    src/templates/     → 28 artefact & config templates
 
 Generated output:
     plugin/            → Single deployable directory
@@ -19,8 +19,8 @@ Generated output:
         .cursor-plugin/plugin.json    ← Cursor manifest
         skills/                       ← Claude Code activities (SKILL.md in subdirs)
         commands/                     ← Cursor activities (flat gse-<name>.md files)
-        agents/                       ← 9 agents (8 specialized + orchestrator for Claude; installer excludes orchestrator for Cursor)
-        templates/                    ← Shared (15 templates)
+        agents/                       ← 11 agents (10 specialized + orchestrator for Claude; installer excludes orchestrator for Cursor)
+        templates/                    ← Shared (28 templates)
         rules/gse-orchestrator.mdc    ← Cursor-specific (generated)
         hooks/hooks.claude.json       ← Claude-specific (generated)
         hooks/hooks.cursor.json       ← Cursor-specific (generated)
@@ -28,7 +28,7 @@ Generated output:
         opencode/                     ← opencode deployable subtree (generated)
             skills/<name>/SKILL.md    ← with injected `name:` frontmatter
             commands/gse-<name>.md    ← identical to Cursor commands
-            agents/<name>.md          ← 8 specialized, `mode: subagent`, tools object
+            agents/<name>.md          ← 10 specialized, `mode: subagent`, tools object
             plugins/gse-guardrails.ts ← hooks transpiled to opencode TS plugin
             AGENTS.md                 ← orchestrator body wrapped in GSE-ONE markers
             opencode.json             ← default permissions + GSE-One metadata
@@ -201,7 +201,7 @@ def generate(clean: bool = False) -> None:
             print(f"  WARNING: missing {name}.md")
     print(f"  {activity_count}/{len(ACTIVITY_NAMES)}\n")
 
-    # 2. Agents — 8 specialized (shared) + orchestrator (generated)
+    # 2. Agents — 10 specialized (shared) + orchestrator (generated)
     print("Agents (specialized):")
     for agent_file in SPECIALIZED_AGENTS:
         src_file = AGENTS_DIR / agent_file
@@ -509,7 +509,7 @@ def _oc_build_commands(oc: Path) -> None:
 
 
 def _oc_build_agents(oc: Path) -> None:
-    """Copy the 8 specialized agents, adding `mode: subagent` and translating
+    """Copy the 10 specialized agents, adding `mode: subagent` and translating
     any `tools:` list into opencode's object form. The orchestrator is not
     emitted as an agent — it ships via AGENTS.md instead.
     """
