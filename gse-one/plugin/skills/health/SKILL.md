@@ -1,6 +1,6 @@
 ---
 name: health
-description: "Display project health dashboard with 8 dimensions. Triggered by /gse:health."
+description: "Display project health dashboard with up to 8 dimensions (mode-dependent: 8 Full / 3 Lightweight / disabled Micro). Triggered by /gse:health."
 ---
 
 # GSE-One Health — Health Dashboard
@@ -30,7 +30,15 @@ Before executing, read:
 
 ### Step 1 — Compute Health Dimensions
 
-Calculate each of the 8 health dimensions on a **0-10 scale** (spec 7.1). If `config.yaml` specifies `health.disabled_dimensions`, exclude those dimensions and adjust the overall score denominator accordingly.
+Read `.gse/config.yaml → lifecycle.mode`:
+
+- **Micro mode** — Skip health computation entirely. Display Inform note: *"Health dashboard is disabled in Micro mode (minimal persistent state). Run `/gse:go` to upgrade to Lightweight or Full if you want quality telemetry."* Exit the activity.
+- **Lightweight mode** — Compute only **3 of 8** dimensions per spec §13.2: `test_pass_rate`, `review_findings`, `git_hygiene`. The other 5 (`requirements_coverage`, `design_debt`, `complexity_budget`, `traceability`, `ai_integrity`) are marked *"not computed in Lightweight mode"* in the detail view and excluded from the overall score denominator.
+- **Full mode** — Compute all 8 dimensions (default behavior below).
+
+If `config.yaml` specifies `health.disabled_dimensions`, also exclude those from the set active for the current mode, and adjust the overall score denominator accordingly.
+
+Calculate each active health dimension on a **0-10 scale** (spec §7.1).
 
 #### 1. requirements_coverage (0-10)
 

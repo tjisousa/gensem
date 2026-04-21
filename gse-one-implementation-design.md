@@ -1187,19 +1187,32 @@ When `/gse:go` is invoked:
 
 **Step 2 — Determine next action:**
 
-| Current state | Next action |
-|--------------|-------------|
-| No sprint exists | Start LC01: GO > COLLECT > ASSESS > PLAN |
-| Sprint, plan not approved | Resume PLAN |
-| Sprint, tasks in-progress | Resume PRODUCE on current task |
-| Sprint, tasks done, not reviewed | Start REVIEW |
-| Sprint, review done, HIGH/MEDIUM findings exist | Start FIX (conditionally inserted by orchestrator) |
-| Sprint, review done, no HIGH/MEDIUM findings | Skip FIX → Start DELIVER |
-| Sprint, all delivered | Start LC03: COMPOUND > INTEGRATE |
-| Sprint, compound done | Propose next sprint → LC01 |
-| Sprint stale (> `lifecycle.stale_sprint_sessions` sessions without progress) | Step 3 |
+**Primary source — `.gse/plan.yaml`:** when `plan.yaml` exists with `status: active`, the orchestrator uses `workflow.active` and `workflow.pending` to decide the next activity. This is more robust than checking for individual artefact files because `plan.yaml` is the declarative source of truth for sprint progression.
 
-Progression is defined as any TASK status change (e.g., `planned` → `in-progress`, `in-progress` → `done`). A session where no TASK status changes counts as a session without progress, incrementing `sessions_without_progress` in `status.yaml`.
+**Fallback:** if `plan.yaml` is absent (Micro mode or pre-v0.20 projects), fall back to file-existence checks against sprint artefacts (`reqs.md`, `design.md`, `test-strategy.md`, …) in `docs/sprints/sprint-{NN}/`.
+
+Evaluate states in order — the first matching row wins.
+
+| Current state | Next action |
+|---------------|-------------|
+| No sprint exists | Sub-decision: greenfield + no `docs/intent.md` → Intent Capture (Step 5); else Complexity Assessment (Step 6) → mode-appropriate start (Micro → PRODUCE; Lightweight → PLAN; Full → LC01 `COLLECT` > `ASSESS` > `PLAN`) |
+| `plan.yaml` exists, `status: draft` | Resume PLAN — present plan summary, ask for approval Gate |
+| `plan.yaml.workflow.active == reqs` | Start REQS — test-driven requirements (Hard guardrail: PRODUCE blocked until REQS exist) |
+| `plan.yaml.workflow.active == design` | Start DESIGN (record `design` in `workflow.skipped` if not needed, then advance) |
+| `plan.yaml.workflow.active == preview` | Start PREVIEW (should already be in `workflow.skipped` for CLI/API/data/embedded domains) |
+| `plan.yaml.workflow.active == tests` | Start TESTS `--strategy` |
+| `plan.yaml.workflow.active == produce`, none in-progress | Start PRODUCE on first planned TASK |
+| `plan.yaml.workflow.active == produce`, tasks `in-progress` | Resume PRODUCE on current task |
+| `plan.yaml.workflow.active == review` | Start REVIEW |
+| `plan.yaml.workflow.active == fix` | Start FIX |
+| `plan.yaml.workflow.active == deliver` | Start DELIVER |
+| `plan.yaml.status == completed`, no compound | Start LC03: COMPOUND |
+| Compound done | Propose next sprint → LC01 |
+| Sprint stale (> `lifecycle.stale_sprint_sessions` sessions without progress) | Step 3 stale detection |
+
+**Post-activity protocol:** after each activity completes, the orchestrator updates `.gse/plan.yaml` per the Sprint Plan Maintenance protocol (workflow transition, coherence evaluation, alerts by mode). See the orchestrator document for the full protocol.
+
+Progression is defined as any TASK status change (`planned` → `in-progress`, `in-progress` → `review`, etc.) OR any `workflow.active` transition in `plan.yaml`. A session where neither happens counts as a session without progress, incrementing `sessions_without_progress` in `status.yaml`.
 
 **Step 3 — Stale sprint detection (Gate):**
 ```

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.47.5] - 2026-04-21
+
+Layers impacted: **spec**, **design**, **implementation** (cross-cutting cluster pass)
+
+**Methodology coherence pass — fifth batch** from the /gse-audit run against v0.45.0. Four cross-cutting defects around onboarding flow, artefact placement, mode-aware orchestration, and one upward refinement bringing design up to the implementation's quality.
+
+### Fixed
+- **`docs/intent.md` placement officialized** in spec §12.1 Project Layout. Previously, go.md wrote the artefact to `docs/intent.md` (top-level, correct since intent is project-level) but the spec's canonical layout diagram never mentioned it — artefact was effectively undocumented. Bonus: added `docs/sprints/sprint-NN/preview.md` (created in Prop 10) and `docs/archive/intent-vNN.md` (mentioned in §14.3 Step 5.7 pivot but absent from layout).
+- **hug.md Step 4.2 now creates `config.yaml`** from the template when `.gse/` is scaffolded. Previously only `profile.yaml` was written, leaving `/gse:go` Step 6.3 (which writes `config.yaml.lifecycle.mode`) to crash on missing file. `checkpoints/` subdirectory also added explicitly.
+- **health.md mode-awareness** added at the top of Step 1: Micro → skip entirely with Inform note; Lightweight → compute only the 3 dimensions mandated by spec §13.2 (`test_pass_rate`, `review_findings`, `git_hygiene`); Full → compute all 8. Frontmatter description updated to reflect the mode-dependent count.
+
+### Changed
+- **design §5.14 Step 2 decision tree** upgraded to plan.yaml-primary (mirrors go.md Step 3, which is the authoritative implementation). Previous table was file/status-based ("Sprint, tasks in-progress", "Sprint, tasks done, not reviewed") which predates the `plan.yaml.workflow.active` single source of truth. This is an **upward refinement** — the implementation was ahead of the design, now aligned.
+
+### Notes
+- No backward-compatibility break. Projects that already have `config.yaml` will not be overwritten — hug.md Step 4.2 creates it only if `.gse/` itself is being created.
+- health.md mode branching assumes `config.yaml.lifecycle.mode` is populated. Older projects without this field default to Full behavior (backward compatible) — the agent should advise re-running `/gse:go` to set the mode explicitly.
+
 ## [0.47.4] - 2026-04-21
 
 Layers impacted: **spec**, **implementation**, **templates** (sprint lifecycle schema drift pass)
