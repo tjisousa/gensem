@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.58.1] - 2026-04-22
+
+Layers impacted: **spec** (§P14 cross-reference upgrade), **design** (§5.x heading renumber).
+
+**Patch release — design §5.17 duplicate subsection number fix.** Closes Cluster 2 of the 2026-04-22 v0.57.0 audit. The v0.56.x `/gse:audit` addition mis-numbered its design subsection as `§5.17` instead of `§5.19`, creating a duplicate heading (Coach-hosting §5.17 Additional Skill Extensions at line 2178 + audit §5.17 at line 2481, with §5.18 `/gse:deploy` sitting between them). Monotonic §5.x ordering now restored (§5.1 → §5.16 → §5.17 Extensions → §5.18 deploy → §5.19 audit).
+
+### Changed
+
+- **`gse-one-implementation-design.md` §5.19 heading** — renumbered from `### 5.17 \`/gse:audit\` — Project methodology audit` to `### 5.19 \`/gse:audit\` — Project methodology audit`. Section content unchanged. The first §5.17 (Additional Skill Extensions, containing the Coach agent design mechanics) keeps its number; all 10 active cross-references across spec, design §5.14, activities (pause, learn, compound, go, plan), and `.claude/agents/methodology-auditor.md` already pointed semantically to the Coach §5.17 and remain correct with zero update needed.
+- **`gse-one-spec.md` §P14 Workflow monitoring axes (line 945)** — cross-reference upgraded from `design §5.17` to `design §5.17 — Additional Skill Extensions (Coach agent subsection)` per CLAUDE.md §"Cross-reference convention — number + name". Protects the reference against future renumbering and makes the target unambiguous for readers.
+
+### Audit trail
+
+- **Cluster 2 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q3: renumber second §5.17 → §5.19 (Q1 option A1), upgrade spec §P14:945 to number+name convention (Q2 option B3), patch version bump (Q3 option C1).
+- **Unique property of this cluster** — all existing §5.17 cross-references pointed to the first §5.17 (Coach/Extensions), so renumbering the second §5.17 touched zero reference lines. A rare clean-fix cluster.
+
 ## [0.58.0] - 2026-04-22
 
 Layers impacted: **spec** (§1.1.4 architecture table, Appendix A activity summary, §P6 `AUD-` prefix note), **design** (§3.1 repository-structure commentary, §3.2 terminology, §4 intro note, §5.18 `/gse:deploy` intro, §12 File Inventory), **implementation** (orchestrator P6 bullet + Command Reference table, README Key Features + audit check description).

@@ -942,7 +942,7 @@ Beyond pedagogy (axis 1), the coach monitors seven workflow axes that observe th
 | 7 | `process_deviation` | Recurring DEC- entries with `type: methodology-deviation` | Inform advice on sanctioning deviations |
 | 8 | `sustainability` | Session cadence, sprint point totals vs spec §8 guidance | Inform advice on pacing |
 
-Each axis is individually toggleable via `config.yaml → coach.axes.<axis_name>` (snake_case). All workflow-axis outputs are Inform-tier (never blocks). The mechanism and invocation moments are defined in design §5.17; the agent implementation lives in `plugin/agents/coach.md`.
+Each axis is individually toggleable via `config.yaml → coach.axes.<axis_name>` (snake_case). All workflow-axis outputs are Inform-tier (never blocks). The mechanism and invocation moments are defined in design §5.17 — Additional Skill Extensions (Coach agent subsection); the agent implementation lives in `plugin/agents/coach.md`.
 
 #### P14 preamble — 5-option format (canonical)
 

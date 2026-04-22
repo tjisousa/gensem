@@ -2478,7 +2478,7 @@ The skill orchestrates a three-step ceremony (dry-run impact preview → Gate 1 
 
 CI is not yet set up — listed as future work in `TESTING.md`. The test foundation is intentionally minimal to keep the contribution cost low while catching the most impactful regressions (subdomain sanitization, type detection, state schema drift, env file parsing).
 
-### 5.17 `/gse:audit` — Project methodology audit
+### 5.19 `/gse:audit` — Project methodology audit
 
 The audit activity implements spec §15 Methodology Audit. This section details the architecture for contributors.
 
