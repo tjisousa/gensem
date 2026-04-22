@@ -86,6 +86,7 @@ def _err(msg: str, code: int = 1) -> None:
 
 
 def _empty_state() -> dict:
+    """Return a fresh empty deploy state with the current STATE_VERSION."""
     return {
         "version": STATE_VERSION,
         "plugin": "gse-one",
@@ -114,6 +115,10 @@ def _empty_state() -> dict:
 
 
 def load_state() -> dict:
+    """Load the deploy state from STATE_PATH, or return an empty state if absent.
+    Corrupt JSON triggers _err() — this is a library exit path retained for now
+    (JSON corruption is unrecoverable; the CLI wrapper cannot produce a better
+    remedy than a fatal error with the file path)."""
     if not STATE_PATH.exists():
         return _empty_state()
     try:
@@ -123,6 +128,8 @@ def load_state() -> dict:
 
 
 def save_state(state: dict) -> None:
+    """Persist state to STATE_PATH with refreshed `last_updated_at` timestamp.
+    Creates the .gse/ parent directory if needed."""
     state["last_updated_at"] = _now()
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(
@@ -131,6 +138,8 @@ def save_state(state: dict) -> None:
 
 
 def init_state() -> dict:
+    """Ensure .gse/deploy.json exists; return the existing state if present,
+    otherwise create an empty one. Idempotent."""
     if STATE_PATH.exists():
         return load_state()
     state = _empty_state()
@@ -336,21 +345,36 @@ def detect_situation() -> dict:
 
 
 def record_phase(phase_name: str) -> dict:
+    """Mark a Phase N as completed in state (called at the end of each server-level phase —
+    setup / provision / secure / coolify / dns). Returns status-wrapped dict:
+    {"status": "ok" | "error", "phase": str, "completed_at": ISO8601} (or "error": str on failure)."""
     if phase_name not in PHASE_NAMES:
-        _err(
-            f"unknown phase '{phase_name}' (expected one of: {sorted(PHASE_NAMES)})"
-        )
+        return {
+            "status": "error",
+            "error": f"unknown phase '{phase_name}' (expected one of: {sorted(PHASE_NAMES)})",
+        }
     state = load_state()
     if "phases_completed" not in state:
         state["phases_completed"] = {}
     state["phases_completed"][phase_name] = _now()
     save_state(state)
-    return {"phase": phase_name, "completed_at": state["phases_completed"][phase_name]}
+    return {
+        "status": "ok",
+        "phase": phase_name,
+        "completed_at": state["phases_completed"][phase_name],
+    }
 
 
 def record_server(
     name: str, ipv4: str, id_: Optional[int], type_: str, datacenter: str
 ) -> dict:
+    """Persist the provisioned Hetzner server block in state (called at the end of Phase 2 —
+    provision). Returns status-wrapped dict: {"status": "ok" | "error", "server": {...}}."""
+    if not name or not ipv4:
+        return {
+            "status": "error",
+            "error": "record_server requires both name and ipv4 (non-empty)",
+        }
     state = load_state()
     state["server"] = {
         "name": name,
@@ -360,29 +384,45 @@ def record_server(
         "datacenter": datacenter,
     }
     save_state(state)
-    return state["server"]
+    return {"status": "ok", "server": state["server"]}
 
 
 def record_coolify(url: str, version: str = "") -> dict:
+    """Persist the Coolify endpoint in state (called at the end of Phase 4 — coolify,
+    i.e. after Coolify v4 is installed and reachable). Returns status-wrapped dict:
+    {"status": "ok" | "error", "coolify": {"url": str, "version": str}}."""
+    if not url:
+        return {
+            "status": "error",
+            "error": "record_coolify requires a non-empty url",
+        }
     state = load_state()
     state["coolify"] = {"url": url, "version": version}
     save_state(state)
-    return state["coolify"]
+    return {"status": "ok", "coolify": state["coolify"]}
 
 
 def record_domain(base: str, registrar: str = "") -> dict:
+    """Persist the deployment base domain + registrar in state (called at the end of Phase 5 —
+    dns, i.e. after DNS wildcard + SSL are verified). Returns status-wrapped dict:
+    {"status": "ok" | "error", "domain": {"base": str, "registrar": str}}."""
+    if not base:
+        return {
+            "status": "error",
+            "error": "record_domain requires a non-empty base domain",
+        }
     state = load_state()
     state["domain"] = {"base": base, "registrar": registrar}
     save_state(state)
-    return state["domain"]
+    return {"status": "ok", "domain": state["domain"]}
 
 
 def record_role(role: str) -> dict:
-    """Persist the user role in state (solo | instructor | learner).
+    """Persist the user role in state (solo | instructor | learner | skip).
 
-    Called by the skill's Step -1 Orientation once the user selects their
-    role. The role is purely informational in v1 — no behavioral branching
-    beyond Step -1.
+    Called by the skill's Step -1 Orientation once the user selects their role.
+    The role is purely informational in v1 — no behavioral branching beyond Step -1.
+    Returns status-wrapped dict: {"status": "ok" | "error", "role": str}.
     """
     if role not in VALID_ROLES:
         return {
@@ -398,6 +438,14 @@ def record_role(role: str) -> dict:
 
 
 def record_cdn(provider: str, enabled: bool, bot_protection: bool = False) -> dict:
+    """Persist the CDN configuration in state (called at the end of Phase 5 Step 7 —
+    optional Cloudflare CDN setup). Returns status-wrapped dict:
+    {"status": "ok" | "error", "cdn": {"provider": str, "enabled": bool, "bot_protection": bool}}."""
+    if enabled and not provider:
+        return {
+            "status": "error",
+            "error": "record_cdn requires a non-empty provider when enabled=True",
+        }
     state = load_state()
     state["cdn"] = {
         "provider": provider,
@@ -405,7 +453,7 @@ def record_cdn(provider: str, enabled: bool, bot_protection: bool = False) -> di
         "bot_protection": bool(bot_protection),
     }
     save_state(state)
-    return state["cdn"]
+    return {"status": "ok", "cdn": state["cdn"]}
 
 
 # ---------------------------------------------------------------------------
@@ -610,6 +658,7 @@ def deploy_app(
 
 
 def _find_application(state: dict, name: str) -> Optional[dict]:
+    """Locate an application entry by name in state. Returns None if missing."""
     for entry in state.get("applications", []):
         if entry.get("name") == name:
             return entry
@@ -617,6 +666,7 @@ def _find_application(state: dict, name: str) -> Optional[dict]:
 
 
 def _upsert_application(state: dict, entry: dict) -> None:
+    """Insert or replace an application entry in state (in-place mutation; keyed by name)."""
     apps = state.setdefault("applications", [])
     for i, existing in enumerate(apps):
         if existing.get("name") == entry["name"]:
@@ -631,6 +681,10 @@ def _upsert_application(state: dict, entry: dict) -> None:
 
 
 def app_status(name: str) -> dict:
+    """Live health check of a recorded application by name. Performs a short poll_health()
+    against the application URL and persists the observed status back into state. Returns
+    {"status": str, "name": str, "url": str, "type": str, "http_code": int} (or
+    {"status": "unknown", "error": str} if the application is not recorded)."""
     state = load_state()
     entry = _find_application(state, name)
     if not entry:
@@ -870,6 +924,8 @@ def _check(
 
 
 def _git_info(project_dir: Path) -> dict:
+    """Probe .git/ for repo presence, commit count, origin remote, and working-tree cleanliness.
+    Best-effort — any subprocess failure yields defaults (repo=False)."""
     result = {
         "repo": False,
         "commits": 0,
@@ -922,6 +978,8 @@ def _git_info(project_dir: Path) -> dict:
 
 
 def _streamlit_config_checks(project_dir: Path) -> list[dict]:
+    """Build preflight _check() entries for .streamlit/config.toml (CORS + XSRF must be
+    disabled when running behind Traefik in Coolify)."""
     checks: list[dict] = []
     cfg = project_dir / ".streamlit" / "config.toml"
     if not cfg.exists():
@@ -962,6 +1020,8 @@ def _streamlit_config_checks(project_dir: Path) -> list[dict]:
 
 
 def _entry_point_check(project_dir: Path, type_: str) -> dict:
+    """Verify a recognised entry point file exists for the given app type (streamlit accepts
+    app.py / main.py / book.py / streamlit_app.py; python accepts main.py / app.py; etc.)."""
     candidates = {
         "streamlit": ["app.py", "main.py", "book.py", "streamlit_app.py"],
         "python": ["main.py", "app.py", "__main__.py"],
@@ -987,6 +1047,8 @@ def _entry_point_check(project_dir: Path, type_: str) -> dict:
 
 
 def _dockerfile_check(project_dir: Path) -> list[dict]:
+    """Flag Dockerfiles missing ARG SOURCE_COMMIT=unknown (Docker cache-bust — required
+    so that identical commits don't reuse stale layers when the repo changes externally)."""
     dockerfile = project_dir / "Dockerfile"
     if not dockerfile.exists():
         return []
@@ -1318,6 +1380,7 @@ def training_reap(
 
 
 def _render_state_human(state: dict) -> str:
+    """Format deploy state as a human-readable ASCII report (consumed by `state --human`)."""
     lines = []
     lines.append("GSE-One Deployment State")
     lines.append("=" * 56)
@@ -1400,7 +1463,10 @@ def _cmd_env_delete(args: argparse.Namespace) -> None:
 
 
 def _cmd_record_phase(args: argparse.Namespace) -> None:
-    _json_out(record_phase(args.phase))
+    result = record_phase(args.phase)
+    _json_out(result)
+    if result.get("status") != "ok":
+        sys.exit(2)
 
 
 def _cmd_record_server(args: argparse.Namespace) -> None:
@@ -1412,14 +1478,22 @@ def _cmd_record_server(args: argparse.Namespace) -> None:
         datacenter=args.datacenter,
     )
     _json_out(result)
+    if result.get("status") != "ok":
+        sys.exit(2)
 
 
 def _cmd_record_coolify(args: argparse.Namespace) -> None:
-    _json_out(record_coolify(args.url, args.version or ""))
+    result = record_coolify(args.url, args.version or "")
+    _json_out(result)
+    if result.get("status") != "ok":
+        sys.exit(2)
 
 
 def _cmd_record_domain(args: argparse.Namespace) -> None:
-    _json_out(record_domain(args.base, args.registrar or ""))
+    result = record_domain(args.base, args.registrar or "")
+    _json_out(result)
+    if result.get("status") != "ok":
+        sys.exit(2)
 
 
 def _cmd_record_role(args: argparse.Namespace) -> None:
@@ -1430,13 +1504,14 @@ def _cmd_record_role(args: argparse.Namespace) -> None:
 
 
 def _cmd_record_cdn(args: argparse.Namespace) -> None:
-    _json_out(
-        record_cdn(
-            provider=args.provider,
-            enabled=args.enabled,
-            bot_protection=args.bot_protection,
-        )
+    result = record_cdn(
+        provider=args.provider,
+        enabled=args.enabled,
+        bot_protection=args.bot_protection,
     )
+    _json_out(result)
+    if result.get("status") != "ok":
+        sys.exit(2)
 
 
 def _cmd_wait_dns(args: argparse.Namespace) -> None:

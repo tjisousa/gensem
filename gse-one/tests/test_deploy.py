@@ -399,5 +399,134 @@ class RecordRoleTests(unittest.TestCase):
         self.assertIn("invalid role", r["error"])
 
 
+class RecordPhaseContractTests(unittest.TestCase):
+    """v0.55.0 unified status-wrapped contract for record_phase."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: shutil.rmtree(self.dir))
+        self._prev_cwd = os.getcwd()
+        os.chdir(self.dir)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+
+    def test_record_phase_happy_path(self):
+        r = deploy.record_phase("setup")
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["phase"], "setup")
+        self.assertTrue(r["completed_at"])  # non-empty ISO timestamp
+        self.assertTrue(deploy.load_state()["phases_completed"]["setup"])
+
+    def test_record_phase_unknown_returns_error(self):
+        r = deploy.record_phase("bogus-phase")
+        self.assertEqual(r["status"], "error")
+        self.assertIn("unknown phase", r["error"])
+
+
+class RecordServerContractTests(unittest.TestCase):
+    """v0.55.0 unified status-wrapped contract for record_server."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: shutil.rmtree(self.dir))
+        self._prev_cwd = os.getcwd()
+        os.chdir(self.dir)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+
+    def test_record_server_happy_path(self):
+        r = deploy.record_server("srv-01", "1.2.3.4", 42, "cax21", "fsn1")
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["server"]["name"], "srv-01")
+        self.assertEqual(r["server"]["ipv4"], "1.2.3.4")
+        self.assertEqual(deploy.load_state()["server"]["id"], 42)
+
+    def test_record_server_missing_name_rejected(self):
+        r = deploy.record_server("", "1.2.3.4", 42, "cax21", "fsn1")
+        self.assertEqual(r["status"], "error")
+        self.assertIn("name", r["error"])
+
+
+class RecordCoolifyContractTests(unittest.TestCase):
+    """v0.55.0 unified status-wrapped contract for record_coolify."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: shutil.rmtree(self.dir))
+        self._prev_cwd = os.getcwd()
+        os.chdir(self.dir)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+
+    def test_record_coolify_happy_path(self):
+        r = deploy.record_coolify("https://coolify.example.com", "4.0.0")
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["coolify"]["url"], "https://coolify.example.com")
+        self.assertEqual(r["coolify"]["version"], "4.0.0")
+
+    def test_record_coolify_empty_url_rejected(self):
+        r = deploy.record_coolify("", "4.0.0")
+        self.assertEqual(r["status"], "error")
+        self.assertIn("url", r["error"])
+
+
+class RecordDomainContractTests(unittest.TestCase):
+    """v0.55.0 unified status-wrapped contract for record_domain."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: shutil.rmtree(self.dir))
+        self._prev_cwd = os.getcwd()
+        os.chdir(self.dir)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+
+    def test_record_domain_happy_path(self):
+        r = deploy.record_domain("example.com", "ovh")
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["domain"]["base"], "example.com")
+        self.assertEqual(r["domain"]["registrar"], "ovh")
+
+    def test_record_domain_empty_base_rejected(self):
+        r = deploy.record_domain("", "ovh")
+        self.assertEqual(r["status"], "error")
+        self.assertIn("base", r["error"])
+
+
+class RecordCdnContractTests(unittest.TestCase):
+    """v0.55.0 unified status-wrapped contract for record_cdn."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: shutil.rmtree(self.dir))
+        self._prev_cwd = os.getcwd()
+        os.chdir(self.dir)
+
+    def tearDown(self):
+        os.chdir(self._prev_cwd)
+
+    def test_record_cdn_happy_path(self):
+        r = deploy.record_cdn("cloudflare", True, bot_protection=True)
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["cdn"]["provider"], "cloudflare")
+        self.assertTrue(r["cdn"]["enabled"])
+        self.assertTrue(r["cdn"]["bot_protection"])
+
+    def test_record_cdn_enabled_without_provider_rejected(self):
+        r = deploy.record_cdn("", True)
+        self.assertEqual(r["status"], "error")
+        self.assertIn("provider", r["error"])
+
+    def test_record_cdn_disabled_allows_empty_provider(self):
+        # Disabling the CDN is valid even without a provider (no bot protection either).
+        r = deploy.record_cdn("", False)
+        self.assertEqual(r["status"], "ok")
+        self.assertFalse(r["cdn"]["enabled"])
+
+
 if __name__ == "__main__":
     unittest.main()

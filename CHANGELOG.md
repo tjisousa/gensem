@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.55.0] - 2026-04-22
+
+Layers impacted: **tools** (`gse-one/plugin/tools/deploy.py` — docstrings + contract unification), **tests** (`gse-one/tests/test_deploy.py` — 11 new contract tests)
+
+**Minor release — deploy.py `record_*` contract unification + docstring sweep (audit v0.50 WC17.4 + WC17.5 bundle).** Dedicated release for the bundled contract change deferred from v0.53.0. Applies the uniform status-wrapped return contract to all 5 `record_*` library functions (mirroring the `record_role` reference pattern introduced earlier), adds 17 docstrings (9 public + 8 private helpers), and adds 11 contract tests (2 per record_* × 5 functions + 1 edge case for record_cdn). Test count: 49 → 60.
+
+### Changed
+
+- **WC17.5 contract unification — 5 `record_*` library functions** now return a uniform status-wrapped dict `{"status": "ok"|"error", ...}` mirroring `record_role` (the v0.48 reference pattern):
+  - `record_phase` — returns `{"status", "phase", "completed_at"}` on success, or `{"status": "error", "error": "unknown phase '...'"}` on invalid phase. Removed the library-level `_err()`/sys.exit call — the failure path now surfaces via the status field and exits in the CLI wrapper.
+  - `record_server` — new validation: both `name` and `ipv4` must be non-empty (previously no validation — silently recorded bogus data).
+  - `record_coolify` — new validation: `url` must be non-empty.
+  - `record_domain` — new validation: `base` must be non-empty.
+  - `record_cdn` — new validation: when `enabled=True`, `provider` must be non-empty. Disabling with empty provider remains valid (covered by a dedicated test).
+  - `record_role` — unchanged (already conformed since v0.48).
+- **WC17.5 CLI wrapper alignment — 5 `_cmd_record_*` wrappers** now mirror `_cmd_record_role`: read the library dict, always call `_json_out(result)`, and `sys.exit(2)` if `result.get("status") != "ok"`. This concentrates exit semantics in the CLI layer and keeps the library pure (importable, testable without exit side-effects).
+
+### Added
+
+- **WC17.4 docstrings** — 9 public + 8 private helpers in `deploy.py` now carry one-line docstrings matching the `record_role` reference style (purpose + when called + return-shape note when non-obvious):
+  - Public: `load_state`, `save_state`, `init_state`, `record_phase`, `record_server`, `record_coolify`, `record_domain`, `record_cdn`, `app_status` (9 total; remaining public functions were already documented — `parse_env`, `set_env`, `delete_env`, `sanitize_component`, `build_subdomain`, `detect_situation`, `record_role`, `wait_dns`, `poll_health`, `deploy_app`, `destroy`, `preflight`, `training_init`, `training_reap`).
+  - Private (optional per Python convention, but valuable for maintainability): `_empty_state`, `_find_application`, `_upsert_application`, `_git_info`, `_streamlit_config_checks`, `_entry_point_check`, `_dockerfile_check`, `_render_state_human`.
+- **11 contract tests** in `gse-one/tests/test_deploy.py`, grouped in 5 new test classes (`RecordPhaseContractTests`, `RecordServerContractTests`, `RecordCoolifyContractTests`, `RecordDomainContractTests`, `RecordCdnContractTests`). Each class covers 2 cases (happy path + validation-error path) except `RecordCdnContractTests` which has 3 (enabled+provider ok, enabled without provider rejected, disabled without provider accepted). Test count: 49 → 60.
+
+### Notes
+
+- **Zero skill impact** — `gse-one/src/activities/deploy.md` invokes `record-*` CLI subcommands at 14 call sites, all fire-and-forget (no stdout parsing). The skill relies solely on exit codes (0 = ok, non-zero = error). Verified by the v0.54.0 audit pass: 0 line changes in deploy.md needed.
+- **Zero spec / design impact** — neither `gse-one-spec.md` nor `gse-one-implementation-design.md` documents the in-library return shape of `record_*` functions. The design §5.18 subcommand list (already corrected in v0.53.0) is unaffected.
+- **Pre-release backward-compat** — per CLAUDE.md §"Pre-release backward-compat", the change is applied directly without migration tooling. Python importers are alerted via the docstring "Returns status-wrapped dict" note.
+- **Anti-rigidity respected** — `load_state()` retains its `_err()`/sys.exit call on corrupt JSON (the failure is unrecoverable; no meaningful remedy from the CLI wrapper). This is NOT an inconsistency — it's a documented semantic distinction: corrupt state is a fatal library error, invalid inputs are CLI-recoverable. The `load_state` docstring explains the rationale.
+- **LOC delta** — +293 insertions, −28 deletions (deploy.py: +69/−22 for contract + docstrings; test_deploy.py: +140 new tests; CHANGELOG: +60; VERSION: +1/−1). Higher than the v0.54.0 audit estimate (+143/−11) because docstrings ran longer and the test class boilerplate is less compact than the helper-shared pattern.
+- **Cumulative tally (audit v0.50 →)**: v0.51.0 errors (15), v0.51.1 simple warnings (31), v0.52.0 structural warnings (8), v0.53.0 structural + Python hygiene (10), v0.54.0 upward + audit improvements (10), v0.55.0 deploy.py contract (2 sub-clusters). **Total: 76 corrections applied, 5 false positives documented.**
+- **Minor bump rationale (0.54.0 → 0.55.0)** — breaking-ish contract change for Python importers (record_* return shape), new validation behavior on 4 functions (record_server / coolify / domain / cdn now reject empty required fields), and substantial test addition (+22% test count). Minor is appropriate per SemVer for feature-level additions in a pre-1.0 project.
+- Pipeline: 72 unit tests pass (60 in test_deploy.py — 49 previously + 11 new — plus 12 in test_audit.py); cross-platform parity identical; `gse_generate.py --verify` clean.
+
 ## [0.54.0] - 2026-04-22
 
 Layers impacted: **spec** (§3.2.2 NEW, §14.3 Step 5 skip matrix, §P13 opencode wording), **design** (§7 P11 citation), **activities** (preview, hug), **templates** (profile.yaml comment), **audit engine** (audit.py CHANGELOG filter, partitive lookahead, ±1 info drift), **maintainer tooling** (.claude/audit-jobs.json indent-tolerant perspective guideline)
