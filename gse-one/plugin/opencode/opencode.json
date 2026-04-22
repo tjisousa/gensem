@@ -4,13 +4,14 @@
     "skill": {
       "*": "allow"
     },
+    "question": "allow",
     "bash": {
       "git push --force *": "deny",
       "rm -rf /*": "deny"
     }
   },
   "gse": {
-    "version": "0.56.0",
+    "version": "0.57.0",
     "repository": "https://github.com/nicolasguelfi/gensem"
   }
 }

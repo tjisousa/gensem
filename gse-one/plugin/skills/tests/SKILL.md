@@ -209,10 +209,12 @@ Detect project language and select the appropriate test framework:
 
 Steps:
 1. Install test framework as dev dependency
-2. Create test directory structure (`tests/unit/`, `tests/integration/`, `tests/e2e/`)
+2. Create test directory structure (`tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/e2e/screenshots/` for visual evidence)
 3. Create test configuration file
 4. Create a sample test to verify setup works
 5. Run the sample test to confirm green
+
+**Default E2E screenshot capture:** when Playwright is installed, the generated `playwright.config.ts` MUST include `use: { screenshot: 'on', video: 'retain-on-failure' }` and each test MUST save a final screenshot explicitly (e.g., `await page.screenshot({ path: 'tests/e2e/screenshots/<spec>.png', fullPage: true })`). For Cypress: `screenshotOnRunFailure: true` in `cypress.config.ts` plus explicit `cy.screenshot()` in each test. Rationale: screenshot-as-evidence is the default methodology expectation (see template `tests.md` "E2E Evidence" note); visual regression (`--visual`) is a separate opt-in mode.
 
 ### Step 3 — Write Tests
 

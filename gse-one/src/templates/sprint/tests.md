@@ -64,6 +64,8 @@ gse:
 
 ## End-to-End Tests
 
+> **E2E Evidence (default):** every E2E test captures a final screenshot as execution evidence (saved to `tests/e2e/screenshots/` or the framework's default screenshot directory). Screenshots are preserved per campaign for visual verification and regression diffing. This is **distinct** from full visual-regression testing (activated via `/gse:tests --visual`), which adds pixel-diff comparison against reference images.
+
 ### TST-020 — {test title}
 
 - **Implements:** REQ-001

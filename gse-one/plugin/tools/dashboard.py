@@ -316,13 +316,18 @@ def count_tasks_by_status(filepath):
 
 
 def count_reqs(sprint_dir):
-    """Count REQ- entries in reqs.md."""
+    """Count REQ- entries in reqs.md.
+
+    Canonical format (per template src/templates/sprint/reqs.md):
+        ### REQ-NNN — {title}
+    See design §3.4 — Dashboard parser format contracts.
+    """
     reqs_file = sprint_dir / "reqs.md"
     if not reqs_file.exists():
         return 0, 0  # total, approved
     content = reqs_file.read_text(encoding="utf-8")
-    total = len(re.findall(r'id:\s*REQ-', content))
-    approved = 1 if "status: approved" in content else 0
+    total = len(re.findall(r'(?im)^\s*###\s+REQ-\d+\b', content))
+    approved = 1 if re.search(r'(?im)^\s*status:\s*approved\b', content) else 0
     return total, approved
 
 
@@ -336,14 +341,22 @@ def count_tests(sprint_dir):
 
 
 def count_review_findings(sprint_dir):
-    """Count review findings by severity."""
+    """Count review findings by severity.
+
+    Canonical format (per reviewer agents — e.g., src/agents/code-reviewer.md):
+        RVW-NNN [SEVERITY] — {title}
+    Baseline severity: HIGH / MEDIUM / LOW. CRITICAL is reserved for P15
+    escalation at review merge time (spec §6.5).
+    Tolerates square brackets [HIGH] (canonical) or parentheses (HIGH) (LLM drift).
+    See design §3.4 — Dashboard parser format contracts.
+    """
     review_file = sprint_dir / "review.md"
     if not review_file.exists():
         return {}
     content = review_file.read_text(encoding="utf-8")
     findings = {}
-    for sev in ["HIGH", "MEDIUM", "LOW"]:
-        count = len(re.findall(rf'severity:\s*{sev}', content))
+    for sev in ["CRITICAL", "HIGH", "MEDIUM", "LOW"]:
+        count = len(re.findall(rf'RVW-\d+\s*[\[\(]\s*{sev}\s*[\]\)]', content))
         if count > 0:
             findings[sev] = count
     ai_integrity = len(re.findall(r'\[AI-INTEGRITY\]', content))
@@ -407,11 +420,18 @@ def collect_data():
     data["last_activity"] = status.get("last_activity", "none")
     data["last_activity_timestamp"] = status.get("last_activity_timestamp", "never")
 
-    # Health scores (may be at top level or under a 'health:' parent)
+    # Health scores — canonical nested path per template src/templates/status.yaml:
+    #   health:
+    #     dimensions:
+    #       test_pass_rate: 0
+    # Fallback paths (health.<dim> flat, <dim> top-level) retained for compat.
+    # See design §3.4 — Dashboard parser format contracts.
     data["health"] = {}
     for dim in ["test_pass_rate", "review_findings", "git_hygiene", "design_debt",
-                 "complexity_ratio", "requirements_coverage", "ai_integrity", "delivery_velocity"]:
-        val = status.get(f"health.{dim}", status.get(dim))
+                 "complexity_budget", "requirements_coverage", "traceability", "ai_integrity"]:
+        val = (status.get(f"health.dimensions.{dim}")
+               or status.get(f"health.{dim}")
+               or status.get(dim))
         if val is not None:
             data["health"][dim] = val
 

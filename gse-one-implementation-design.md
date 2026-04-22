@@ -96,7 +96,7 @@ Both platforms use separate manifests with slightly different fields. The `repos
 ```json
 {
   "name": "gse",
-  "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
+  "description": "GSE-One — AI engineering companion for structured SDLC management. 24 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
   "version": "X.Y.Z",
   "author": {
     "name": "GSE-One Project"
@@ -114,7 +114,7 @@ Both platforms use separate manifests with slightly different fields. The `repos
 {
   "name": "gse",
   "displayName": "GSE-One",
-  "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
+  "description": "GSE-One — AI engineering companion for structured SDLC management. 24 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
   "version": "X.Y.Z",
   "author": {
     "name": "GSE-One Project"
@@ -131,6 +131,8 @@ Key differences:
 - Claude uses `hooks` pointing to `hooks.claude.json`; Cursor uses `hooks` pointing to `hooks.cursor.json`
 - Cursor has `displayName` and `rules` fields; Claude does not
 - Claude loads methodology via `settings.json` → agent reference; Cursor loads via `rules/`
+
+**opencode manifest** (`opencode.json`) — opencode differs from Claude/Cursor: it does not declare `skills`/`agents`/`hooks` at top level (those are discovered from well-known directories), and its `repository` equivalent lives under the non-standard `gse.repository` key (opencode's schema has no top-level `repository` field). Instead, `opencode.json` declares a `permission` block with methodology defaults: `skill: { "*": "allow" }` (all GSE-One skills enabled), `question: "allow"` (native interactive-question tool — supports P4 interactive mode QCM across runtimes, cf. Activity Execution Fidelity Invariant §14.3), and a short `bash` denylist (`git push --force`, `rm -rf /`). Removing any of these from the default silently degrades functionality — notably, removing `question` forces QCM interactions into per-call permission prompts or text fallback.
 
 ### 3.3 Mono-Plugin Architecture
 
@@ -149,6 +151,17 @@ ONE directory (`plugin/`) serves both platforms. Shared components — skills, a
 | `templates/` (29) | **shared** | **shared** | All artefact/config templates (MANIFEST.yaml included — self-descriptor) |
 
 Claude ignores the `rules/` directory silently. Cursor ignores `settings.json` silently. The orchestrator agent (`agents/gse-orchestrator.md`) exists in the source `plugin/` directory for Claude Code, but the installer **excludes it from Cursor** installations — Cursor loads the orchestrator identity via `rules/gse-orchestrator.mdc` instead, avoiding double-loading of the same ~400-line content.
+
+### 3.4 Dashboard parser format contracts
+
+`plugin/tools/dashboard.py` reads `.gse/` state + sprint artefacts and reports project health. It is a **consumer** of the canonical artefact formats defined elsewhere — not a format authority. The contracts it depends on are:
+
+- **REQ counting**: `reqs.md` emits `### REQ-NNN — {title}` (H3 heading) per template `src/templates/sprint/reqs.md`.
+- **Review findings**: `review.md` emits `RVW-NNN [SEVERITY] — {title}` per reviewer agent output format (e.g., `src/agents/code-reviewer.md` "Output Format" section); baseline severity is `HIGH / MEDIUM / LOW` (plus `CRITICAL` reserved for P15 escalation at review merge time, spec §6.5). The parser tolerates square brackets `[HIGH]` (canonical) and parentheses `(HIGH)` (observed LLM drift) to stay robust against minor variations.
+- **Health scores**: `status.yaml` stores them under `health.dimensions.<dim>` (nested) per `src/templates/status.yaml`.
+- **Test evidence**: `docs/sprints/sprint-NN/test-reports/` per spec §6.3.
+
+When any of these canonical formats changes, `dashboard.py` must be updated in the same commit. The generator does not regenerate `dashboard.py` — it is a direct-edit file carrying a `# @gse-tool dashboard <version>` header (per CLAUDE.md §Tool architecture).
 
 ---
 
@@ -1177,6 +1190,14 @@ Uncovered goals → candidate TASK items in backlog pool (auto-created with `ori
 
 When `/gse:go` is invoked:
 
+**Activity Execution Fidelity Invariant (spec §14.3).** Realized by two rules operating at different granularities:
+
+1. **Activity load** — whenever the orchestrator or an activity file resolves an execution (direct, inline-routed, or auto-triggered), the agent MUST open the target's source file — Claude Code: `$(cat ~/.gse-one)/skills/<name>/SKILL.md`; Cursor: `$(cat ~/.gse-one)/commands/gse-<name>.md`; opencode: `$(cat ~/.gse-one)/opencode/skills/<name>/SKILL.md`.
+
+2. **Step execution** — the agent MUST execute every Step in order. Legitimate skip conditions: conditional Step (source declares a guard), user override, or frontmatter-declared exempt. Agent-driven skips MUST emit an Inform-tier note. Exempt activities (display-only): `/gse:status`, `/gse:health`, `/gse:backlog` display, `/gse:audit`.
+
+The cross-reference convention "number + name" (CLAUDE.md) supports unambiguous Step identification for partial resumption (e.g., "resume at Step 2.7 — Git Baseline Verification").
+
 **Step 1 — Detect project state:**
 
 | Condition | Action |
@@ -1279,6 +1300,8 @@ git reset --hard gse-backup/sprint-NN-pre-merge-<feat>
 
 Cleanup: delete backup tags older than `git.backup_retention_days` during deliver.
 ```
+
+**Test Execution Evidence guardrail (Hard, spec §9.3.1).** Before any merge, `/gse:deliver` Step 1.5 reads `test_evidence.status` on each TASK that implements a must-priority REQ (per §12.3 Backlog schema). If any status is in `{absent, fail, skipped}`, delivery is blocked and a Gate is presented with four options: (1) Run tests now inline via `/gse:tests --run` (recommended default), (2) Deliver partial (only passing REQs, requires Gate confirmation), (3) Reclassify TASK as spike/deferred (requires DEC-), (4) Discuss. Aligns the delivery gate with the canonical test run (spec §6.3 — Test Execution and Evidence) so the `test_evidence` field actually feeds enforcement. Complements the Activity Execution Fidelity Invariant §14.3 — which forces `/gse:produce` to execute the canonical test run in the first place; this guardrail catches the residual cases where evidence is nevertheless absent at delivery time.
 
 ### 5.16 State Schemas
 
@@ -2454,6 +2477,88 @@ The skill orchestrates a three-step ceremony (dry-run impact preview → Gate 1 
 - **Manual E2E checklist** (`gse-one/TESTING.md`) covering Coolify / Hetzner / SSH flows that require live infrastructure: solo full flow, partial-skip detection, training mode (instructor + N learners), destroy with dry-run, edge cases (FQDN overflow, Coolify down, DNS timeout).
 
 CI is not yet set up — listed as future work in `TESTING.md`. The test foundation is intentionally minimal to keep the contribution cost low while catching the most impactful regressions (subdomain sanitization, type detection, state schema drift, env file parsing).
+
+### 5.17 `/gse:audit` — Project methodology audit
+
+The audit activity implements spec §15 Methodology Audit. This section details the architecture for contributors.
+
+#### Artefact inventory
+
+| File | Role | Nature |
+|------|------|--------|
+| `src/activities/audit.md` | Activity workflow (6 Steps) | Source (edited; transformed into `plugin/skills/audit/SKILL.md` + `plugin/commands/gse-audit.md` + opencode variants by `gse_generate.py`) |
+| `src/templates/sprint/audit.md` | Report template populated at Step 3 | Source (copied verbatim by `gse_generate.py`) |
+| `plugin/tools/project-audit.py` | Deterministic audit engine (direct-edit tool per CLAUDE.md §Tool architecture, `# @gse-tool project-audit <version>` header) | Plugin direct file — NOT regenerated by `gse_generate.py` |
+| `src/agents/project-reviewer.md` (Phase 2, deferred) | Semantic sub-agent (Reviewer archetype) invoked at Step 2 | Source (will be added when Phase 2 ships) |
+
+#### Deterministic layer — `project-audit.py`
+
+Design pattern mirrors `plugin/tools/dashboard.py`:
+- CLI entry point with argparse (`--json`, `--severity-filter`, `--help`)
+- Project root discovery via `.gse/` directory walk
+- Minimal YAML parser (2-level nesting, flat dict with dotted keys) — **recopied** from dashboard.py rather than imported (decoupling per CLAUDE.md §Tool architecture — tools are autonomous)
+- `@dataclass Finding` for finding serialization
+- Check functions return `List[Finding]`
+- Exit codes graded by severity (0 / 1 / 2 / 3) for CI integration
+
+Each check is a pure function `check_<name>(id_counter) -> List[Finding]`. The `id_counter` is a mutable single-element list used as a counter box (ensures AUD-NNN allocation is monotonic across checks). IDs are allocation-time, not persistent across audits — stable within a single report, not between reports.
+
+Phase 1 ships 15 checks covering: dashboard-freshness, test-evidence, file-structure, format (REQ H3, RVW brackets, health nested), workflow coherence, git-state, sprint-freeze, intent, backlog-traces, coach-observations, open-questions. See `plugin/tools/project-audit.py` for the canonical list and implementation.
+
+#### Finding JSON schema
+
+```json
+{
+  "audit_version": "0.1.0",
+  "timestamp": "2026-04-22T14:30:00+00:00",
+  "project_root": "/path/to/project",
+  "phase": "Phase 1 deterministic (checks 1-15)",
+  "findings": [
+    {
+      "id": "AUD-001",
+      "severity": "HIGH",
+      "category": "dashboard-freshness",
+      "title": "...",
+      "detail": "...",
+      "evidence": "...",
+      "recommendation": "...",
+      "auto_fixable": true,
+      "fix_command": "python3 \"$(cat ~/.gse-one)/tools/dashboard.py\""
+    }
+  ]
+}
+```
+
+The activity file (`audit.md`) parses this JSON at Step 1 (deterministic output) and interleaves with Phase 2 semantic findings at Step 2 (when implemented). The template (`src/templates/sprint/audit.md`) formats the consolidated list at Step 3.
+
+#### Integration with existing mechanisms
+
+- **Dashboard (`plugin/tools/dashboard.py`)** — no direct integration in Phase 1. The dashboard reads `.gse/` state files; the audit reads the same state files and checks coherence. Both are independent consumers of the canonical formats (see §3.4 Dashboard parser format contracts). Phase 3 may add an "audit status" card to the dashboard.
+- **Coach agent (`src/agents/coach.md`)** — bidirectional touch point. Coach writes to `status.yaml → workflow_observations` (during activities); audit check 14 (`check_coach_observations`) reads this same field to detect "coach enabled but silent" drift. Audit also appends its own entries to `workflow_observations` at Step 5 (`{axis: audit, ...}`). No double-counting because entries are tagged with `axis: audit` vs coach's own axis tags.
+- **Dashboard contract (§3.4)** — `project-audit.py` parses the same canonical formats documented there. The audit adds CHECKS on these formats (e.g., "is the REQ format canonical?") that the dashboard doesn't enforce.
+
+#### Phase 2 design sketch — semantic layer
+
+When Phase 2 ships:
+
+1. **New agent file** `src/agents/project-reviewer.md` (archetype: Reviewer — see CLAUDE.md §Agent archetypes). Perspective: `project-methodology`. Checklist covers P9 Adaptive Communication jargon detection, P14 Knowledge Transfer delivery verification, REQ/DESIGN coherence analysis, P16 Root-Cause Discipline application.
+2. **Invocation at Step 2 of `/gse:audit`**: the orchestrator spawns a sub-agent with fresh context, passes current sprint artefacts + recent `activity_history` + `workflow_observations` + active profile + last N user messages. The reviewer returns `AUD-NNN` findings interleaved with Step 1 deterministic findings (shared ID counter or separate namespace — decision deferred to Phase 2 sub-proposition).
+3. **Report section activation** — the "Semantic findings (Phase 2 — deferred)" section in the template (`src/templates/sprint/audit.md`) is populated instead of shown empty.
+
+#### Phase 3 design sketch — auto-trigger
+
+When Phase 3 ships:
+
+1. **New invariant** `Methodology Audit Auto-Trigger Invariant` added to `src/agents/gse-orchestrator.md` Process Discipline section.
+2. **Detection:** hybrid keyword + coach correlation:
+   - **Keyword filter (cheap):** pattern match against user messages (`tu n'as pas`, `tu as oublié`, `pourquoi tu`, `en fait tu fais rien`, French+English variants). Similar pattern to the existing Ad-hoc Bug Report Detection (spec §P16).
+   - **Coach confirmation (reuse):** coach's `engagement_pattern` axis or `process_deviation` axis must also signal frustration/deviation. Both signals must align to avoid false positives.
+3. **Counter in `status.yaml`:** new field `methodology_drift_signals: {keyword_hits: int, coach_alerts: int, last_seen: iso8601}` (schema documented in §5.16 State Schemas after Phase 3 lands).
+4. **Threshold:** at ≥ 2 correlated signals within the current session, the orchestrator emits Inform + Gate *"Run audit now / Defer / Discuss"*. Never auto-applies corrections.
+
+#### Pre-release scope
+
+Phase 1 ships the deterministic layer + manual invocation only. Phase 2 (semantic) and Phase 3 (auto-trigger) are deferred; their design sketches above serve as implementation pointers for future sub-propositions. Nothing in the current implementation blocks the phased additions.
 
 ---
 

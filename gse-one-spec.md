@@ -56,7 +56,7 @@ Agent: [Plans sprint → Writes requirements → Asks for confirmation →
 - `/gse:health` — Check project quality dashboard
 - `/gse:pause` — Save and stop (you can resume later with `/gse:go`)
 
-Everything else is handled by the agent based on your profile and project state. Advanced users can invoke any of the 23 commands directly (see Section 3).
+Everything else is handled by the agent based on your profile and project state. Advanced users can invoke any of the 24 commands directly (see Section 3).
 
 ---
 
@@ -65,7 +65,7 @@ Everything else is handled by the agent based on your profile and project state.
 0. [Getting Started](#0-getting-started) — Prerequisites, Quickstart (your first 20 minutes)
 1. [Overview](#1-overview) — Coding agent architecture, agile foundations, platform mapping, GSE-One philosophy, key concepts, agent roles
 2. [Core Principles](#2-core-principles) — Foundations (P1-P3, P5-P6) | Risk & Communication (P4, P7–P11) | Infrastructure (P12–P14) | AI Integrity (P15–P16)
-3. [Activities (Commands)](#3-activities-commands) — 23 commands across 9 categories
+3. [Activities (Commands)](#3-activities-commands) — 24 commands across 9 categories
 4. [Collect — Artefact Inventory and External Source Discovery](#4-collect)
 5. [Preview](#5-preview)
 6. [Testing Strategy](#6-testing-strategy) — Test pyramid, environment, evidence, coverage
@@ -77,7 +77,8 @@ Everything else is handled by the agent based on your profile and project state.
 12. [Artefact Storage Conventions](#12-artefact-storage-conventions)
 13. [Configuration & Customization](#13-configuration--customization)
 14. [Standard Activity Groups (Lifecycle Phases)](#14-standard-activity-groups)
-15. [Glossary](#15-glossary)
+15. [Methodology Audit](#15-methodology-audit)
+16. [Glossary](#16-glossary)
 A. [Activity Summary (Quick Reference)](#appendix-a)
 B. [Cost Assessment Grid for Maintenance Work](#appendix-b)
 C. [Maintainer Guide](#appendix-c)
@@ -383,7 +384,7 @@ GSE-One inherits agile principles but adapts them for a context that standard ag
 
 ### 1.3 GSE-One Overview
 
-GSE-One (Generic Software Engineering One) is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a plugin for AI coding agents (Claude Code, Cursor, or any compatible agent-based IDE) and provides 23 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
+GSE-One (Generic Software Engineering One) is an AI engineering companion that guides users through the full software development lifecycle. It is implemented as a plugin for AI coding agents (Claude Code, Cursor, or any compatible agent-based IDE) and provides 24 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
 
 GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to the user's profile, and progressively transfers knowledge so the user grows alongside the project.
 
@@ -466,7 +467,7 @@ Documents and artefacts correspond to increments. They must be modular at the fi
 Operationally, this is ensured by: sprint artefacts in `docs/sprints/sprint-NN/` (Section 12 — Artefact Storage Conventions), git branches per sprint and per task (Section 10 — Version Control Strategy), and YAML frontmatter with sprint number on every artefact (Section 12.2 — Frontmatter).
 
 ### P2 — Agile Terminology
-All terminology is inherited from the agile engineering methods domain (sprints, backlogs, user stories, etc.). See the Glossary (Section 15) for all defined terms.
+All terminology is inherited from the agile engineering methods domain (sprints, backlogs, user stories, etc.). See the Glossary (Section 16) for all defined terms.
 
 ### P3 — Artefacts Are Everything
 Artefacts encompass all project files: code, requirements, design documents, tests, configuration, plans, decisions, learning notes, and any other deliverable. Every artefact is tracked via YAML frontmatter (Section 12.2) and assigned a unique ID (P6).
@@ -498,7 +499,13 @@ N. Discuss — Open a discussion around this question
 **Your choice:** [1/2/3/.../N]
 ```
 
-**Interactive mode (preferred when available):** When the hosting environment provides an interactive question tool (e.g., `AskUserQuestion` in Claude Code, clarifying questions in Cursor), the agent SHOULD use it instead of the text-based numbered list. This provides a better UX with clickable options, checkboxes for multi-select, and skip buttons. The structured content (Question, Context, Options, Discuss) remains the same — only the presentation changes from text to interactive widget. When the interactive tool is unavailable or the number of options exceeds its limits, fall back to the text format above.
+**Interactive mode is canonical.** When the hosting environment provides an interactive question tool (all three supported runtimes do — Claude Code: `AskUserQuestion`; Cursor ≥2.4: `AskQuestion`; opencode: `question`; methodology alias `AskUser`, mapping owned by the orchestrator, see the Activity Execution Fidelity Invariant §14.3), the agent MUST use it for any finite-option question that fits the tool's size limit (typically ≤4-5 options). Clickable options, checkboxes for multi-select, and skip buttons provide the base interaction UX across runtimes. The structured content (Question, Context, Options, Discuss) remains the same — only the presentation changes from text to interactive widget.
+
+**Text fallback — two categories:**
+**(a) Content-forced** *(silent)* — the option count exceeds the tool's limit, or the expected answer is free-text (e.g., user-provided domain name, personal bio, long URL). The agent falls back to the numbered-list format above without comment; this is a legitimate technical choice, not a degradation.
+**(b) Runtime-forced** *(visible)* — the interactive tool is not available on this runtime (e.g., tool invocation failed, runtime permission denied, unknown runtime). The agent falls back to the numbered-list format AND emits an Inform-tier note explaining the cause, so the user can correct the configuration if intended. Standard phrasing (intermediate/expert): *"[Inform] Using text fallback — interactive question tool not available on this runtime (see P4 mapping)."* Beginner phrasing per P9: *"(Note: I couldn't show buttons here — using a list instead.)"*
+
+The Inform note MUST NOT fire on content-forced fallbacks; spamming runtime notices on every free-text question defeats the signal.
 
 **No implicit consent:** Silence or lack of response is NOT consent for Gate-tier decisions. If the user does not respond, the agent waits or works on other non-blocked tasks. The agent never assumes approval.
 
@@ -543,6 +550,7 @@ Every artefact must be traceable to its origin and related artefacts. Requiremen
 | `OQ-` | Open question (pending resolution) | OQ-003 |
 | `SRC-` | External source | SRC-001 |
 | `LRN-` | Learning note | LRN-003 |
+| `AUD-` | Audit finding (methodology drift) | AUD-003 |
 
 IDs are unique within the project (not recycled across sprints). TASK is the **unified work item ID** — there is no separate backlog ID. A TASK is either in the pool (unplanned) or assigned to a sprint.
 
@@ -1120,6 +1128,7 @@ If the agent made no Inform-tier decisions during the activity (rare — all cho
 | `/gse:pause` | **Pause** | Auto-commit all uncommitted work in active worktrees, save session checkpoint (context, sprint state, pending tasks, review findings, decision log snapshot, **worktree map**) |
 | `/gse:resume` | **Resume** | Reload checkpoint, verify worktree integrity, brief the user on where work stopped, propose next actions |
 | `/gse:task` | **Ad-hoc Task** | Execute a task outside the standard lifecycle in a dedicated branch/worktree. The task is added to the backlog (the type of artefact is inferred from the description, and the task is attached to the current sprint). It consumes complexity budget. It is reviewed during the next `/gse:review` unless trivial (complexity ≤ 1). It is delivered with the rest of the sprint. **Sprint Freeze guardrail (Hard, all modes except Micro) — see lifecycle guardrails below.** **`--spike`**: create a **spike** — an exploratory experiment to answer a technical question. Spikes are complexity-boxed (max 3 points), non-deliverable (branch deleted after completion), and bypass REQS/TESTS guardrails. Must produce a DEC- artefact documenting the question, approach, and answer. If reusable code emerges, a normal TASK must be created to implement it properly. For beginners: Gate confirmation ("This is an experiment — the code won't be kept. Are you sure?"). |
+| `/gse:audit` | **Audit** | Audit the project for methodology drift. Detects format inconsistencies, missing evidence, skipped steps, and other deviations. Produces a structured report (`docs/sprints/sprint-NN/audit-{timestamp}.md`) with findings prefixed `AUD-NNN` and proposes corrections via Gate. Complements inline guardrails (which prevent at the moment of action); audit catches drift retrospectively. See Section 15 Methodology Audit. **`--fix`**: auto-apply safe LOW-severity corrections. **`--no-fix`**: audit-only, no corrections. **`--auto`**: auto-triggered invocation (orchestrator Phase 3). |
 
 ### 3.2 Onboarding
 
@@ -1254,7 +1263,7 @@ For orientation, here is when each command is typically used in the lifecycle:
 | **LC02 — Development** | `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:tests`, `/gse:produce` | Specify, design, test, and build |
 | **LC02 — Quality & Delivery** | `/gse:review`, `/gse:fix`, `/gse:deliver` | Verify, fix, and ship |
 | **LC03 — Capitalization** | `/gse:compound`, `/gse:integrate` | Learn from the sprint, route improvements |
-| **Cross-cutting** | `/gse:status`, `/gse:health`, `/gse:backlog`, `/gse:task`, `/gse:learn`, `/gse:pause`, `/gse:resume`, `/gse:deploy` | Available at any time regardless of phase |
+| **Cross-cutting** | `/gse:status`, `/gse:health`, `/gse:audit`, `/gse:backlog`, `/gse:task`, `/gse:learn`, `/gse:pause`, `/gse:resume`, `/gse:deploy` | Available at any time regardless of phase |
 
 > **Note:** `/gse:go` detects the current project state and proposes the next command automatically. Users don't need to memorize this sequence — the orchestrator handles it (see Section 14).
 
@@ -1873,6 +1882,16 @@ Guardrails make cost visible and require proportional acknowledgment. Soft guard
 | Force push | Any force push attempt | **Emergency** — explain data loss risk |
 | Branch sprawl | More than 5 active branches | **Soft** — suggest cleanup |
 | Stale branches | Branch not touched in >2 sprints | **Soft** — suggest deletion or archival |
+
+### 9.3.1 Test-Specific Guardrails
+
+| Guardrail | Trigger | Level |
+|-----------|---------|-------|
+| Unexecuted tests before DELIVER | `/gse:deliver` is invoked while any must-priority REQ's covering TASK has `test_evidence.status` in `{absent, fail, skipped}` (per §12.3 Backlog schema) | **Hard** — block delivery until evidence is `pass`, or the user explicitly reclassifies the TASK (spike / deferred with DEC-) |
+| Unexecuted test strategy | `test-strategy.md` exists and declares a level (unit / integration / e2e) that has never been run during the sprint (no `TCP-` campaign report at `docs/sprints/sprint-NN/test-reports/` covering it) | **Hard** — block delivery, propose `/gse:tests --run --level <level>` |
+| Stale test evidence | `test_evidence.timestamp` predates the latest code change in the TASK's feature branch (detected via `git log`) | **Soft** — warn and suggest re-running |
+
+These guardrails are enforced by `/gse:deliver` Step 1.5 — Test Execution Evidence.
 
 ### 9.4 Calibration
 
@@ -2864,6 +2883,16 @@ The adopt flow is designed to be **non-destructive**: it never modifies existing
 
 When invoked, `/gse:go` follows this decision tree:
 
+**Activity Execution Fidelity Invariant.** Whenever the orchestrator executes an activity (invoked by the user, auto-routed inline by another activity per spec §14.3 Orchestrator Decision Logic, or auto-triggered by orchestrator logic), the agent MUST:
+
+1. **Load the target activity's source file verbatim** — paraphrase from agent memory is forbidden. Preserves structural details (interactive-mode blocks, multi-language question forms, exact option sets) that paraphrasing silently drops.
+
+2. **Execute every Step defined in the activity, in order** — silent skipping is forbidden. A Step may be legitimately omitted only when: (a) the Step itself is declared conditional in the source (e.g., `If config.dependency_audit: true, run this Step`) and the condition fails; (b) the Step is overridden by an explicit user instruction; (c) the Step is documented as exempt in the activity's frontmatter. Any other omission is agent-driven and MUST be accompanied by an Inform-tier note: *"[Inform] Skipping /gse:<activity> Step N — <reason>."* So the user can decide whether to override or accept the agent's judgment.
+
+**Exempt activities** (display-only, no state mutation, strict Step fidelity not required): `/gse:status`, `/gse:health`, `/gse:backlog` (display mode), `/gse:audit` (self-verifying).
+
+Applies to all three runtime targets (Claude Code, Cursor, opencode); each exposes its own interactive-question tool — `AskUserQuestion`, `AskQuestion`, and `question` respectively — invoked only when the target activity's source is read verbatim.
+
 **Step 1 — Detect project state:**
 
 | Condition | Action |
@@ -2918,7 +2947,7 @@ Evaluate states **in order** — the first matching row wins.
 | `plan.yaml.workflow.active == produce`, tasks `in-progress` | Resume `PRODUCE` on current task |
 | `plan.yaml.workflow.active == review` | Start `REVIEW` (requires test evidence — will block if tests were skipped) |
 | `plan.yaml.workflow.active == fix` | Start `FIX` |
-| `plan.yaml.workflow.active == deliver` | Start `DELIVER` (requires REQ→TST coverage for must-priority requirements) |
+| `plan.yaml.workflow.active == deliver` | Start `DELIVER` (requires REQ→TST coverage AND `test_evidence.status: pass` on all must-priority REQs' covering TASKs — see §9.3.1 Test-Specific Guardrails and `/gse:deliver` Step 1.5 — Test Execution Evidence) |
 | Sprint plan status is *completed* and `/gse:compound` has not run | Start LC03 (`COMPOUND` > `INTEGRATE`) |
 | Sprint plan status is *completed* and `/gse:compound` + `/gse:integrate` are done | Propose next sprint → LC01. The number of the sprint in progress only advances when `/gse:plan --strategic` promotes the successor sprint. Until then, the current sprint remains the delivered one, frozen (see *Sprint Freeze* guardrail). |
 | Sprint stale (> `lifecycle.stale_sprint_sessions` sessions without progress) | Stale detection (Step 3) |
@@ -3016,7 +3045,51 @@ The chosen mode is written to `config.yaml → lifecycle.mode` and to `status.ya
 
 ---
 
-## 15. Glossary
+## 15. Methodology Audit
+
+The methodology audit (`/gse:audit`) is a cross-cutting quality mechanism that detects deviations from the canonical methodology in a user project. It is **complementary** to inline guardrails (P11) — guardrails prevent specific problems at their moment; audit catches drift retrospectively.
+
+### 15.1 Purpose
+
+Inline guardrails enforce discipline at critical moments (e.g., `/gse:deliver` Step 1.5 Test Execution Evidence blocks merge without test evidence). But many drifts slip through: a dashboard left stale, a format that diverges silently, a skipped step rationalized on the fly. The audit is a second net — a project-wide scan that names what has drifted so the user can decide to correct or accept.
+
+### 15.2 Architecture (hybrid, phased)
+
+The audit has two layers:
+
+- **Deterministic layer** — a Python tool (`plugin/tools/project-audit.py`) runs a fixed set of checks on project state: dashboard freshness, test evidence presence, file format compliance, workflow coherence, git state, sprint freeze, intent artefact, backlog traces, coach observations, open-questions resolution. Output: structured findings (`AUD-NNN [SEVERITY] — title`). Fast, reproducible, no LLM cost.
+- **Semantic layer** (Phase 2, deferred) — a sub-agent (`project-reviewer`, Reviewer archetype) reviews qualitative drift: P9 Adaptive Communication jargon compliance, P14 Knowledge Transfer learning delivery, REQ/DESIGN coherence, root-cause discipline application. Complements the deterministic layer. Ships after Phase 1 stabilizes.
+
+Both layers produce findings with the `AUD-` prefix (§P6) and the canonical severity scale HIGH / MEDIUM / LOW (CRITICAL reserved for P15 escalation cases).
+
+### 15.3 Invocation
+
+- **Manual:** `/gse:audit` invoked at any time by the user (typical: before delivery, suspected drift, periodic review).
+- **Auto-trigger** (Phase 3, deferred): the orchestrator detects pushback patterns in conversation (hybrid keyword + coach correlation — the *Methodology Audit Auto-Trigger Invariant* in `src/agents/gse-orchestrator.md`) and proposes a Gate: *Run audit now / Defer / Discuss*. Never auto-applies corrections; always asks.
+- **Scheduled / CI:** `project-audit.py` runs headless with exit codes graded by severity (0 = clean, 1 = LOW/MEDIUM, 2 = HIGH, 3 = CRITICAL) for integration in CI pipelines.
+
+### 15.4 Report
+
+Each audit produces `docs/sprints/sprint-NN/audit-{YYYY-MM-DDThhmm}.md` (or `.gse/audits/audit-{timestamp}.md` if no sprint is active) using the canonical template `plugin/templates/sprint/audit.md`. The report lists findings by severity and records which corrections were applied vs deferred. Audit history is appended to `status.yaml → audit_history` for trend analysis.
+
+### 15.5 Relationship with other mechanisms
+
+| Mechanism | Role | When fired |
+|-----------|------|------------|
+| **Inline guardrails** (P11, §9) | Prevent specific actions at specific moments | Trigger-specific, inline |
+| **Coach agent** (§P14, 8 axes) | Observe during activities, surface signals | Activity-start + specific moments |
+| **Review activity** (`/gse:review`) | Check sprint outputs (code, security, tests) | End of sprint |
+| **Audit** (`/gse:audit`) | Scan methodology compliance project-wide | On-demand + auto-trigger (Phase 3) |
+
+The audit does **not** replace any of the above — it catches what the others miss. Removing an inline guardrail because "the audit will catch it" is an anti-pattern; guardrails prevent irreversible actions (e.g., deliver = merge main), audit is retrospective observation.
+
+### 15.6 Pre-release scope (Phase 1)
+
+For the current pre-release, only the deterministic layer ships, with 15 checks covering: dashboard-freshness, test-evidence, file-structure, format (REQ H3 heading, RVW square brackets, health nested path), workflow coherence, git-state consistency, sprint-freeze, intent artefact, backlog traces, coach observations, open-questions resolution. Semantic layer (Phase 2) and auto-trigger (Phase 3) follow in subsequent releases.
+
+---
+
+## 16. Glossary
 
 ### Essential Concepts (Start Here)
 
@@ -3137,7 +3210,7 @@ CAPITALIZATION      /gse:compound  /gse:integrate
 AD-HOC              /gse:task
 ```
 
-**Total: 23 commands** | Canonical prefix: `/gse:`
+**Total: 24 commands** | Canonical prefix: `/gse:`
 
 ---
 

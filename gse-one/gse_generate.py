@@ -70,7 +70,7 @@ ACTIVITY_NAMES = [
     "go", "hug", "learn", "backlog", "collect", "assess", "plan",
     "reqs", "design", "preview", "tests", "produce", "deliver",
     "review", "fix", "compound", "integrate", "deploy", "task", "status",
-    "health", "pause", "resume",
+    "health", "pause", "resume", "audit",
 ]
 
 SPECIALIZED_AGENTS = [
@@ -82,7 +82,7 @@ SPECIALIZED_AGENTS = [
 
 PLUGIN_DESCRIPTION = (
     "GSE-One — AI engineering companion for structured SDLC management. "
-    "23 commands, adaptive risk analysis, unified backlog, knowledge transfer, "
+    "24 commands, adaptive risk analysis, unified backlog, knowledge transfer, "
     "worktree isolation."
 )
 
@@ -222,7 +222,7 @@ def generate(clean: bool = False) -> None:
             '---\n'
             'name: gse-orchestrator\n'
             'description: "GSE-One main orchestrator agent. Manages the full '
-            'software development lifecycle with 23 commands under the /gse: prefix. '
+            'software development lifecycle with 24 commands under the /gse: prefix. '
             'Adapts language, decisions, and autonomy to the user\'s profile."\n'
             '---\n\n'
             f'{body}\n'
@@ -685,6 +685,7 @@ def _oc_build_config_json(oc: Path) -> None:
         "$schema": "https://opencode.ai/config.json",
         "permission": {
             "skill": {"*": "allow"},
+            "question": "allow",
             "bash": {
                 "git push --force *": "deny",
                 "rm -rf /*": "deny"

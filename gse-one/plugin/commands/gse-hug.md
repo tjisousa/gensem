@@ -38,9 +38,9 @@ If a language is already configured, skip to Step 1.
 2. **Build the option list** — Start with the detected locale language (marked "Recommended"), then add the standard list: English, Français, Español, Deutsch. **Deduplicate:** if the detected locale matches one of the four, move it to first position instead of duplicating.
 3. **Ask in all listed languages** — The question itself is displayed in each language so the user can understand it regardless of their language:
 
-   Example (interactive — detected locale = Japanese):
+   Example (interactive — detected locale = Japanese). Use your runtime's native interactive question tool (see orchestrator P4 — `AskUser` maps to `AskUserQuestion` on Claude Code, `AskQuestion` on Cursor ≥2.4, `question` on opencode). Apply the template literally:
    ```
-   AskUserQuestion([
+   AskUser([
      { question: "Which language would you like me to use? / どの言語を使いますか？ / Quelle langue souhaitez-vous ? / ¿Qué idioma prefiere? / Welche Sprache bevorzugen Sie?",
        header: "Language",
        multiSelect: false,
@@ -118,7 +118,7 @@ The number of questions asked at once is proportional to the user's IT expertise
 1. **IT expertise** (always alone, always first after Step 0) — this is the cadence key
 2. **Remaining dimensions** — asked at the cadence determined by Step 2.1
 
-**Interactive mode (preferred):** When the environment provides an interactive question tool (e.g., `AskUserQuestion` in Claude Code, clarifying questions in Cursor), use it to present profile questions as clickable choices instead of numbered text lists. Use `multiSelect: true` for dimensions where multiple values apply. Map "Discuss" to the automatic "Other" escape hatch. When interactive tools are unavailable or dimensions require free text (e.g., learning goals, domain background), fall back to conversational text.
+**Interactive mode (preferred):** When the environment provides an interactive question tool (all three supported runtimes do — see orchestrator P4 for the `AskUser` mapping table), use it to present profile questions as clickable choices instead of numbered text lists. Use `multiSelect: true` for dimensions where multiple values apply. Map "Discuss" to the automatic "Other" escape hatch. When interactive tools are unavailable or dimensions require free text (e.g., learning goals, domain background), fall back to conversational text.
 
 Example — beginner flow (1 question at a time):
 ```
@@ -138,7 +138,7 @@ Example — expert flow (all at once):
 [Step 0] → Skipped (language detected from first message)
 [Step 1] → Inferences: IT=expert (from vocabulary), domain=api, team=solo
 [Step 2]  → All remaining questions in one block:
-            AskUserQuestion([
+            AskUser([
               { question: "Verbosity?", ... },
               { question: "Decision involvement?", ... },
               { question: "Learning goals?", ... }

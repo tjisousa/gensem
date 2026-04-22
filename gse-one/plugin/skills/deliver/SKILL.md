@@ -78,6 +78,23 @@ Verify delivery readiness:
    - **Uncovered REQ with priority `should` or `could`** → **Soft guardrail: warn.** Report: "Requirement REQ-{NNN} has no test. This is acceptable but noted." Add a RVW- finding.
    - **All must-priority REQs covered** → Proceed.
 
+### Step 1.5 — Test Execution Evidence
+
+For each TASK in the sprint that implements at least one must-priority REQ (via `traces.implements` in `backlog.yaml`), read `test_evidence.status` (per §12.3 Backlog schema):
+
+- **`test_evidence.status: pass`** → Proceed silently.
+- **`test_evidence.status` in `{absent, fail, skipped}`** → **Hard guardrail: block delivery.** Present Gate with 4 options:
+  1. **Run tests now** (recommended default) — invoke `/gse:tests --run` inline for the affected TASKs; re-read evidence; re-evaluate guardrail. If evidence becomes `pass` for all, Proceed.
+  2. **Deliver partial** — deliver only the TASKs whose REQs have `test_evidence.status: pass`; the others stay in the sprint, move to `pool`, or get re-planned (user choice). Requires DEC- documenting the partial scope.
+  3. **Reclassify as spike / deferred** — the TASK is reclassified (`artefact_type: spike` or moves to pool with `priority: could`), requires DEC- documenting the justification.
+  4. **Discuss** — explain the implications at the user's expertise level (P9).
+
+  For beginners: *"Before I can deliver, I need to verify that what you asked for actually works. Some tests haven't run yet. Should I run them now?"*
+
+- **Stale evidence** (`test_evidence.timestamp` predates latest feature-branch commit) → Soft guardrail: warn, suggest re-running. Non-blocking.
+
+This step enforces the canonical contract defined in spec §6.3 — Test Execution and Evidence (line 1586: *"Write `test_evidence` on each covered TASK"*) and spec §9.3.1 Test-Specific Guardrails. It is the missing consumer of the `test_evidence` field.
+
 ### Step 2 — Merge Features into Sprint Branch
 
 For each feature branch (in dependency order):
