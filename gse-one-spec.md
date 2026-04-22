@@ -1140,7 +1140,7 @@ The HUG activity captures and maintains the following profile dimensions:
 | **Preferred verbosity** | Control response length | terse / normal / detailed |
 | **Domain background** | Source of analogies for adaptive communication (P9) | Teaching / Business / Science / Engineering / Design |
 | **Decision involvement** | Calibrate decision tier thresholds (P7) | autonomous (more Auto) / collaborative / supervised (more Gate) |
-| **Project domain** | Adapt engineering recommendations | Web / Embedded / Scientific / CLI / Library / Mobile |
+| **Project domain** | Adapt engineering recommendations | web / api / cli / data / mobile / embedded / library / scientific / other (9 canonical values — see `plugin/templates/profile.yaml`) |
 | **Team context** | Adapt collaboration recommendations | Solo / Small team / Large team |
 | **Learning goals** | Drive proactive learning proposals (P14) | "I want to understand testing" / "Learn git basics" / None |
 | **Contextual tips** | Enable/disable in-activity micro-explanations (P14) | Enabled / Disabled |

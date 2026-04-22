@@ -95,7 +95,7 @@ The 13 HUG dimensions are:
 | 5 | **Preferred verbosity** | terse / normal / detailed | Control output length and ceremony level |
 | 6 | **Domain background** | free text | Tailor domain-specific vocabulary and examples |
 | 7 | **Decision involvement** | autonomous / collaborative / supervised | Control Gate frequency and agent autonomy |
-| 8 | **Project domain** | web / api / cli / data / mobile / embedded / other | Calibrate default tech stack and test pyramid |
+| 8 | **Project domain** | web / api / cli / data / mobile / embedded / library / scientific / other | Calibrate default tech stack and test pyramid |
 | 9 | **Team context** | solo / pair / small-team / large-team | Adjust collaboration ceremonies |
 | 10 | **Learning goals** | list of short goal strings (optional) | Activate proactive LEARN at relevant moments |
 | 11 | **Contextual tips** | on / off | Enable/disable inline micro-explanations |

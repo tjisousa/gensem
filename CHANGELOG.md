@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.5] - 2026-04-22
+
+Layers impacted: **spec** (§3.2.1), **implementation** (`hug.md`)
+
+**Post-audit proposition P10 — `project_domain` enum unification.** Three sources listed different values for the same `project_domain` enumeration: template `profile.yaml` (9 values, canonical) had `web | api | cli | data | mobile | embedded | library | scientific | other`; activity `hug.md:98` had 7 (missing `library` and `scientific`); spec §3.2.1:1143 had 6 capitalized examples (`Web / Embedded / Scientific / CLI / Library / Mobile`, missing `api`, `data`, `other`). Aligned hug.md and spec on the 9-value canonical lowercase form.
+
+### Changed
+- **`hug.md:98` Dimension 8 "Project domain" values** — added `library` and `scientific` to the enumeration presented to users during HUG interview. Previously users working on a code library or a scientific/research project had to fall back on `other`, losing the domain-specific calibrations (test pyramid, activity skip rules, velocity baselines).
+- **Spec §3.2.1:1143 "Project domain" examples** — now lists the 9 canonical lowercase values with an explicit pointer to the authoritative schema (`plugin/templates/profile.yaml`). Previously listed only 6 capitalized examples, which was ambiguous (case-sensitive vs not? examples of a larger set or the full enum?). The clarification note `(9 canonical values — see ...)` removes both ambiguities.
+
+### Notes
+- No changes to `profile.yaml` or `config.yaml` templates — they were already the canonical sources with correct 9-value lists. The drift was strictly in descriptive layers (spec + activity prose).
+- Users whose projects legitimately fall into `library` or `scientific` categories will now receive proper domain-specific behavior: test pyramids per spec §6.1 (Library/SDK and Scientific rows), conditional skip of `/gse:preview` (non-UI domains), etc.
+- No regeneration impact beyond the natural flow through generator to plugin/skills + plugin/commands for the hug activity.
+
 ## [0.48.4] - 2026-04-22
 
 Layers impacted: **spec** (§P14, §12.2 enum), **implementation** (`learning-note.md` template, `knowledge-transfer.md` principle)
