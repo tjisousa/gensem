@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.9] - 2026-04-22
+
+Layers impacted: **maintainer tooling** (`gse-one/audit.py` only)
+
+**Post-audit proposition P14 — Audit engine hygiene.** The numeric-drift category of `gse-one/audit.py` (invoked by `/gse-audit` and standalone) produced 8 false positives during the 2026-04-21 audit cycle. Root cause: three regex imprecisions (no distinction between descriptive text and historical CHANGELOG entries; no handling of section numbers; no semantic filter between "specialized agents" and "specialized templates"). Fixed all three.
+
+### Fixed
+- **`audit.py` `audit_numeric()` — CHANGELOG.md removed from scan.** The CHANGELOG documents historical states (e.g., "Agent count — '8 specialized' updated to '10 specialized'" is an entry that DOCUMENTS the fix that went from 8→10). Flagging these as drifts is sclerotically wrong — you'd rewrite history to "fix" it. CHANGELOG remains scanned by other categories (todos, broken links) where its content is relevant; only the numeric-claim scan ignores it.
+- **`audit.py` `audit_numeric()` — regex prefix `(?:^|\s)` added to all 3 patterns.** The patterns `(\d+)\s+specialized`, `(\d+)\s+commands?`, `(\d+)\s+principles?` previously matched the digit suffix of section numbers (e.g., "10 Commands" in "### 3.10 Commands") and principle identifiers (e.g., "10 principle" in "P10 principle rule 8"). The new prefix requires the digit to be preceded by whitespace or a start-of-line, excluding these positional false positives while preserving legitimate matches like "23 commands" or "has 10 specialized agents".
+- **`audit.py` `audit_numeric()` — negative lookahead on `specialized` pattern.** Added `(?!\s+(?:templates?|files?|Dockerfiles?|rules?|settings?|categories?))` to exclude "4 specialized templates" (Dockerfile count context) while preserving "10 specialized agents", "10 specialized + orchestrator", etc. The exclusion list is open-ended — forkers can add more terms if they hit other false-positive contexts.
+
+### Verification
+- Before P14: 8 warnings in `numeric` category, all false positives.
+- After P14: 0 warnings in `numeric` category; 1 info entry "numeric claims consistent across 39 files (23 commands, 10 specialized agents, 16 principles)".
+- Other categories unchanged (3 warnings remain in cross_refs + links + test_coverage, unrelated to P14).
+- Ran `python3 gse-one/audit.py --format json --no-save` to verify.
+
+### Not applied
+- **LLM sub-agent false positive on "Arguments: $ARGUMENTS" line in deploy.md and hug.md** — this was the `activities-structure-uniformity` LLM sub-agent misreading the files (both files DO have the line). Prompt-level improvement, not a `audit.py` code fix. Deferred; will address if the issue recurs.
+
+### Notes
+- 1 file modified (`gse-one/audit.py`), no regen impact (audit.py is not part of the distributed plugin — it's a maintainer tool alongside `gse_generate.py`).
+- Cross-platform parity identical; 49 unit tests pass.
+- Anti-rigidity preserved: the negative lookahead is open-ended (add words without restructuring), CHANGELOG exclusion narrows the scan scope (reduces false positives without constraining real findings).
+
 ## [0.48.8] - 2026-04-22
 
 Layers impacted: **implementation** (`principles/iterative-incremental.md` only)

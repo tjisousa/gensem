@@ -438,10 +438,13 @@ def audit_numeric() -> list:
     n_principles = 16  # P1-P16
     n_modes = 3  # Micro, Lightweight, Full
 
-    # Files to scan for numeric claims
+    # Files to scan for numeric claims.
+    # CHANGELOG.md is intentionally excluded — its entries are historical
+    # records of past states, not claims about the current state. Scanning it
+    # flags every commit-level change as a drift, which is wrong by design.
     files_to_scan = []
     for name in ("gse-one-spec.md", "gse-one-implementation-design.md",
-                 "README.md", "CLAUDE.md", "CHANGELOG.md"):
+                 "README.md", "CLAUDE.md"):
         p = REPO_ROOT / name
         if p.exists():
             files_to_scan.append(p)
@@ -456,12 +459,19 @@ def audit_numeric() -> list:
         files_to_scan.extend(sorted((SRC / "agents").glob("*.md")))
 
     # Patterns: (regex, expected value, human label)
+    # - Prefix `(?:^|\s)` (whitespace or start-of-line before the digit) avoids
+    #   matching section numbers like "3.10 Commands" (digit after a dot) or
+    #   principle identifiers like "P10 principle" (digit after a letter).
+    # - "specialized" has a negative lookahead to exclude non-agent contexts
+    #   like "4 specialized templates" (Dockerfile count, not agent count).
     patterns = [
-        (re.compile(r"(\d+)\s+specialized\b", re.IGNORECASE), n_ag,
-         "specialized"),
-        (re.compile(r"(\d+)\s+commands?\b", re.IGNORECASE), n_act, "commands"),
-        (re.compile(r"(\d+)\s+principles?\b", re.IGNORECASE), n_principles,
-         "principles"),
+        (re.compile(
+            r"(?:^|\s)(\d+)\s+specialized\b(?!\s+(?:templates?|files?|Dockerfiles?|rules?|settings?|categories?))",
+            re.IGNORECASE), n_ag, "specialized"),
+        (re.compile(r"(?:^|\s)(\d+)\s+commands?\b", re.IGNORECASE), n_act,
+         "commands"),
+        (re.compile(r"(?:^|\s)(\d+)\s+principles?\b", re.IGNORECASE),
+         n_principles, "principles"),
     ]
 
     # Scan each file; aggregate by (file, pattern, claimed_value) to list
