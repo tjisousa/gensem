@@ -261,6 +261,8 @@ If findings with severity HIGH or MEDIUM exist:
 
 Write these values at the top level of `status.yaml` (e.g., `test_pass_rate: 9`). These values are read by the dashboard to populate the health radar chart. Without them, the radar shows empty.
 
+**Update `status.yaml.review_findings_open`** — set this counter to the total count of HIGH + MEDIUM findings currently unresolved across all sprint `review.md` files (i.e., findings without `status: fixed`). This counter is consumed by the git-push hook (spec §6 System Hooks, design §15 Hooks Design) which warns the user before pushing a branch with open findings. The counter is decremented by `/gse:fix` Step 6 when findings are resolved. If all findings are resolved (clean review or post-FIX), set to 0.
+
 **Regenerate dashboard** — Run `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` to update `docs/dashboard.html` with review findings, health scores, and quality metrics. After review is a key moment to check the dashboard — inform the user:
 - For beginners: "Le tableau de bord du projet a été mis à jour avec les résultats de la vérification. Tu peux le consulter à `docs/dashboard.html`."
 - For intermediate/expert: "Dashboard updated with review findings and health scores."

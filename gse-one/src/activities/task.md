@@ -187,10 +187,7 @@ For ad-hoc tasks, the "plan" is the task's own description in `backlog.yaml` (th
    - `status: done`
    - `completed_at: {timestamp}`
 2. Consume complexity budget: subtract task complexity from sprint remaining
-3. Update `status.yaml`:
-   - `last_activity: task`
-   - `last_activity_timestamp: {now}`
-   - `last_task: TASK-{ID}`
+3. **Cursor fields** (`last_activity`, `last_activity_timestamp`) are maintained centrally by the orchestrator after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. No direct status.yaml write from this activity.
 4. Review scheduling:
    - If `requires_review: true`: task will be included in next `/gse:review`
    - If `requires_review: false` (complexity <= 1 or `--no-review`): task is ready for delivery

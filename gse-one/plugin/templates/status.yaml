@@ -87,3 +87,8 @@ sessions_without_progress: 0           # incremented each /gse:go or /gse:resume
 
 # Review findings counter (used by hooks)
 review_findings_open: 0
+
+# /gse:audit history — appended by /gse:audit Step 6 after each audit execution.
+# Used for trend analysis (spec §14 Methodology Audit) and /gse:audit --auto cooldown checks.
+# Capped at last 20 entries; older entries are summarized per audit.md Step 6.
+audit_history: []                      # list of { timestamp, trigger, findings_total, findings_applied, findings_deferred, report_ref }

@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.59.0] - 2026-04-22
+
+Layers impacted: **spec** (§12.3 backlog example + status enum, §12.4 status.yaml sample), **design** (§5.16 status.yaml sample, §14.3 open-questions table — question #3 gse_version status), **implementation** (activities produce/task/hug/review/fix, principles/adversarial-review, templates/status.yaml, templates/MANIFEST.yaml, plugin/tools/dashboard.py).
+
+**Minor release — state schema orphans batch: 4 errors + 4 warnings resolved.** Closes Cluster 3 of the 2026-04-22 v0.57.0 audit, plus the related warning-level findings bundled per user validation of Q7 (option G). The cluster covers the complete state-schema-coherence sweep: writers without schema slots, schema slots without writers, and dead sample fields.
+
+### Added
+
+- **`status.yaml.audit_history` field** (`gse-one/src/templates/status.yaml`) — new schema slot for `/gse:audit` Step 6 writer, active since v0.57.0 but previously writing into undeclared territory. List of `{timestamp, trigger, findings_total, findings_applied, findings_deferred, report_ref}`, capped at 20 entries (older summarized). Consumer: spec §14 Methodology Audit trend analysis + `/gse:audit --auto` cooldown checks.
+- **`status.yaml.gse_version` writer activation** (`gse-one/src/activities/hug.md` Step 4 scaffolding) — adds a bullet instructing `/gse:hug` to stamp the active plugin manifest's `version` field into `status.yaml.gse_version` at project init. Resolves a v0.47.8-era promise where the field was declared with inline comment *"filled by /gse:hug from VERSION registry"* but no code path existed. Cross-runtime: reads Claude Code `.claude-plugin/plugin.json`, Cursor `.cursor-plugin/plugin.json`, or opencode `opencode.json`.
+- **`status.yaml.gse_version` reader activation** (`gse-one/plugin/tools/dashboard.py`) — dashboard header now displays `"init with GSE-One v{X.Y.Z}"` when the field is populated (empty-safe fallback for pre-v0.59 projects). Closes the "declared-but-uncabled" gap that resembled the v0.52.0 `never_*` quartet pattern.
+- **`sprint/audit.md` MANIFEST entry** (`gse-one/src/templates/MANIFEST.yaml`) — declares the audit report template (already on disk, consumed by `/gse:audit` since v0.57.0) with target `docs/sprints/sprint-{NN}/audit-{YYYY-MM-DDThhmm}.md` (alternate session-level target `.gse/audits/audit-{timestamp}.md` noted). MANIFEST entries now align with the 30 templates on disk. Closes the Cluster 10 side-mention from CHANGELOG v0.58.0.
+- **`status.yaml.review_findings_open` writer contract** — `/gse:review` Step 6 now sets the counter to the sum of HIGH + MEDIUM unresolved findings across all sprint `review.md` files; `/gse:fix` Step 6 now decrements it when findings resolve (to 0 when all resolved). Activates the dormant git-push warning hook (spec §6 System Hooks) that had a reader but no writer since v0.47.
+- **`pushback_dismissed` writer anchor documentation** (`gse-one/src/principles/adversarial-review.md`) — explicit *Writer contract* paragraph clarifying that both P16 counters (`consecutive_acceptances`, `pushback_dismissed`) are maintained by the orchestrator (not per-activity) because pushback Gates are cross-cutting. Closes the anchor-less writer gap.
+
+### Changed
+
+- **Spec §12.3 TASK status enum comment (line 2252)** — the enum comment `# open | planned | in-progress | review | fixing | done | delivered | deferred` upgraded to include `reviewed` (9 values total, matching the backlog.yaml template which has had 9 since v0.51.0). The `reviewed` terminal state (clean first pass, no fix needed) is actively used by `/gse:review` Step 6 and consumed by `/gse:deliver` Step 1.1.
+- **Design §14.3 open-question #3 (`gse_version`)** — status upgraded from *"field exists [...] Migration logic is not yet implemented"* to a nuanced tri-state: writer activated in v0.59.0 (hug.md Step 4), reader activated in v0.59.0 (dashboard.py header), migration logic deferred until the first breaking schema change after public release.
+
+### Removed
+
+- **`status.yaml.last_task` orphan writes** (2 locations) — `produce.md` Step 5.3 and `task.md` Step 6.3 previously wrote `last_task: TASK-{ID}` into `status.yaml`, but the field was never declared in the schema and never read. Retraction per Principle 6 direction: the current TASK is already derivable from `backlog.yaml` (TASK with `status: in-progress`) and `checkpoint.yaml.last_task` handles the session-context use case (pause/resume). Same pattern as the v0.52.0 `never_*` quartet retirement.
+- **`task.md` Step 6.3 direct cursor writes** (absorbed from Cluster 4) — the 3 bullets (`last_activity: task`, `last_activity_timestamp: {now}`, `last_task: TASK-{ID}`) are all removed; `task.md` now fully delegates cursor maintenance to the orchestrator Sprint Plan Maintenance Step 4 per v0.53.0 central-cursor protocol. Partially anticipates Cluster 4 (remaining activities: compound, pause, resume, integrate).
+- **Retired top-level `complexity:` block in spec §12.4 sample + design §5.16 sample** — the `status.yaml` template already flagged this as retired in v0.52.0 ("previously declared here but had no writer"), but the spec and design samples still carried the dead block. Now removed in both samples, with a single-line retirement note pointing to `.gse/plan.yaml.budget` as authoritative.
+- **`commits: 12` in spec §12.3 backlog.yaml example (line 2260)** — retraction cleanup. Template removed this field in v0.52/v0.53 per CLAUDE.md convention ("git is authoritative source"); the spec example was the last straggler.
+
+### Audit trail
+
+- **Cluster 3 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q7 (all approved, full scope G option): retraction `last_task` (Q1 A1), schema `audit_history` (Q2 B1), activation `gse_version` writer + reader (Q3 C1b), MANIFEST `sprint/audit.md` (Q4 D1), anticipation `task.md` cursor cleanup (Q5 E), minor bump v0.59.0 (Q6 F), bundle with 4 related warnings (Q7 G).
+- **Partial absorption of Cluster 4** — `task.md` now fully aligned with v0.53.0 central-cursor protocol. Remaining Cluster 4 work: compound.md, pause.md, resume.md, integrate.md still write cursor fields directly.
+- **Remaining audit clusters:** Cluster 4 (cursor-centralization regression in 4 remaining activities), Cluster 5 (coach invocation drift — go.md moment tag, coach.md table, P14 preamble wording), Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction).
+
 ## [0.58.1] - 2026-04-22
 
 Layers impacted: **spec** (§P14 cross-reference upgrade), **design** (§5.x heading renumber).

@@ -112,6 +112,12 @@ templates:
     scope: sprint
     description: Methodology feedback export (observations by theme)
 
+  - source: sprint/audit.md
+    target: docs/sprints/sprint-{NN}/audit-{YYYY-MM-DDThhmm}.md
+    created_by: /gse:audit
+    scope: sprint
+    description: Methodology audit report (deterministic findings + applied/deferred actions); alternate target `.gse/audits/audit-{timestamp}.md` when no sprint is active
+
   # --- Project-level documents (scope: project) ---
   - source: intent.md
     target: docs/intent.md

@@ -419,6 +419,8 @@ def collect_data():
     data["current_phase"] = status.get("current_phase", "LC00")
     data["last_activity"] = status.get("last_activity", "none")
     data["last_activity_timestamp"] = status.get("last_activity_timestamp", "never")
+    # GSE-One plugin version stamped at project init by /gse:hug Step 4 (empty if pre-v0.59 project)
+    data["gse_version"] = status.get("gse_version", "")
 
     # Health scores — canonical nested path per template src/templates/status.yaml:
     #   health:
@@ -683,7 +685,7 @@ def generate_html(data, use_cdn=True):
 <div class="header">
   <div>
     <h1>{data.get('project_name', 'Project')}</h1>
-    <span class="muted">GSE-One Dashboard &mdash; {data.get('domain', '')} &mdash; {data.get('mode', 'full')} mode</span>
+    <span class="muted">GSE-One Dashboard &mdash; {data.get('domain', '')} &mdash; {data.get('mode', 'full')} mode{' &mdash; init with GSE-One v' + data['gse_version'] if data.get('gse_version') else ''}</span>
   </div>
   <div class="header-right">
     <div>Updated: {data['generated_at']}</div>

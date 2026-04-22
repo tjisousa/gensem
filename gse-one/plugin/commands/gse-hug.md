@@ -229,6 +229,7 @@ Verify the project environment is ready. **This step is blocking** — do NOT me
 2. **Create `.gse/` directory** — If it does not exist:
    - Create `.gse/` with subdirectories: `profiles/`, `checkpoints/`
    - Copy `config.yaml` from the template (`$(cat ~/.gse-one)/templates/config.yaml`) with default values. Leave `lifecycle.mode` empty — `/gse:go` will fill it after Complexity Assessment (spec §14.3 — Orchestrator Decision Logic, Step 6 — Complexity Assessment).
+   - Stamp the GSE-One plugin version in `status.yaml.gse_version` by reading the version from the active plugin manifest (Claude Code: `$(cat ~/.gse-one)/.claude-plugin/plugin.json → version`; Cursor: `$(cat ~/.gse-one)/.cursor-plugin/plugin.json → version`; opencode: `$(cat ~/.gse-one)/opencode/opencode.json → version`). This traces which plugin version created the project state — used by the dashboard header display and by future `/gse:upgrade` migration logic (spec §13.4 — Required fields, design §14.3 — Open questions #3).
    - Add to `.gitignore`: entries for `.gse/local/` (machine-specific state)
 3. **Save profile** — Write the completed profile to `.gse/profile.yaml` (or `.gse/profiles/{username}.yaml` in team mode)
 

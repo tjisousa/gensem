@@ -1336,10 +1336,7 @@ health:
     ai_integrity: 6
   last_computed: 2026-04-11
 
-complexity:
-  budget: 10
-  consumed: 6.5
-  remaining: 3.5
+# (Sprint complexity budget lives in .gse/plan.yaml.budget — retired from status.yaml in v0.52.0)
 
 # P16 pushback detection
 consecutive_acceptances: 2
@@ -1353,6 +1350,15 @@ sessions_without_progress: 0
 
 # Review findings counter (used by hooks)
 review_findings_open: 0
+
+# /gse:audit history (appended by /gse:audit Step 6; capped at 20 entries)
+audit_history:
+  - timestamp: "2026-04-10T11:20:00Z"
+    trigger: manual
+    findings_total: 3
+    findings_applied: 2
+    findings_deferred: 1
+    report_ref: docs/sprints/sprint-03/audit-2026-04-10T1120.md
 ```
 
 **Sprint Freeze — Design Mechanics (spec §3.1 / lifecycle guardrail 3):**
@@ -2916,7 +2922,7 @@ Grand total: **151 files**. Generator: ~900 lines.
 |---|----------|--------|--------|------------------------------|
 | 1 | Should GSE-One principles be in `settings.json` agent key or separate skills? | Context efficiency | **RESOLVED** | Principles are embedded in the orchestrator agent body (`agents/gse-orchestrator.md`), which also generates the Cursor `.mdc` rule and the opencode `AGENTS.md` block. `settings.json` contains only the agent reference. |
 | 2 | Cursor marketplace or npm or both? | Reach | **OPEN** | Recommended: both. Status: Claude plugin marketplace entry exists (`gse-one/marketplace/.claude-plugin/marketplace.json`). Cursor marketplace submission and npm package publishing both remain TODO. |
-| 3 | How to handle `.gse/` version upgrades? | UX | **OPEN** | Recommended: `gse_version` field + migration logic in skills. Status: field exists in `status.yaml` template (filled by `/gse:hug` from VERSION registry, since v0.47.8). Migration logic (skill-level detection + transforms when `gse_version < current_VERSION`) is not yet implemented. |
+| 3 | How to handle `.gse/` version upgrades? | UX | **OPEN** | Recommended: `gse_version` field + migration logic in skills. Status: field declared in `status.yaml` template, writer activated in `/gse:hug` Step 4 (v0.59.0) — reads the active plugin manifest's `version` field; reader activated in `dashboard.py` (v0.59.0) — displays "init with GSE-One v{X.Y.Z}" in the dashboard header. Migration logic (skill-level detection + transforms when `gse_version < current_VERSION`) is not yet implemented — deferred until the first breaking schema change after public release. |
 | 4 | How to handle git conflicts during deliver? | User experience | **OPEN** | Recommended: Gate decision with 3 options — resolve manually, use theirs, use ours. Status: `/gse:deliver` Step 3 does a merge but has no documented conflict-resolution Gate. Conflicts currently abort the activity with a raw git error. |
 | 5 | Should worktrees be created eagerly (at plan time) or lazily (at produce time)? | Resource usage | **RESOLVED** | **Lazily.** `/gse:plan` Step 6 assigns branch names only; `/gse:produce` creates the worktree at task start. Confirmed in plan.md ("Branches are NOT created yet — only named"). |
 | 6 | How deep should git hygiene check go? | Scope | **RESOLVED** | Branch-level checks enforced by `guardrail-enforcer`; dependency vulnerability audit runs at `/gse:go` Step 1.6 — "Dependency vulnerability check" (defined in spec §14.3 Step 1.6 — "Dependency vulnerability check"). |

@@ -48,6 +48,8 @@ Adversarial review is not confrontational — it is protective. The agent challe
 
    The trigger is `consecutive_acceptances` reaching the threshold. `pushback_dismissed` governs the per-sprint suppression rule.
 
+   **Writer contract:** both counters are maintained by the orchestrator (not by individual activities). The orchestrator detects the triggering events in-conversation and persists the updated values to `status.yaml` in the same turn the event occurs: `consecutive_acceptances += 1` on each Gate-accept without modification or single-word confirmation, reset to `0` on Discuss / modify / checkpoint; `pushback_dismissed += 1` each time the user selects "Everything looks good" during a pushback Gate, reset at sprint promotion. This writer is orchestrator-level (not per-activity) because P16 pushback Gates are injected cross-cutting — any activity's turn can trigger a counter update.
+
    **Suppression rule:** If the user selects "Everything looks good" twice in a row during pushback checkpoints, the agent respects this and does **not** trigger again for the rest of the sprint.
 
 5. **Pushback prompt format** — present the **3 most impactful** recent decisions:

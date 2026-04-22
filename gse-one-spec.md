@@ -2249,7 +2249,7 @@ items:
       implements: [REQ-007]
       derives_from: [DES-003]
     acceptance_criteria: "User can login via GitHub OAuth"
-    status: in-progress              # open | planned | in-progress | review | fixing | done | delivered | deferred
+    status: in-progress              # open | planned | in-progress | review | reviewed | fixing | done | delivered | deferred
     origin: plan                     # plan | review | collect | user | import | ad-hoc
     origin_ref: null
     git:
@@ -2257,7 +2257,6 @@ items:
       branch_status: active          # null | planned | active | merged | deleted
       worktree: .worktrees/sprint-03-feat-auth
       worktree_status: active        # null | active | removed
-      commits: 12
       last_commit: 2026-04-10T14:30
       uncommitted_changes: 0
     github_issue: 42                 # null if GitHub not enabled
@@ -2354,10 +2353,8 @@ health:
     ai_integrity: 6
   last_computed: 2026-04-10
 
-complexity:
-  budget: 10
-  consumed: 6.5
-  remaining: 3.5
+# (Sprint complexity budget lives in .gse/plan.yaml.budget, per orchestrator Sprint Plan Maintenance.
+# A top-level `complexity:` block was previously shown here but had no writer; retired in v0.52.0.)
 
 # P16 pushback detection — see spec P16 for increment/reset rules
 # Incremented: Gate decision accepted without modification, single-word confirmation of artefact
@@ -2399,6 +2396,15 @@ sessions_without_progress: 0           # incremented each /gse:go or /gse:resume
 
 # Review findings counter (used by hooks)
 review_findings_open: 0
+
+# /gse:audit history — appended by /gse:audit Step 6 after each audit; capped at 20 entries
+audit_history:
+  - timestamp: "2026-04-10T11:20:00Z"
+    trigger: manual
+    findings_total: 3
+    findings_applied: 2
+    findings_deferred: 1
+    report_ref: docs/sprints/sprint-03/audit-2026-04-10T1120.md
 ```
 
 ### 12.4.1 Required Fields in `.gse/` Files
