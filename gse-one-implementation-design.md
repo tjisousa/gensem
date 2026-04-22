@@ -91,13 +91,13 @@ gse-one/
 
 Both platforms use separate manifests with slightly different fields. The `repository` field is the **canonical default** for methodology feedback (COMPOUND Axe 2) — the agent reads this URL to create issues on the GSE-One repo. On opencode the equivalent lives at `opencode.json → gse.repository` (same constant, different manifest schema). The canonical default can be **overridden** by the user via `config.yaml → github.upstream_repo` (e.g., for private forks or corporate issue trackers). Full resolution order: `config.yaml → github.upstream_repo` → plugin manifest `repository` → skip Axe 2.
 
-**Claude Code manifest** (`.claude-plugin/plugin.json`):
+**Claude Code manifest** (`.claude-plugin/plugin.json`) — example; `"version"` is generated from the `VERSION` file by `gse_generate.py` at build time, so the `"X.Y.Z"` placeholder below is illustrative:
 
 ```json
 {
   "name": "gse",
   "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
-  "version": "0.16.0",
+  "version": "X.Y.Z",
   "author": {
     "name": "GSE-One Project"
   },
@@ -108,14 +108,14 @@ Both platforms use separate manifests with slightly different fields. The `repos
 }
 ```
 
-**Cursor manifest** (`.cursor-plugin/plugin.json`):
+**Cursor manifest** (`.cursor-plugin/plugin.json`) — same note: `"version"` is build-generated:
 
 ```json
 {
   "name": "gse",
   "displayName": "GSE-One",
   "description": "GSE-One — AI engineering companion for structured SDLC management. 23 commands, adaptive risk analysis, unified backlog, knowledge transfer, worktree isolation.",
-  "version": "0.16.0",
+  "version": "X.Y.Z",
   "author": {
     "name": "GSE-One Project"
   },
@@ -2746,7 +2746,7 @@ Grand total: **151 files**. Generator: ~900 lines.
 
 ## 13. Implementation Priorities
 
-> **Note on opencode:** The four phases below document the original Claude+Cursor roadmap executed through v0.30.x. opencode support was added as a separate follow-up effort (v0.31+) covering: generator outputs for `opencode/skills/`, `opencode/commands/`, `opencode/agents/` (with `mode: subagent`), `opencode/AGENTS.md` (marker-wrapped orchestrator), `opencode/opencode.json`, and `opencode/plugins/gse-guardrails.ts` (hooks transpiled from `hooks.claude.json`). See §11.1 for the full generation step table.
+> **Note — §13 is historical (v0.16 – v0.30.x roadmap).** The four phases below document the original Claude+Cursor build roadmap, preserved for historical context. **Numeric counts in the phases below (principle counts, agent counts, phase-item counts) reflect the methodology state at the time of writing and are NOT updated to the current state** — see §11.1 "Generation Steps" for the authoritative generator step table, §12 "File Inventory" for the current file inventory, and spec §2 "Core Principles" for the current 16-principle list (P1-P16). opencode support was added as a separate follow-up effort (v0.31+) covering: generator outputs for `opencode/skills/`, `opencode/commands/`, `opencode/agents/` (with `mode: subagent`), `opencode/AGENTS.md` (marker-wrapped orchestrator), `opencode/opencode.json`, and `opencode/plugins/gse-guardrails.ts` (hooks transpiled from `hooks.claude.json`).
 
 ### Phase 1 — Foundation + Git (week 1)
 
@@ -2803,7 +2803,7 @@ Grand total: **151 files**. Generator: ~900 lines.
 | 3 | How to handle `.gse/` version upgrades? | UX | **OPEN** | Recommended: `gse_version` field + migration logic in skills. Status: field exists in `status.yaml` template (filled by `/gse:hug` from VERSION registry, since v0.47.8). Migration logic (skill-level detection + transforms when `gse_version < current_VERSION`) is not yet implemented. |
 | 4 | How to handle git conflicts during deliver? | User experience | **OPEN** | Recommended: Gate decision with 3 options — resolve manually, use theirs, use ours. Status: `/gse:deliver` Step 3 does a merge but has no documented conflict-resolution Gate. Conflicts currently abort the activity with a raw git error. |
 | 5 | Should worktrees be created eagerly (at plan time) or lazily (at produce time)? | Resource usage | **RESOLVED** | **Lazily.** `/gse:plan` Step 6 assigns branch names only; `/gse:produce` creates the worktree at task start. Confirmed in plan.md ("Branches are NOT created yet — only named"). |
-| 6 | How deep should git hygiene check go? | Scope | **RESOLVED** | Branch-level checks enforced by `guardrail-enforcer`; dependency vulnerability audit runs at `/gse:go` Step 2.5 (spec §14.3 Step 1.6). |
+| 6 | How deep should git hygiene check go? | Scope | **RESOLVED** | Branch-level checks enforced by `guardrail-enforcer`; dependency vulnerability audit runs at `/gse:go` Step 1.6 — "Dependency vulnerability check" (defined in spec §14.3 Step 1.6 — "Dependency vulnerability check"). |
 | 7 | Should `.gse/` itself live on main or on each branch? | State consistency | **RESOLVED** | **Main only.** `.gse/` is a single shared directory at repo root; worktrees inherit it via filesystem (not duplicated per-branch). |
 | 8 | How to handle contextual tip frequency? Too many tips = annoying, too few = useless. | User experience | **RESOLVED** | Coach agent enforces `max_preambles_per_sprint: 3` (pedagogy axis) and `max_advice_per_check: 3` (workflow axes). User can disable per axis (`config.yaml → coach.axes.<name>: false`) or the whole subsystem (`coach.enabled: false`). "Track and adapt" via recipes auto-updated at `/gse:compound` Axe 3. |
 | 9 | Should external source shallow clones be cached or re-cloned each time? | Performance | **OPEN** | Recommended: cache in `.gse/cache/` with TTL, clean on `/gse:deliver`. Status: `/gse:collect` currently performs a shallow clone into a temp directory (throwaway). No persistent cache implemented. |

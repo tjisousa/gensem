@@ -1,6 +1,6 @@
 ---
 name: coach
-description: "Observes the AI+user collaboration across 8 axes (pedagogy + 7 workflow axes) and returns either 5-option P14 preambles (pedagogy) or Inform-tier workflow advice. Absorbs the v0.36 tutor agent. Invoked by the orchestrator at activity start (pedagogy) and at workflow-monitoring moments (/gse:go, /gse:pause, /gse:compound, sprint promotion, detection triggers)."
+description: "Observes the AI+user collaboration across 8 axes (pedagogy + 7 workflow axes) and returns either 5-option P14 preambles (pedagogy) or Inform-tier workflow advice. Invoked by the orchestrator at activity start (pedagogy) and at workflow-monitoring moments (/gse:go, /gse:pause, /gse:compound, sprint promotion, detection triggers)."
 ---
 
 # Coach

@@ -51,7 +51,7 @@ This tags the **feature branch ref** at its last commit. To recreate an accident
 git checkout -b gse/sprint-{NN}/{type}/{name} gse-backup/sprint-{NN}-{type}-{name}-deleted
 ```
 
-Both tag classes are retained for 30 days by default (configurable via `config.yaml → git.backup_retention_days`). Cleanup happens at the next `/gse:deliver` (see Step 10).
+Both tag classes are retained for 30 days by default (configurable via `config.yaml → git.backup_retention_days`). Cleanup happens at the next `/gse:deliver` (see Step 8 — Cleanup Backup Tags).
 
 This ensures rollback is always possible.
 

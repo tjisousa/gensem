@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.6] - 2026-04-22
+
+Layers impacted: **design** (§13, §14, §3.2), **implementation** (`deliver.md`, `coach.md`)
+
+**Post-audit proposition P11 — Broken cross-references and stale mentions cleanup.** A bundle of 6 surgical fixes: 2 broken cross-references, 1 strengthened historical disclaimer, 2 frozen version numbers in design examples, 1 obsolete historical phrase in an agent description. New cross-reference convention adopted on the same day (`P-NAMED-REFS` task created for retroactive sweep of the whole corpus).
+
+### Fixed
+- **`deliver.md` Step 0 (line 54) broken reference** — "Cleanup happens at the next `/gse:deliver` (see Step 10)" replaced with "(see Step 8 — Cleanup Backup Tags)". `deliver.md` only has Steps 0-9; the non-existent "Step 10" was a historical number that never survived a renumbering. The replacement uses the new "number + name" convention for stability.
+- **Design §14 Open Questions row 6 (line 2806) self-contradictory step reference** — the cell said "runs at `/gse:go` Step 2.5 (spec §14.3 Step 1.6)", contradicting itself. Corrected to "runs at `/gse:go` Step 1.6 — 'Dependency vulnerability check' (defined in spec §14.3 Step 1.6 — 'Dependency vulnerability check')". Both references now carry the step name for stability.
+
+### Changed
+- **Design §13 vintage disclaimer strengthened** — the existing "Note on opencode" at line 2747 only warned about opencode's retrofit but did not warn about the other stale content in §13 (principle counts like "4 core principles" + "6 remaining" = 10, contradicting the current 16). New disclaimer makes the historical nature of ALL numeric counts in §13 explicit and points to authoritative sources with named references: §11.1 "Generation Steps", §12 "File Inventory", spec §2 "Core Principles".
+- **Design §3.2 Plugin Manifest examples (lines 100, 118)** — frozen `"version": "0.16.0"` replaced with `"X.Y.Z"` placeholder on both the Claude and Cursor manifest JSON blocks. Explanatory note added above each block: *"example; `"version"` is generated from the `VERSION` file by `gse_generate.py` at build time, so the `"X.Y.Z"` placeholder below is illustrative"*.
+- **`coach.md` frontmatter description** — removed the historical phrase "Absorbs the v0.36 tutor agent." which was a changelog-style mention polluting the description field. The other 9 specialized agents have purely declarative descriptions about their current role — `coach.md` is now consistent. Historical information preserved in `CHANGELOG.md` v0.36 entry.
+
+### Adopted (methodology convention)
+- **"Number + name" cross-reference convention** — cross-references to sections/steps must include both the numeric identifier (for quick navigation) and the section/step name (for stability when renumbering occurs). Example: `§14.3 Step 1.6 — "Dependency vulnerability check"` instead of just `§14.3 Step 1.6`. Retroactive sweep of existing references is captured as task `P-NAMED-REFS` (deferred — will run after P12-P14). The rule itself will be added to `CLAUDE.md` Communication style section at the next CLAUDE.md batch.
+
+### Notes
+- Fixes (1), (2) apply the new naming convention immediately. Fixes (3), (4), (5) did not involve numeric-only cross-references.
+- No regeneration impact beyond the natural flow through the generator; `coach.md` and `deliver.md` propagate to their Claude/Cursor/opencode copies.
+- 49 unit tests pass, cross-platform parity identical.
+
 ## [0.48.5] - 2026-04-22
 
 Layers impacted: **spec** (§3.2.1), **implementation** (`hug.md`)
