@@ -133,6 +133,33 @@ Examples of the pattern:
 
 **Noted exception — P13:** spec says "Event-Driven Behaviors (Hooks)" (main title "Event-Driven Behaviors", parenthetical "(Hooks)"), but orchestrator and file H1 both say just "Hooks" (the parenthetical, not the main title). This inversion is accepted because "Hooks" is the vernacular term used throughout the methodology code and prose (`hooks.claude.json`, `PreToolUse hooks`, spec P13 description itself uses "hook" 7+ times). The exception can be revisited later if it causes confusion.
 
+### Activity path reference conventions
+
+Activity files (`gse-one/src/activities/*.md`) refer to templates, agents, and tools through **three** deliberate path forms, each carrying a distinct semantic. Do NOT force uniformity (per Meta-1 — Anti-rigidity discipline): the forms carry information.
+
+- **`$(cat ~/.gse-one)/X`** — **runtime-executable**. Use this form inside shell commands, Python invocations, or explicit "adopt this role" agent references — ANY form that must resolve on the end-user's machine at runtime. The registry file `~/.gse-one` contains the absolute plugin path (written by `install.py` on install). Examples: `python3 "$(cat ~/.gse-one)/tools/dashboard.py"`, `cp "$(cat ~/.gse-one)/templates/config.yaml" .gse/`, `"$(cat ~/.gse-one)/agents/security-auditor.md" — adopt this role`.
+
+- **`plugin/X/...`** — **authoritative-format pedagogical pointer**. Use this form in prose when referencing the authoritative schema/format of a template or agent as distributed in the plugin. Examples: *"authoritative format in `plugin/templates/X`"*, *"authoritative specification in `plugin/agents/coach.md`"*. Never executed; read by humans.
+
+- **`gse-one/src/X/...`** — **methodology-source pointer**. Use this form when the reference explicitly targets the methodology source tree (the maintainer/forker view — what a contributor edits, not what a generator produces). Typical uses: *"the methodology default is defined in `gse-one/src/templates/config.yaml`"*, *"see `gse-one/src/templates/intent.md` for the template copied by `/gse:go`"*. Distinct from `plugin/X` because it addresses maintainers/forkers, not end users.
+
+**Retired form:** bare unrooted references (`agents/X`, `templates/X`) — these were ambiguous ("relative to what?") and have been upgraded to `plugin/X` in prose contexts. If a new bare reference appears in an activity, upgrade to `plugin/X` (documentation pointer) or `$(cat ~/.gse-one)/X` (runtime-executable) based on the surrounding intent.
+
+### Activity structural conventions
+
+GSE-One activities use three structural patterns for the `## Workflow` section. Each pattern carries semantic information and is intentional — do NOT force uniformity (per Meta-1).
+
+- **Flat Step sequence (default, ~18 activities)** — `### Step 1`, `### Step 2`, …, `### Step N`. Used when the activity is a linear pipeline with no disjoint modes. Examples: `reqs`, `design`, `preview`, `tests`, `produce`, `review`, `fix`, `deliver`, `compound`, `integrate`, `status`, `health`, `assess`, `hug`, `go`, `pause`, `resume`, `task`.
+
+- **Multi-mode `### Mode → #### Step N` (4 activities)** — `### Mode A` with `#### Step 1..N`, then `### Mode B` with `#### Step 1..M`, etc. Step numbering resets per mode because each mode is a disjoint execution path (user invokes exactly ONE mode per call). Examples: `backlog` (Display / Add / Sync), `plan` (Strategic / Tactical), `collect` (Internal / External), `learn` (Reactive / Proactive). Each file carries an inline "Workflow structure note" explaining the pattern to the reader (per Meta-2 — Document exceptions inline).
+
+- **Phase-over-Step `### Phase N / #### Step M` (1 activity)** — `deploy` only, which has 6 server-level phases each containing multiple steps. `deploy.md:36-41` documents the pattern inline. Phase boundaries are idempotent milestones tracked in `deploy.json → phases_completed`; steps within a phase are the concrete shell commands.
+
+When authoring a new activity, pick the pattern that matches the semantic:
+- Single linear pipeline → Flat Step.
+- Disjoint modes selected by flag/arg → Multi-mode (add an inline workflow structure note per Meta-2).
+- Long-running operation with idempotent milestones → Phase-over-Step (deploy is the reference).
+
 ### Memory policy — in-repo only
 Any project convention, rule, preference, or decision that Claude must remember across sessions for this project MUST be recorded in a versioned file in this repo — typically this `CLAUDE.md`, or another markdown doc under source control. Do NOT write such information to Claude's per-machine auto-memory (`~/.claude/projects/<hash>/memory/`).
 

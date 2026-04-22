@@ -40,6 +40,8 @@ Three learning modes are available:
 
 Mode is determined by: explicit flag > user phrasing > default (quick).
 
+> **Workflow structure note.** `/gse:learn` exposes two disjoint workflows (Reactive — user-initiated; Proactive — agent-initiated via the coach pedagogy axis). Each workflow defines its own Step sequence (`#### Step 1..N`), numbering resets per workflow. Only one workflow runs per invocation. This **multi-mode `### Mode → #### Step N` structure** is shared with `/gse:backlog`, `/gse:plan`, `/gse:collect`; see CLAUDE.md — §Activity structural conventions for the full catalog.
+
 ### Reactive Workflow (User-Initiated)
 
 Triggered when the user explicitly asks to learn something.

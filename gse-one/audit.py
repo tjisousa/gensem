@@ -26,6 +26,12 @@ its augmented report (deterministic + LLM findings) to the same
 
 This tool audits the gensem repo itself (not user projects). It lives in
 gse-one/ alongside gse_generate.py (both are maintainer tools).
+
+Dependencies:
+    stdlib only for all core checks. PyYAML is an optional dependency used
+    by audit_templates() to validate YAML schema files under src/templates/;
+    when missing, template YAML validation is skipped and other checks are
+    unaffected (see the try/except block below).
 """
 
 from __future__ import annotations
@@ -155,6 +161,7 @@ def _strip_md_ext(names: list) -> list:
 
 
 def audit_version() -> list:
+    """Check VERSION file consistency across plugin manifests (Claude, Cursor) and generator."""
     findings: list = []
     version = _read_text(REPO_ROOT / "VERSION").strip()
     if not version:
@@ -217,6 +224,7 @@ def audit_version() -> list:
 
 
 def audit_file_integrity() -> list:
+    """Check spec / design / activity / agent file presence against generator constants."""
     findings: list = []
     consts = _extract_constants()
     activity_names = consts["ACTIVITY_NAMES"]
@@ -302,6 +310,7 @@ def audit_file_integrity() -> list:
 
 
 def audit_plugin_parity() -> list:
+    """Check Claude / Cursor / opencode plugin deployment has matching skill / agent / template counts."""
     findings: list = []
     consts = _extract_constants()
     n_act = len(consts["ACTIVITY_NAMES"])
@@ -369,6 +378,7 @@ def audit_plugin_parity() -> list:
 
 
 def audit_cross_refs() -> list:
+    """Check section and activity references across spec, design, activities, and agents resolve."""
     findings: list = []
     consts = _extract_constants()
     activity_names = set(consts["ACTIVITY_NAMES"])
@@ -527,6 +537,7 @@ def audit_numeric() -> list:
 
 
 def audit_links() -> list:
+    """Check internal documentation link targets resolve (relative paths, anchors)."""
     findings: list = []
     broken = []
 
@@ -579,6 +590,7 @@ def audit_links() -> list:
 
 
 def audit_git() -> list:
+    """Check git working tree state relative to the main branch."""
     findings: list = []
     try:
         r = subprocess.run(
@@ -626,6 +638,7 @@ def audit_git() -> list:
 
 
 def audit_python() -> list:
+    """Check Python syntax and @gse-tool headers on plugin/tools/*.py and maintainer scripts."""
     findings: list = []
     py_files = []
     for base in [GSE_ONE, REPO_ROOT / ".claude"]:
@@ -696,6 +709,7 @@ def audit_python() -> list:
 
 
 def audit_templates() -> list:
+    """Check template YAML schemas validate (requires optional PyYAML — skipped gracefully if absent)."""
     findings: list = []
     templates_dir = SRC / "templates"
     if not templates_dir.exists():
@@ -790,6 +804,7 @@ def audit_templates() -> list:
 
 
 def audit_todos() -> list:
+    """Scan for TODO / FIXME / XXX / HACK markers across the corpus (excluding CHANGELOG historical narrative)."""
     findings: list = []
     hits: list = []
     pattern = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
@@ -832,6 +847,7 @@ def audit_todos() -> list:
 
 
 def audit_test_coverage() -> list:
+    """Check deploy.py test coverage — public functions in deploy.py should have matching tests in test_deploy.py."""
     findings: list = []
     deploy_py = PLUGIN / "tools" / "deploy.py"
     test_deploy = REPO_ROOT / "gse-one" / "tests" / "test_deploy.py"
@@ -887,6 +903,7 @@ def audit_test_coverage() -> list:
 
 
 def audit_freshness() -> list:
+    """Check 'Last verified: YYYY-MM-DD' markers against a 180-day freshness budget (references/ volatile data)."""
     findings: list = []
     pattern = re.compile(r"last\s+verified\s+(\d{4}-\d{2}-\d{2})", re.IGNORECASE)
     today = datetime.now(timezone.utc).date()

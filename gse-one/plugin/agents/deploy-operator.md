@@ -106,7 +106,7 @@ Phase 5: dns               — DNS wildcard, SSL via Let's Encrypt, close tempor
 Phase 6: deploy            — Create Coolify project/environment/app, build, health check
 ```
 
-Each phase depends on the previous ones. The state file tracks completion via `phases_completed` timestamps.
+Each phase depends on the previous ones. Phases 1–5 are **server-level** and tracked in `deploy.json → phases_completed` (one timestamp per phase). Phase 6 is **per-application** and tracked via `deploy.json → applications[].status` + the presence of `coolify.app_uuid` (idempotence handled per-app, not per-server) — `phases_completed` has only 5 keys.
 
 ## Anti-patterns
 
@@ -117,9 +117,8 @@ Each phase depends on the previous ones. The state file tracks completion via `p
 - **NEVER** store API tokens in `.gse/deploy.json` or commit `.env` to git
 - **NEVER** disable the firewall to "fix" connectivity issues — diagnose the actual cause
 - **NEVER** run `docker system prune -a` without explicitly warning the user first
-- **NEVER** force-push or amend commits just to trigger a redeployment — use `/api/v1/deploy?uuid=...&force=true`
+- **NEVER** force-push, amend commits, or use Coolify's `/restart` endpoint to deploy code changes — use the canonical redeploy webhook `GET /api/v1/deploy?uuid=...&force=true` (rebuild, same or new commit; exposed as `CoolifyClient.trigger_deploy(uuid, force=True)`)
 - **NEVER** generate a Dockerfile without `ARG SOURCE_COMMIT=unknown` (Docker cache-bust)
-- **NEVER** use Coolify's `/restart` endpoint to deploy code changes — use `/start` (full rebuild)
 - **ALWAYS** purge Docker build cache (`docker builder prune -af`) if builds produce stale versions despite new commits
 
 ## Output Format

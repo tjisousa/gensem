@@ -2395,7 +2395,7 @@ The alternative `<project>.<user>.<domain>` pattern was rejected: it requires pe
 
 **FQDN length constraint.** The total FQDN must remain ≤ 253 characters and each DNS label ≤ 63 characters (RFC 1035). The sanitization cap of 30 chars per component keeps all valid combinations within these limits.
 
-**State schema (`.gse/deploy.json`).** The infrastructure state file is versioned (`version: "1.0"`). It tracks server-level phases (`phases_completed`), server/Coolify/domain metadata, and an array `applications[]` — one entry per deployed application.
+**State schema (`.gse/deploy.json`).** The infrastructure state file is versioned (`version: "1.0"`). Top-level blocks: server-level phases (`phases_completed`), the operator's `user_role` (solo | instructor | learner | skip — set by Step -1 Orientation via `record-role`), server / Coolify / domain metadata, `cdn { provider, enabled, bot_protection }` (optional Cloudflare metadata set by `record-cdn` during Phase 5 Step 7), and an array `applications[]` — one entry per deployed application.
 
 Each application entry carries the fields needed to manage its lifecycle: identification (`name`, `project_name`, `deploy_user`, `subdomain`, `url`), source (`github_repo`, `branch`), runtime shape (`type`, `port`, `resources.{memory_limit, cpu_limit}`), Coolify handles (`coolify.{project_uuid, environment_uuid, app_uuid}`), and timestamps/status (`created_at`, `last_deploy_at`, `status`). Fields intentionally excluded from v1.0 and deferred to later design increments: `replicas[]` (scaling), `previous_deploy` (rollback snapshot), `env_vars` (per-app secrets).
 
@@ -2421,7 +2421,7 @@ The `config.yaml → deploy.app_type` key (`auto | streamlit | python | node | s
 **Execution tools.** `/gse:deploy` delegates complex deterministic operations to two Python tools under `plugin/tools/`:
 
 - `coolify_client.py` — a standard-library HTTP client for Coolify API v1 (projects, environments, applications, deploy triggers). Exposes `CoolifyClient` with typed methods and retries on 5xx errors.
-- `deploy.py` — an orchestrator exposing CLI subcommands used by the skill: `init-state`, `state`, `detect`, `subdomain`, `env-{get,set,delete}`, `record-{phase,server,coolify,domain}`, `deploy-app`, `app-status`, `destroy`.
+- `deploy.py` — an orchestrator exposing CLI subcommands used by the skill: `init-state`, `state`, `detect`, `subdomain`, `env-{get,set,delete}`, `record-{phase,server,coolify,domain,role,cdn}`, `wait-dns`, `preflight`, `deploy-app`, `app-status`, `destroy`, `training-{init,reap}`. Grouped by purpose: state lifecycle (init-state / state / detect), naming (subdomain), env editing (env-*), phase persistence (record-phase / record-server / record-coolify / record-domain), orientation and CDN metadata (record-role / record-cdn), preflight gates (wait-dns, preflight), app lifecycle (deploy-app / app-status / destroy), and training-mode lifecycle (training-init / training-reap).
 
 **Skill/tool boundary:** the skill narrates the workflow, handles user interaction (prompts, Gate decisions, cost displays), and performs shell-based operations (ssh, apt, hcloud). The tool handles Coolify API calls, state mutation, subdomain sanitization, situation detection, and the end-to-end deploy flow (Phase 6). Each phase 1–5 calls `record-phase` at its end to guarantee idempotence. Phase 6 is consolidated into a single `deploy-app` call.
 

@@ -28,6 +28,8 @@ Before executing, read:
 
 ## Workflow
 
+> **Workflow structure note.** `/gse:plan` exposes two disjoint modes (Strategic Planning via `--strategic`, Tactical Planning via `--tactical`). Each mode defines its own Step sequence (`#### Step 0..N`), numbering resets per mode. The user invokes exactly one mode per call. This **multi-mode `### Mode → #### Step N` structure** is shared with `/gse:backlog`, `/gse:collect`, `/gse:learn`; see CLAUDE.md — §Activity structural conventions for the full catalog.
+
 ### Strategic Planning (`--strategic`)
 
 Used to create a new sprint by selecting items from the backlog pool.
@@ -203,10 +205,7 @@ Initialize `.gse/plan.yaml` from the `plan.yaml` template (`plugin/templates/pla
 
 Present the plan for user approval (Gate). Set `status: active` once confirmed.
 
-Also update `status.yaml` cursor fields:
-- `last_activity: plan`
-- `last_activity_timestamp: {now}`
-- `current_sprint: {NN}`
+> **State transition note (v0.53.0):** `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_sprint`, `current_phase`) are maintained **centrally by the orchestrator** after the activity closes — see `agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. Activities no longer write cursor fields directly, to avoid authority ambiguity with the central protocol. Activity-local state (backlog updates, activity_history reset, plan.yaml initialization) remains authored here.
 
 ### Tactical Planning (`--tactical`)
 

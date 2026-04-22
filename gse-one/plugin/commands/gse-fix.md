@@ -198,9 +198,7 @@ Mark each fixed finding as resolved in `docs/sprints/sprint-{NN}/review.md`:
 1. Update TASK in `backlog.yaml`:
    - `status: done` (ready to merge)
    - `review_findings_fixed: {count}`
-2. Update `status.yaml`:
-   - `last_activity: fix`
-   - `last_activity_timestamp: {now}`
+2. *(Cursor fields `last_activity` / `last_activity_timestamp` in `status.yaml` are maintained centrally by the orchestrator after the activity closes — see `agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. FIX writes no cursor fields directly, per v0.53.0.)*
 3. Report fix summary:
    - Findings fixed: {count}
    - Findings remaining: {count}

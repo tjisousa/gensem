@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# @gse-tool dashboard 0.17.0
+# @gse-tool dashboard 1.0
 """
 GSE-One Dashboard Generator — Generates docs/dashboard.html from .gse/ state files.
 
@@ -497,7 +497,9 @@ def collect_data():
     if archive_dir.exists():
         data["archived_sprints"] = sorted([d.name for d in archive_dir.iterdir() if d.is_dir()])
 
-    # Smoke test — validate required fields and warn on placeholders
+    # Smoke test — validate required fields and collect warnings for CLI surfacing.
+    # collect_data() is a library function: it MUST NOT print. The CLI entry point
+    # (generate()) reads data["_validation_warnings"] and writes to stderr there.
     warnings = []
     if data["project_name"] == "Unknown Project":
         warnings.append("config.yaml: project name is missing or unset (showing 'Unknown Project')")
@@ -507,10 +509,6 @@ def collect_data():
         warnings.append("status.yaml: current_phase is missing")
     if data.get("user_name") == "Unknown":
         warnings.append("profile.yaml: user name is missing")
-    if warnings:
-        print(f"[dashboard] WARNING — {len(warnings)} validation issue(s) in .gse/ files:", file=sys.stderr)
-        for w in warnings:
-            print(f"  - {w}", file=sys.stderr)
     data["_validation_warnings"] = warnings
 
     return data
@@ -824,6 +822,15 @@ def generate(output_path, use_cdn=True):
     """Generate the dashboard HTML file. Consumes any pending error marker
     and injects a red warning banner at the top of the page if present."""
     data = collect_data()
+
+    # Surface validation warnings collected by collect_data() — CLI-level concern
+    # (library collect_data() does not print; see its docstring).
+    _warnings = data.get("_validation_warnings", [])
+    if _warnings:
+        print(f"[dashboard] WARNING — {len(_warnings)} validation issue(s) in .gse/ files:", file=sys.stderr)
+        for w in _warnings:
+            print(f"  - {w}", file=sys.stderr)
+
     html_content = generate_html(data, use_cdn=use_cdn)
 
     # Consume error marker (if any) and inject failure banner

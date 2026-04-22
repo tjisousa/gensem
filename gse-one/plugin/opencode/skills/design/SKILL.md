@@ -199,7 +199,7 @@ Check the design for structural quality:
 | **Decision records** | Every significant choice has a DEC record |
 | **Consistency** | New decisions do not contradict existing ones |
 
-Report findings using the architect agent checklist (see `agents/architect.md`).
+Report findings using the architect agent checklist (see `plugin/agents/architect.md` — authoritative checklist).
 
 ### Step 5.5 — Security Design Pass (security-auditor sub-agent)
 

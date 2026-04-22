@@ -29,6 +29,8 @@ Before executing, read:
 
 ## Workflow
 
+> **Workflow structure note.** `/gse:backlog` exposes three disjoint modes (Display, Add, Sync). Each mode defines its own Step sequence (`#### Step 1..N`), numbering resets per mode. The user invokes exactly one mode per call. This **multi-mode `### Mode → #### Step N` structure** is shared with `/gse:plan`, `/gse:collect`, `/gse:learn`; see CLAUDE.md — §Activity structural conventions for the full catalog.
+
 ### Display Mode (No Args / `sprint` / `pool`)
 
 #### Step 1 — Load Backlog

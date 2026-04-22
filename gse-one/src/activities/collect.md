@@ -27,6 +27,8 @@ Before executing, read:
 
 ## Workflow
 
+> **Workflow structure note.** `/gse:collect` exposes two disjoint modes (Internal — no args, current-project inventory; External — path/URL, external source analysis). Each mode defines its own Step sequence (`#### Step 0..N`), numbering resets per mode. The user invokes exactly one mode per call. This **multi-mode `### Mode → #### Step N` structure** is shared with `/gse:backlog`, `/gse:plan`, `/gse:learn`; see CLAUDE.md — §Activity structural conventions for the full catalog.
+
 ### Internal Mode (No Args)
 
 Triggered when no arguments are provided. Inventories the current project.
