@@ -145,10 +145,9 @@ Present the proposal and wait for user confirmation.
 
 ### Step 6 — Finalize
 
-1. Update `status.yaml`:
+1. Update `status.yaml` **session state only**:
    - `session_paused: false`
-   - `last_activity: resume`
-   - `last_activity_timestamp: {now}`
-   - Remove `pause_checkpoint` field
+   - Reset `pause_checkpoint: ""` (empty string — preserves schema stability vs dropping the field; readers get a well-defined absence representation)
    - **Update `sessions_without_progress`** — compare current `backlog.yaml` TASK statuses against the snapshot in `status.yaml → activity_history[-1]`. If no TASK status has changed since the last session → increment `sessions_without_progress` by 1; if at least one has changed → reset to 0. This drives the stale-sprint Gate (see `/gse:go` Step 4 — Stale Sprint Detection) and the coach `mid_sprint_stall` axis (activates at `>= 2`).
+   - *(Cursor fields `last_activity`, `last_activity_timestamp` are maintained centrally by the orchestrator after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle (v0.53.0). RESUME writes no cursor fields directly.)*
 2. The session is now active. Proceed with the accepted action or wait for user command.

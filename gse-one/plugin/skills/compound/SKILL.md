@@ -238,10 +238,7 @@ Feed the user's learning journey:
 ### Step 4 — Persist and Finalize
 
 1. Write `docs/sprints/sprint-{NN}/compound.md` with all three axes
-2. Update `status.yaml`:
-   - `last_activity: compound`
-   - `last_activity_timestamp: {now}`
-   - `current_phase: LC03`
+2. *(Cursor fields `last_activity`, `last_activity_timestamp`, and `current_phase` are maintained centrally by the orchestrator after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle (v0.53.0). COMPOUND writes no cursor fields directly; the prior `current_phase: LC03` write was redundant with `/gse:deliver` Step 9.3 and is retired in v0.59.1.)*
 3. Report capitalization summary:
    - Patterns documented: {count}
    - Lessons learned: {count}

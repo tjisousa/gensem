@@ -69,11 +69,10 @@ Create a checkpoint file at `.gse/checkpoints/checkpoint-{YYYY-MM-DD-HHMM}.yaml`
 
 ### Step 3 — Update Status
 
-1. Update `status.yaml`:
-   - `last_activity: pause`
-   - `last_activity_timestamp: {now}`
+1. Update `status.yaml` **session state only**:
    - `session_paused: true`
    - `pause_checkpoint: checkpoint-{YYYY-MM-DD-HHMM}.yaml`
+   - *(Cursor fields `last_activity`, `last_activity_timestamp` are maintained centrally by the orchestrator after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle (v0.53.0). PAUSE writes no cursor fields directly.)*
 
 ### Step 3.5 — Coach End-of-Session Check (sustainability + engagement)
 

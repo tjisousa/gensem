@@ -93,9 +93,7 @@ Route competency learnings into persistent storage:
 
 ### Step 4 — Finalize
 
-1. Update `status.yaml`:
-   - `last_activity: integrate`
-   - `last_activity_timestamp: {now}`
+1. *(Cursor fields `last_activity`, `last_activity_timestamp` are maintained centrally by the orchestrator after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle (v0.53.0). INTEGRATE writes no cursor fields directly.)*
 2. Report integration summary:
    - Project config changes: {count}
    - Issues created: {count} (with URLs)

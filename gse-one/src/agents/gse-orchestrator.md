@@ -488,7 +488,11 @@ Update `plan.yaml.coherence.last_evaluated` after each evaluation.
 ### Step 4 — Update status.yaml
 
 1. Set `last_activity` and `last_activity_timestamp` (quick cursor; `plan.yaml.workflow` holds the full detail).
-2. Update `current_phase` if transitioning (LC01→LC02, LC02→LC03).
+2. Update `current_phase` if transitioning, per the explicit trigger rules:
+   - **LC00 → LC01** on first `/gse:hug` or `/gse:go` activity closure in a new project (project enters discovery).
+   - **LC01 → LC02** on first LC02 activity closure in the current sprint (any of `reqs`, `design`, `preview`, `tests`, `produce`, `review`, `fix`, `deliver`) — the sprint transitions from planning to engineering.
+   - **LC02 → LC03** on `/gse:deliver` closure when `.gse/plan.yaml → status == completed` (both conditions are set by `/gse:deliver` Step 9.2 before closure — the sprint transitions to capitalization).
+   - No backward transitions without explicit user override (e.g., `/gse:plan --strategic` promoting a new sprint resets to LC01 for the new sprint).
 3. **Append to `status.yaml.activity_history`** a record of the completed activity:
    ```yaml
    activity_history:

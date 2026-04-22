@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.59.1] - 2026-04-22
+
+Layers impacted: **design** (§10.1 Sprint Plan Lifecycle maintenance — explicit transition triggers), **implementation** (orchestrator Sprint Plan Maintenance Step 4.2 — explicit triple-trigger rule; activities compound, pause, resume, integrate, deliver — retraction of direct cursor writes).
+
+**Patch release — v0.53.0 cursor-centralization regression fix.** Closes Cluster 4 of the 2026-04-22 v0.57.0 audit. Four activities (compound, pause, resume, integrate) were still writing cursor fields (`last_activity`, `last_activity_timestamp`, and for compound also `current_phase: LC03`) directly in violation of the v0.53.0 central-cursor protocol. A fifth activity (deliver) kept a dual-write of `current_phase: LC03` justified by an inline rationale that contradicted the orchestrator's documented capability. Root cause: the orchestrator's transition rule (`gse-orchestrator.md:491` Sprint Plan Maintenance Step 4.2) was vague — *"Update `current_phase` if transitioning (LC01→LC02, LC02→LC03)"* — without specifying the deterministic triggers. Fix: (a) make the triggers explicit, (b) retract defensive writes across all 5 activities.
+
+### Changed
+
+- **`gse-orchestrator.md` Sprint Plan Maintenance Step 4.2** — the terse *"Update `current_phase` if transitioning"* is replaced by an explicit triple-trigger rule documenting LC00→LC01 (first `/gse:hug` or `/gse:go` closure), LC01→LC02 (first LC02 activity closure in sprint), LC02→LC03 (deliver closure when `plan.yaml.status == completed`). Explicit backward-transition policy (no backward without override). Removes the ambiguity that justified defensive activity-side writes.
+- **`gse-one-implementation-design.md` §10.1 Sprint Plan Lifecycle maintenance Step 6** — inline summary of the 3 deterministic transitions added (mirror of orchestrator), with cross-reference to `plugin/agents/gse-orchestrator.md` as canonical source.
+- **`gse-one/src/activities/deliver.md` Step 9.3 rationale** — the paragraph claiming *"DELIVER is the activity that performs [the transition] — the orchestrator cannot infer LC03 from last_activity alone"* is replaced by a correct explanation documenting the orchestrator's deterministic trigger (`last_activity == deliver` AND `plan.yaml.status == completed`, both set by Step 9.2 before Step 9.3 closes).
+
+### Removed
+
+- **`compound.md` Step 4.2** — 3 direct cursor writes removed: `last_activity: compound`, `last_activity_timestamp: {now}`, `current_phase: LC03`. The `current_phase` write was additionally a pure no-op (already set by `/gse:deliver` Step 9.3, retired in this release too).
+- **`pause.md` Step 3.1** — 2 direct cursor writes removed (`last_activity`, `last_activity_timestamp`). Session state bullets (`session_paused: true`, `pause_checkpoint: checkpoint-{...}.yaml`) preserved — they are legitimately activity-local.
+- **`resume.md` Step 6.1** — 2 direct cursor writes removed (`last_activity`, `last_activity_timestamp`). Session state preserved. Side-fix absorbed: *"Remove `pause_checkpoint` field"* → *"Reset `pause_checkpoint: \"\"`"* (schema-stable representation of absence — closes state-management warning from the 2026-04-22 audit).
+- **`integrate.md` Step 4.1** — 2 direct cursor writes removed (`last_activity`, `last_activity_timestamp`).
+- **`deliver.md` Step 9.3** — direct write of `current_phase: LC03` removed, along with the misleading "DELIVER-specific" rationale. Health-score refresh remains (legitimately activity-local).
+
+### Audit trail
+
+- **Cluster 4 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q6: retraction in 4 activities (Q1 A1), absorption of resume.md schema-stable reset warning (Q2), retraction of deliver.md LC03 write (Q3 B1), explicit orchestrator triple-trigger rule (Q4 C1), design §10.1 mirror sync (Q5), patch bump (Q6 — per user-declared versioning strategy: patches v0.59.x for each cluster, minor v0.60.0 reserved for the final cluster).
+- **Post-audit versioning strategy** — subsequent clusters (5 through 9) will each ship as a patch bump (v0.59.2, v0.59.3, …). The final cluster of the 2026-04-22 audit sequence will trigger the minor bump to v0.60.0.
+- **Remaining audit clusters:** Cluster 5 (coach invocation drift — go.md moment tag, coach.md table, P14 preamble wording), Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction).
+
 ## [0.59.0] - 2026-04-22
 
 Layers impacted: **spec** (§12.3 backlog example + status enum, §12.4 status.yaml sample), **design** (§5.16 status.yaml sample, §14.3 open-questions table — question #3 gse_version status), **implementation** (activities produce/task/hug/review/fix, principles/adversarial-review, templates/status.yaml, templates/MANIFEST.yaml, plugin/tools/dashboard.py).

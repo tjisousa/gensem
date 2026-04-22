@@ -2807,7 +2807,7 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 3. Pop the next item from `workflow.pending` → `workflow.active`; record conditional skips in `workflow.skipped` with reason.
 4. Evaluate non-blocking coherence: `budget_pressure` (>80% consumed with tasks remaining), `significant_scope_drift` (>50% tasks changed), `velocity_risk` (produce phase only).
 5. React by mode: Full → Inform; Lightweight → one-line Inform; Micro → silent.
-6. Update `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_phase`).
+6. Update `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_phase`). Phase transitions are deterministic: LC00→LC01 on first `/gse:hug` or `/gse:go` closure; LC01→LC02 on first LC02 activity closure in the sprint (reqs/design/preview/tests/produce/review/fix/deliver); LC02→LC03 on `/gse:deliver` closure when `plan.yaml.status == completed` (both conditions set by deliver Step 9.2). See `plugin/agents/gse-orchestrator.md` Sprint Plan Maintenance Step 4 for the canonical rule. Activities do not write cursor fields directly (v0.53.0 protocol).
 
 **Archival** — At DELIVER Step 9, the orchestrator reads `.gse/plan.yaml`, generates `docs/sprints/sprint-{NN}/plan-summary.md` (using the `plan-summary.md` template), and sets `plan.yaml.status: completed`. The snapshot is read-only — never consumed by the orchestrator, only used for human reference and COMPOUND process-deviation analysis.
 
