@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.59.4] - 2026-04-22
+
+Layers impacted: **design** (§5.15 Deploy & Recovery Extensions — Test-Specific Guardrails subsection expanded from 1 to 3 guardrails), **implementation** (activities/deliver.md Step 1.5 — new Guardrail 2 block with 4-option Gate; activities/tests.md Options — new `--run --level <level>` flag).
+
+**Patch release — deliver.md Guardrail 2 activation (spec §9.3.1 fidelity).** Closes Cluster 7 of the 2026-04-22 v0.57.0 audit. The v0.57.0 release declared three test-specific guardrails in spec §9.3.1 and its CHANGELOG entry, but deliver.md Step 1.5 only implemented two (Unexecuted tests + Stale evidence). The middle one — *Unexecuted test strategy* (declared test level has no `TCP-` campaign covering it) — was missing. Cluster 7 closes this gap by activating the guardrail faithfully per spec (Hard, block) and adding the `--run --level <level>` flag in tests.md that the Gate's default action requires.
+
+### Added
+
+- **`gse-one/src/activities/deliver.md` Step 1.5 — Guardrail 2 "Unexecuted test strategy"** — new Hard guardrail block inserted between Guardrail 1 (Unexecuted tests) and Guardrail 3 (Stale evidence). Reads `docs/sprints/sprint-{NN}/test-strategy.md` H2 sections to identify declared levels (unit / integration / e2e / policy — a level is *declared* when its H2 section contains at least one `### TST-NNN` entry), then cross-checks `docs/sprints/sprint-{NN}/test-reports/` to collect covered levels (via the authoritative TST `level:` frontmatter field). If any declared level has no `TCP-` campaign covering it, delivery is blocked with a 4-option Gate: *Run the missing level now* (default) / *Deliver partial* / *Reclassify the level as deferred* / *Discuss*. Step 1.5 now has an explicit 3-block structure with each guardrail labeled ("Guardrail 1", "Guardrail 2", "Guardrail 3") for clarity.
+- **`gse-one/src/activities/tests.md` Options — `--run --level <level>`** — new flag row added between `--run <test-id>` and `--visual`. Executes only tests at a specific level (`unit` / `integration` / `e2e` / `policy`). Consumer: deliver.md Step 1.5 Guardrail 2's default Gate action when an uncovered declared level is detected.
+- **`gse-one-implementation-design.md` §5.15 — Test-Specific Guardrails subsection** — expanded from a single Test Execution Evidence paragraph to three labeled paragraphs (Guardrail 1, Guardrail 2, Guardrail 3) mirroring spec §9.3.1 and deliver.md Step 1.5 in a single canonical reference.
+
+### Audit trail
+
+- **Cluster 7 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q2: Option A (faithful activation as Hard per spec) + `--level <level>` flag addition + patch v0.59.4 bump.
+- **Honesty of CHANGELOG v0.57.0** — the entry that claimed "three new guardrails enforced by /gse:deliver Step 1.5" is now actually true. The audit detected the gap; this patch closes it.
+- **Remaining audit clusters:** Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction). The final cluster will ship as minor v0.60.0.
+
 ## [0.59.3] - 2026-04-22
 
 Layers impacted: **spec** (§14.3 project layout tree ref + §14.3 Step 5 Adopt-mode ref), **design** (§5 Intent Capture Adopt-mode ref), **implementation** (6 reviewer agents + 5 activities + gse-orchestrator.md — broken anchor fix + residual bare-path sweep to `plugin/...` form).

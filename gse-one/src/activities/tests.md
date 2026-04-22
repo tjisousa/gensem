@@ -15,6 +15,7 @@ Arguments: $ARGUMENTS
 | `--setup`          | Set up test environment and framework |
 | `--run`            | Execute the full test suite |
 | `--run <test-id>`  | Execute a specific test (e.g., `TST-005`) |
+| `--run --level <level>` | Execute only tests at a specific level (`unit` \| `integration` \| `e2e` \| `policy`) — used by `/gse:deliver` Step 1.5 Guardrail 2 to remediate uncovered declared levels (spec §9.3.1) |
 | `--visual`         | Run visual/screenshot tests (web/mobile projects) |
 | `--coverage`       | Generate and display code coverage report |
 | `--evidence`       | Produce test evidence package for the current sprint |

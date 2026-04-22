@@ -81,6 +81,8 @@ Verify delivery readiness:
 
 For each TASK in the sprint that implements at least one must-priority REQ (via `traces.implements` in `backlog.yaml`), read `test_evidence.status` (per §12.3 Backlog schema):
 
+**Guardrail 1 — Unexecuted tests before DELIVER** (per spec §9.3.1).
+
 - **`test_evidence.status: pass`** → Proceed silently.
 - **`test_evidence.status` in `{absent, fail, skipped}`** → **Hard guardrail: block delivery.** Present Gate with 4 options:
   1. **Run tests now** (recommended default) — invoke `/gse:tests --run` inline for the affected TASKs; re-read evidence; re-evaluate guardrail. If evidence becomes `pass` for all, Proceed.
@@ -90,9 +92,24 @@ For each TASK in the sprint that implements at least one must-priority REQ (via 
 
   For beginners: *"Before I can deliver, I need to verify that what you asked for actually works. Some tests haven't run yet. Should I run them now?"*
 
+**Guardrail 2 — Unexecuted test strategy** (per spec §9.3.1).
+
+Read `docs/sprints/sprint-{NN}/test-strategy.md` if it exists. Identify **declared test levels** by scanning H2 sections (`## Unit Tests`, `## Integration Tests`, `## E2E Tests`, `## Policy Tests`); a level is *declared* if its H2 section contains at least one `### TST-NNN` entry. Then list all `TCP-` campaign reports in `docs/sprints/sprint-{NN}/test-reports/` and determine **covered levels** — a level is *covered* if at least one `TCP-` campaign executed at least one TST- entry of that level (cross-reference TST `level:` frontmatter field, declared at template line 17–19: *"Frontmatter `level:` field remains authoritative"*).
+
+- **All declared levels covered** → Proceed silently.
+- **At least one declared level has no `TCP-` covering it** → **Hard guardrail: block delivery.** Present Gate with 4 options:
+  1. **Run the missing level now** (recommended default) — invoke `/gse:tests --run --level <level>` for each uncovered level; re-evaluate guardrail. If all declared levels now have `TCP-` coverage, Proceed.
+  2. **Deliver partial** — deliver the sprint without the uncovered level; the uncovered level becomes a backlog item for the next sprint via `/gse:backlog --add`. Requires DEC- documenting the deferred scope.
+  3. **Reclassify the level as deferred** — update `test-strategy.md` to mark the level explicitly skipped for this sprint (add an Inform note inside the H2 section). Requires DEC- documenting the justification.
+  4. **Discuss** — explain the implications (test-pyramid gap, residual risk of untested level) at the user's expertise level (P9).
+
+  For beginners: *"Your test strategy says we'll also do {level} tests, but no {level} test has actually run this sprint. Should I run them now?"*
+
+**Guardrail 3 — Stale test evidence** (per spec §9.3.1).
+
 - **Stale evidence** (`test_evidence.timestamp` predates latest feature-branch commit) → Soft guardrail: warn, suggest re-running. Non-blocking.
 
-This step enforces the canonical contract defined in spec §6.3 — Test Execution and Evidence (line 1586: *"Write `test_evidence` on each covered TASK"*) and spec §9.3.1 Test-Specific Guardrails. It is the missing consumer of the `test_evidence` field.
+This step enforces the three canonical Test-Specific Guardrails defined in spec §9.3.1 and the contract of spec §6.3 — Test Execution and Evidence (line 1586: *"Write `test_evidence` on each covered TASK"*). It is the consumer of the `test_evidence` field and the test-strategy / test-reports coherence check.
 
 ### Step 2 — Merge Features into Sprint Branch
 
