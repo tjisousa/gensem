@@ -101,8 +101,37 @@ Cross-references to sections, steps, or numbered artefacts within the corpus (sp
 
 **Edge cases:**
 - For principles (P1-P16), the principle ID itself is a stable name — `§P14` alone is acceptable because "P14" is the name (the principle's canonical identifier). Adding the descriptive title is still encouraged: `§P14 — Knowledge Transfer`.
-- Principle titles follow a separate convention (spec carries the full descriptive title; orchestrator and principle source file carry the short form). See task `PRINCIPLE-TITLES` for the convention details pending addition to CLAUDE.md.
+- Principle titles follow a separate convention (spec carries the full descriptive title; orchestrator and principle source file carry the short form). See "Principle title convention" subsection below.
 - For internal steps within a single document (e.g., "see Step 3" when the current document has a Step 3), the numeric form alone is acceptable — the local scope makes the reference unambiguous.
+
+### Principle title convention — "spec long / implementation short"
+
+The 16 principles (P1-P16) have titles declared in three locations. By design, the three locations use two different forms:
+
+- **Spec §2 headers** (`gse-one-spec.md`) carry the full descriptive title, optionally with a parenthetical sub-title. Pedagogically complete — source of truth for cross-references.
+- **Orchestrator bullets** (`gse-one/src/agents/gse-orchestrator.md` Core Principles section) carry the short form.
+- **Principle source file H1** (`gse-one/src/principles/<name>.md`) carries the short form.
+
+Examples of the pattern:
+
+| # | Spec (long) | Orchestrator + file (short) |
+|---|---|---|
+| P4 | Human-in-the-Loop by Default | Human-in-the-Loop |
+| P7 | Risk-Based Decision Classification | Risk Classification |
+| P8 | Consequence Visibility (Risk Analysis Presentation) | Consequence Visibility |
+| P12 | Version Control Isolation | Version Control |
+| P14 | Knowledge Transfer (Coaching) | Knowledge Transfer |
+| P15 | Agent Fallibility (Self-Awareness) | Agent Fallibility |
+| P16 | Adversarial Self-Review and User Pushback | Adversarial Review |
+
+**Invariants:**
+1. The spec carries the pedagogically complete form. Cross-references to principles should use the spec form per the "number + name" convention above (e.g., `§P14 — Knowledge Transfer (Coaching)`).
+2. The short form MUST be identical between orchestrator and principle source file. Divergences between these two sources are bugs — they were caught and fixed in v0.48.8 P13 for P1.
+3. The short form is the main title before any parenthetical, OR a coherent shorter phrasing when the spec title doesn't use a parenthetical (e.g., "Risk Classification" for spec "Risk-Based Decision Classification"; "Adversarial Review" for spec "Adversarial Self-Review and User Pushback").
+
+**Why the two forms coexist:** the spec needs pedagogical completeness (a reader discovering the principle benefits from "Knowledge Transfer (Coaching)" making the scope explicit). The orchestrator and file H1 need visual compactness — forcing long titles into bullet lists and file headers adds verbosity without methodological benefit.
+
+**Noted exception — P13:** spec says "Event-Driven Behaviors (Hooks)" (main title "Event-Driven Behaviors", parenthetical "(Hooks)"), but orchestrator and file H1 both say just "Hooks" (the parenthetical, not the main title). This inversion is accepted because "Hooks" is the vernacular term used throughout the methodology code and prose (`hooks.claude.json`, `PreToolUse hooks`, spec P13 description itself uses "hook" 7+ times). The exception can be revisited later if it causes confusion.
 
 ### Memory policy — in-repo only
 Any project convention, rule, preference, or decision that Claude must remember across sessions for this project MUST be recorded in a versioned file in this repo — typically this `CLAUDE.md`, or another markdown doc under source control. Do NOT write such information to Claude's per-machine auto-memory (`~/.claude/projects/<hash>/memory/`).

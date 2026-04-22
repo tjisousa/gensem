@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.49.1] - 2026-04-22
+
+Layers impacted: **CLAUDE.md only** (methodology governance rules)
+
+**PRINCIPLE-TITLES — Document the "spec long / implementation short" convention in CLAUDE.md.** Task #23, created during v0.48.8 P13. Completes Option B's CLAUDE.md consolidation pass.
+
+### Added
+- **`CLAUDE.md` — "Principle title convention — 'spec long / implementation short'"** subsection added under Critical rules (between Cross-reference convention and Memory policy). Documents that the 16 principles (P1-P16) have titles declared in three locations (spec §2 headers, orchestrator bullets, principle source file H1) using two deliberate forms — the spec carries the full descriptive title (optionally with parenthetical sub-title), while the orchestrator and principle source file carry the short form. Includes:
+  - A 7-row example table showing the pattern for P4, P7, P8, P12, P14, P15, P16.
+  - Three invariants (spec is canon for cross-refs; orch/file short forms must match; short form is main title before parenthetical or coherent shorter phrasing).
+  - Rationale for coexistence (pedagogical completeness vs visual compactness).
+  - P13 noted exception ("Hooks" as vernacular) with rationale and "can be revisited" note.
+
+### Changed
+- **`CLAUDE.md` — "Cross-reference convention" subsection** — the forward-reference to the principle-title section (previously saying "pending addition to CLAUDE.md") is updated to point to the now-present section.
+
+### Notes
+- This commit closes the 3 durable-rule tasks from the audit session (PEDAGOGY done in v0.48.0, BACKWARD-COMPAT + Cross-ref in v0.49.0, PRINCIPLE-TITLES here).
+- CLAUDE.md now documents 5 governance rules: Build pipeline (existing), Tool architecture (existing), Versioning (existing), Pre-release backward-compat (new v0.49.0), Cross-reference convention (new v0.49.0), Principle title convention (new here), Memory policy (existing), Communication style (Rule 1 + Rule 2, existing).
+- 49 unit tests pass; cross-platform parity identical.
+
 ## [0.49.0] - 2026-04-22
 
 Layers impacted: **CLAUDE.md only** (methodology governance rules)
