@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.7] - 2026-04-22
+
+Layers impacted: **implementation** (`deploy.md` only)
+
+**Post-audit proposition P12 — deploy.md targeted structural alignment.** The audit flagged 4 structural divergences between `deploy.md` and the other 22 activities. On inspection, only 2 were genuine style alignments; 1 was a legitimate intentional structural choice to preserve (not force-align); 1 was a false positive from the audit.
+
+### Changed
+- **`deploy.md:11` Options table header** — `| Flag | Description |` → `| Flag / Sub-command | Description |`, matching the canonical form used by the 22 other activities. The column can contain either a flag (e.g., `--silent`) or a sub-command-style trigger (e.g., `--training-init`), so the wider label is informative.
+- **`deploy.md:25` Prerequisites preamble** — `Read before execution:` → `Before executing, read:`, matching the canonical form. Semantics identical, word-order aligned for scanning consistency across the corpus.
+
+### Added
+- **`deploy.md:34` Workflow structure note** — new short explanatory paragraph inserted at the top of the `## Workflow` section, documenting `/gse:deploy`'s two-level Phase/Step hierarchy. The note explains that this structure is deliberate and specific to `/gse:deploy`, reflecting the idempotent-milestone nature of deployment (each `### Phase N` is tracked in `.gse/deploy.json → phases_completed.<phase_name>` and can be skipped on re-run; `Step N` inside a Phase is a sub-step). Rationale: renaming `Phase N` → `Step N` to force uniformity with other activities would lose this semantic and require inventing new sub-step terminology. Documenting the exception is the anti-rigidity choice — the divergence is intentional, not accidental.
+
+### Not applied (audit false positive)
+- **Audit finding "`deploy.md` and `hug.md` miss `Arguments: $ARGUMENTS` line"** — verified incorrect. Both files have the line on line 7. No action needed. Audit engine hygiene (task P14) will cover this class of false positive.
+
+### Notes
+- 3 modifications in a single file (deploy.md). Other 22 activities untouched — they were already canonical.
+- 49 unit tests pass, cross-platform parity identical.
+- The anti-rigidity principle (adopted 2026-04-21) was explicitly invoked to reject the naive "rename all Phase to Step" approach. Deploy.md's internal structure carries methodological meaning (milestone idempotence via `phases_completed`) and the correct response was to document the convention, not erase it.
+
 ## [0.48.6] - 2026-04-22
 
 Layers impacted: **design** (§13, §14, §3.2), **implementation** (`deliver.md`, `coach.md`)

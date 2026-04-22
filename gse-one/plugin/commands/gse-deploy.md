@@ -10,8 +10,8 @@ Arguments: $ARGUMENTS
 
 ## Options
 
-| Flag | Description |
-|------|-------------|
+| Flag / Sub-command | Description |
+|--------------------|-------------|
 | (no args) | Deploy current project (detect situation, resume from last phase) |
 | --status | Show deployment status (server, app URL, health) |
 | --destroy | Tear down server and all data (Gate, confirm twice) |
@@ -24,7 +24,7 @@ Arguments: $ARGUMENTS
 
 ## Prerequisites
 
-Read before execution:
+Before executing, read:
 1. `.gse/config.yaml` — deploy section (provider, server type, datacenter)
 2. `.gse/deploy.json` — infrastructure state (if exists)
 3. `.env` — credentials and configuration (if exists)
@@ -34,6 +34,13 @@ Read before execution:
 7. `$(cat ~/.gse-one)/references/ssh-operations.md` — SSH patterns and credential resolution (consulted on demand)
 
 ## Workflow
+
+> **Workflow structure note.** `/gse:deploy` uses a two-level hierarchy reflecting its deployment lifecycle:
+> - **Step -1 and Step 0** (Orientation, Situation Detection) — pre-flight checks before committing to a lifecycle.
+> - **Phase 1 through Phase 6** (Setup → Provision → Secure → Install Coolify → Configure DNS → Deploy Application) — the main deployment lifecycle. Each Phase corresponds to an idempotent milestone tracked in `.gse/deploy.json` under `phases_completed.<phase_name>`; a completed Phase is automatically skipped on re-run.
+> - **Step N inside a Phase** — sub-steps within a Phase (e.g., "Step 3 — Dockerfile template selection" inside Phase 6). This internal numbering resets for each Phase.
+>
+> This two-level hierarchy is specific to `/gse:deploy` — other GSE-One activities use a flat Step sequence. The distinction reflects the idempotent-milestone nature of deployment.
 
 ### Step -1 — Orientation (first-time users only)
 
