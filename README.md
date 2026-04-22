@@ -25,7 +25,7 @@ GSE-One is an AI engineering companion that brings structured software developme
 
 ## Key Features
 
-- **23 commands** covering the full SDLC — from onboarding (`/gse:hug`) to capitalization (`/gse:compound`)
+- **24 commands** covering the full SDLC — from onboarding (`/gse:hug`) to capitalization (`/gse:compound`)
 - **3 modes** — Micro, Lightweight, Full — auto-selected by complexity assessment, user-overridable
 - **Adaptive risk analysis** — 3-tier decision system (Auto / Gate / Hard) calibrated to user expertise
 - **Unified backlog** — single task tracking with git state per-task
@@ -133,23 +133,23 @@ GSE-One uses a **single deployable directory** (`plugin/`) that works on all thr
 gse-one/
 ├── src/                              # Single source of truth
 │   ├── principles/                   # 16 principles (P1-P16)
-│   ├── activities/                   # 23 activity definitions → skills
+│   ├── activities/                   # 24 activity definitions → skills
 │   ├── agents/                       # 11 agents (10 specialized + orchestrator)
-│   └── templates/                    # 29 templates
+│   └── templates/                    # 30 templates
 │
 ├── plugin/                           # Deployable directory
 │   ├── .claude-plugin/plugin.json    # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json    # Cursor manifest
-│   ├── skills/                       # 23 skills (shared, with name: field)
+│   ├── skills/                       # 24 skills (shared, with name: field)
 │   ├── commands/                     # 23 /gse-<name>.md (Cursor)
 │   ├── agents/                       # 11 agents (shared)
-│   ├── templates/                    # 29 templates (shared)
+│   ├── templates/                    # 30 templates (shared)
 │   ├── tools/                        # Python tools (dashboard, etc.)
 │   ├── rules/gse-orchestrator.mdc    # Cursor only
 │   ├── hooks/                        # Platform-specific hooks
 │   ├── settings.json                 # Claude only
 │   └── opencode/                     # opencode subtree
-│       ├── skills/                   # 23 skills (name: injected)
+│       ├── skills/                   # 24 skills (name: injected)
 │       ├── commands/                 # 23 /gse-<name>.md
 │       ├── agents/                   # 10 specialized (mode: subagent)
 │       ├── plugins/gse-guardrails.ts # Native TS guardrails plugin
@@ -460,7 +460,7 @@ Complement the LLM jobs with fast syntactic/structural checks:
 | 2 | File integrity | `ACTIVITY_NAMES` + `SPECIALIZED_AGENTS` sources exist; no orphans |
 | 3 | Plugin parity | Claude / Cursor / opencode counts match |
 | 4 | Cross-file references | `/gse:X` mentions resolve |
-| 5 | Numeric consistency | Spec "23 commands" = `len(ACTIVITY_NAMES)` |
+| 5 | Numeric consistency | Spec "24 commands" = `len(ACTIVITY_NAMES)` |
 | 6 | Link integrity | No dead `gse-one/...` paths |
 | 7 | Git hygiene | No uncommitted `plugin/` |
 | 8 | Python quality | Syntax OK; `@gse-tool` headers |

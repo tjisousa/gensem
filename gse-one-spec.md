@@ -307,13 +307,13 @@ GSE-One delivers its methodology as a **single plugin directory** (`plugin/`) th
 
 | Artifact | Files | Claude Code | Cursor | opencode |
 |----------|-------|:-----------:|:------:|:--------:|
-| Skills (23) | `skills/<name>/SKILL.md` | Loaded | Loaded | Via `opencode/skills/` |
+| Skills (24) | `skills/<name>/SKILL.md` | Loaded | Loaded | Via `opencode/skills/` |
 | Specialized agents (10) | `agents/<name>.md` | Loaded | Loaded | Via `opencode/agents/` (`mode: subagent`) |
 | Orchestrator (identity) | `agents/gse-orchestrator.md` | Via `settings.json` → `"agent"` | Not installed | Not installed |
 | Orchestrator (identity) | `rules/gse-orchestrator.mdc` | Ignored | `alwaysApply: true` | Ignored |
 | Orchestrator (identity) | `opencode/AGENTS.md` | Ignored | Ignored | Loaded (always-on, worktree root) |
-| Commands (23) | `commands/gse-<name>.md` | Ignored | Loaded | Via `opencode/commands/` |
-| Templates (28) | `templates/*` | Loaded | Loaded | Shared via registry tools |
+| Commands (24) | `commands/gse-<name>.md` | Ignored | Loaded | Via `opencode/commands/` |
+| Templates (30) | `templates/*` | Loaded | Loaded | Shared via registry tools |
 | Hooks (3) | `hooks/hooks.claude.json` | Loaded | Ignored | Ignored |
 | Hooks (3) | `hooks/hooks.cursor.json` | Ignored | Loaded | Ignored |
 | Hooks (3) | `opencode/plugins/gse-guardrails.ts` | Ignored | Ignored | Native TS plugin |
@@ -550,7 +550,7 @@ Every artefact must be traceable to its origin and related artefacts. Requiremen
 | `OQ-` | Open question (pending resolution) | OQ-003 |
 | `SRC-` | External source | SRC-001 |
 | `LRN-` | Learning note | LRN-003 |
-| `AUD-` | Audit finding (methodology drift) | AUD-003 |
+| `AUD-` | Audit finding (methodology drift — *meta-scope, produced by `/gse:audit`, not a project artefact*) | AUD-003 |
 
 IDs are unique within the project (not recycled across sprints). TASK is the **unified work item ID** — there is no separate backlog ID. A TASK is either in the pool (unplanned) or assigned to a sprint.
 
@@ -3196,6 +3196,7 @@ If you are new to GSE-One, these 20 concepts form the minimum vocabulary to get 
 
 ```
 ORCHESTRATION       /gse:go        /gse:status     /gse:health
+AUDIT               /gse:audit     (methodology drift detection, cross-cutting)
 SESSION             /gse:pause     /gse:resume
 ONBOARDING          /gse:hug
 LEARNING            /gse:learn     (reactive + proactive, cross-cutting)

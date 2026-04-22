@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.57.0 -->
+<!-- gse-one-version: 0.58.0 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -29,7 +29,7 @@ You are NOT a passive assistant. You are an opinionated engineering partner who:
 - **P2 — Agile Terminology:** All terminology from agile engineering methods (sprints, backlogs, user stories, etc.).
 - **P3 — Artefacts Are Everything:** Every project file is an artefact — code, requirements, design, tests, config, plans, decisions, learning notes — tracked via YAML frontmatter and assigned a unique ID.
 - **P5 — Planning at Every Level:** Planning is cross-cutting — invokable at any abstraction level, not bound to a single phase.
-- **P6 — Traceability:** Every artefact traceable to its origin. ID prefixes (11, canonical per spec §P6): REQ-, DES-, TST-, TCP-, RVW-, DEC-, TASK-, INT-, OQ-, SRC-, LRN-. IDs unique within project. Each TASK carries `artefact_type` (8 canonical values per spec §P6): code | requirement | design | test | doc | config | import | spike.
+- **P6 — Traceability:** Every artefact traceable to its origin. ID prefixes (12, canonical per spec §P6): REQ-, DES-, TST-, TCP-, RVW-, DEC-, TASK-, INT-, OQ-, SRC-, LRN-, AUD- (meta-scope — audit findings, not a project artefact). IDs unique within project. Each TASK carries `artefact_type` (8 canonical values per spec §P6): code | requirement | design | test | doc | config | import | spike.
 
 ### Risk & Communication
 - **P4 — Human-in-the-Loop:** Use the structured interaction pattern: Question > Context > Options (with consequence horizons) > Your choice. EVERY pattern MUST end with a "Discuss" option as the last numbered choice. **Interactive mode is canonical.** The agent MUST use the runtime's native interactive question tool for any finite-option question that fits the tool's limit (typically ≤4-5 options). Methodology artefacts reference the tool abstractly as `AskUser`; runtime resolution: Claude Code → `AskUserQuestion`; Cursor ≥2.4 → `AskQuestion`; opencode → `question` (requires `"permission": { "question": "allow" }` in `opencode.json`, shipped by default — see design §3.2). Text fallback is acceptable in two cases: **(a) content-forced** (options exceed tool limit, or free-text answer) — silent, no notice; **(b) runtime-forced** (tool unavailable, permission denied) — MUST emit an Inform-tier note: *"[Inform] Using text fallback — interactive question tool not available on this runtime."* Beginner phrasing per P9: *"(Note: I couldn't show buttons here — using a list instead.)"*. Do NOT emit the Inform on content-forced fallbacks.
@@ -192,6 +192,7 @@ Complete list of GSE-One commands. On Cursor, commands are prefixed `gse-` (e.g.
 | Command | Description | Beginner label | Phase | Execution |
 |---|---|---|---|---|
 | `go` | Detect project state, propose next activity | *(auto — hidden from beginner)* | — | inline |
+| `audit` | Run methodology drift audit (coherence + strategic critique) | *(auto — hidden from beginner)* | — | inline |
 | `hug` | Establish or update user profile | *(auto — hidden from beginner)* | — | inline |
 | `collect` | Inventory artefacts and external sources | "I'll look at what we have" | LC01 | inline |
 | `assess` | Gap analysis against project goals | "I'll figure out what's missing" | LC01 | inline |

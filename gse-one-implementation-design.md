@@ -37,7 +37,7 @@ All three supported environments support git operations:
 
 ### 3.1 Repository Structure
 
-> **Terminology mapping:** The directory structure maps to the concepts defined in the specification: `activities/` contains the 23 activity definitions (spec), each generated as a skill (`plugin/skills/`). `agents/` provides agent roles (spec). `templates/` provides templates. `hooks/` provides system hooks (spec P13).
+> **Terminology mapping:** The directory structure maps to the concepts defined in the specification: `activities/` contains the 24 activity definitions (spec), each generated as a skill (`plugin/skills/`). `agents/` provides agent roles (spec). `templates/` provides templates. `hooks/` provides system hooks (spec P13).
 
 ```
 gse-one/
@@ -45,7 +45,7 @@ gse-one/
 ├── LICENSE
 ├── src/                                 # Shared source of truth
 │   ├── principles/                      # 16 principle definitions (P1-P16)
-│   ├── activities/                      # 23 activity definitions
+│   ├── activities/                      # 24 activity definitions
 │   ├── agents/                          # 11 agent roles (10 specialized + gse-orchestrator)
 │   │   ├── gse-orchestrator.md          # Identity agent — source for both platforms
 │   │   ├── requirements-analyst.md
@@ -58,15 +58,15 @@ gse-one/
 │   │   ├── devil-advocate.md
 │   │   ├── coach.md
 │   │   └── deploy-operator.md
-│   └── templates/                       # 29 templates (MANIFEST.yaml is one of them, acting as self-descriptor; counted in §11.1 and §12)
+│   └── templates/                       # 30 templates (MANIFEST.yaml acts as self-descriptor and is not counted; after the sprint/audit.md MANIFEST entry is added (Cluster 10), template count and MANIFEST entries converge)
 │
 ├── plugin/                              # Single deployable directory (Claude + Cursor + opencode)
 │   ├── .claude-plugin/plugin.json       # Claude Code manifest
 │   ├── .cursor-plugin/plugin.json       # Cursor manifest
-│   ├── skills/                          # 23 skills (shared, `name:` field included)
-│   ├── commands/                        # 23 flat /gse-<name>.md (Cursor + opencode)
+│   ├── skills/                          # 24 skills (shared, `name:` field included)
+│   ├── commands/                        # 24 flat /gse-<name>.md (Cursor + opencode)
 │   ├── agents/                          # 11 agents (shared, incl. orchestrator)
-│   ├── templates/                       # 29 templates (shared — MANIFEST.yaml included)
+│   ├── templates/                       # 30 templates (shared — MANIFEST.yaml acts as self-descriptor, excluded from count)
 │   ├── rules/
 │   │   └── gse-orchestrator.mdc         # Cursor-only (ignored by Claude/opencode)
 │   ├── hooks/
@@ -74,8 +74,8 @@ gse-one/
 │   │   └── hooks.cursor.json            # Cursor format
 │   ├── settings.json                    # Claude-only (ignored by Cursor/opencode)
 │   └── opencode/                        # opencode-specific subtree
-│       ├── skills/                      # 23 skills with injected `name:`
-│       ├── commands/                    # 23 gse-<name>.md slash commands
+│       ├── skills/                      # 24 skills with injected `name:`
+│       ├── commands/                    # 24 gse-<name>.md slash commands
 │       ├── agents/                      # 10 specialized (`mode: subagent`)
 │       ├── plugins/gse-guardrails.ts    # Native TS plugin (transpiled from hooks.claude.json)
 │       ├── AGENTS.md                    # Orchestrator body wrapped in markers
@@ -146,7 +146,7 @@ ONE directory (`plugin/`) serves both platforms. Shared components — skills, a
 | `hooks/hooks.claude.json` | **used** | ignored | Claude hook format (PascalCase) |
 | `hooks/hooks.cursor.json` | ignored | **used** | Cursor hook format (camelCase) |
 | `rules/gse-orchestrator.mdc` | ignored | **used** | Cursor always-on methodology rule |
-| `skills/` (23) | **shared** | **shared** | All activity skills |
+| `skills/` (24) | **shared** | **shared** | All activity skills |
 | `agents/` (11 in source, 10 for Cursor) | **shared** (11: 10 specialized + orchestrator) | **shared** (10: specialized only) | Agent roles for sub-agent delegation |
 | `templates/` (29) | **shared** | **shared** | All artefact/config templates (MANIFEST.yaml included — self-descriptor) |
 
@@ -169,7 +169,7 @@ When any of these canonical formats changes, `dashboard.py` must be updated in t
 
 > **Terminology:** This document describes the design of **skills** — the technical artifacts (`SKILL.md` files in `plugin/skills/`) that deliver the **activities** defined in the specification. Each skill implements exactly one activity: the skill `plan/SKILL.md` delivers the activity `/gse:plan`. See the specification for the formal relationship between activities, skills, commands, and inclusion policies.
 
-> **Note:** This document details the 17 skills that required specific design decisions (git integration, new mechanisms, complex workflows). The following 5 activities are implemented directly from the spec without additional design: `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:compound`, `/gse:integrate`. See the specification for their full definitions.
+> **Note:** This document details the skills that required specific design decisions (git integration, new mechanisms, complex workflows) — see §5 for the full index. The remaining activities are implemented directly from the spec without additional design and carry no dedicated §5.x subsection; their full definitions live in the specification.
 
 > **Spec-driven enrichments:** The following features are implemented in skills and principles directly from the specification, without additional design. See the specification for details: three-level language management (chat/artifacts/overrides) in HUG and P9; output formatting rules and emoji control in P9; recovery check for unsaved work in `/gse:go`; intent-first mode for beginner users in `/gse:go`; progressive expertise tracking by domain in P9 and the user profile; Hetzner deployment skill (`/gse:deploy`) with flexible starting points (solo full-flow, pre-configured server, training mode with shared Coolify); conversational elicitation and ISO 25010 quality checklist in `/gse:reqs`.
 
@@ -2391,7 +2391,7 @@ In lightweight mode detection: add note that for truly one-off tasks, don't use 
 
 ### 5.18 `/gse:deploy` — Application Deployment Activity
 
-This section documents the design of the `/gse:deploy` activity introduced at the spec level as the 23rd command. The activity deploys the current project to a Hetzner Cloud server via Coolify v4, adapting to the user's starting situation (solo with zero infrastructure, partial pre-configured, training on shared server). The detailed phase-by-phase workflow lives in `gse-one/src/activities/deploy.md`; this section captures the design decisions that cross-cut the skill, the tools, and the state schema.
+This section documents the design of the `/gse:deploy` activity (the Hetzner Cloud + Coolify v4 deployment command introduced at the spec level). The activity deploys the current project to a Hetzner Cloud server via Coolify v4, adapting to the user's starting situation (solo with zero infrastructure, partial pre-configured, training on shared server). The detailed phase-by-phase workflow lives in `gse-one/src/activities/deploy.md`; this section captures the design decisions that cross-cut the skill, the tools, and the state schema.
 
 **Abstraction principle for `/gse:deploy` and future infrastructure-touching skills.** GSE-One prefers **concrete, deterministic instructions** over goal-level abstractions. The plugin is self-contained: every shell command, every API call, every UI step is embedded verbatim in the skill or the Python tools. This choice prioritizes:
 - **Reproducibility** — critical for training scenarios (20 learners must get identical results) and CI testing
@@ -2829,7 +2829,7 @@ The `marketplace.json` install path is `"plugin"` (not `"dist/claude"`), reflect
 | Step | Input | Output | Shared? |
 |------|-------|--------|---------|
 | 1 | `src/agents/gse-orchestrator.md` (body) | `plugin/agents/gse-orchestrator.md` + `plugin/rules/gse-orchestrator.mdc` + `plugin/opencode/AGENTS.md` (wrapped in markers) | Body identical across 3 outputs, frontmatter/wrapper differs |
-| 2 | `src/activities/*.md` (23) | `plugin/skills/<name>/SKILL.md` + `plugin/commands/gse-<name>.md` + `plugin/opencode/skills/<name>/SKILL.md` + `plugin/opencode/commands/gse-<name>.md` | Shared body; opencode skills inject `name:` frontmatter |
+| 2 | `src/activities/*.md` (24) | `plugin/skills/<name>/SKILL.md` + `plugin/commands/gse-<name>.md` + `plugin/opencode/skills/<name>/SKILL.md` + `plugin/opencode/commands/gse-<name>.md` | Shared body; opencode skills inject `name:` frontmatter |
 | 3 | `src/agents/*.md` (10 specialized) | `plugin/agents/<name>.md` + `plugin/opencode/agents/<name>.md` (with `mode: subagent`) | Shared body; opencode agents translate `tools:` to object form |
 | 4 | `src/templates/*` (29) | `plugin/templates/*` | Shared across platforms via `~/.gse-one` registry |
 | 5 | `src/references/*.md` | `plugin/references/*.md` | Shared — consulted by agents at runtime |
@@ -2845,10 +2845,10 @@ The generator's `--verify` flag asserts (a) `plugin/` structure completeness —
 
 | Category | Shared | Claude-only | Cursor-only | opencode-only | Source |
 |----------|--------|-------------|-------------|---------------|--------|
-| Skills | 23 | — | — | 23 (regenerated with `name:` injection) | 23 activities |
-| Commands | — | — | 23 | 23 | 23 activities (reused) |
+| Skills | 24 | — | — | 24 (regenerated with `name:` injection) | 24 activities |
+| Commands | — | — | 24 | 24 | 24 activities (reused) |
 | Agents | 11 (incl. orchestrator) | — | — | 10 specialized (excl. orchestrator) | 11 agents |
-| Templates | 29 | — | — | — | 29 templates |
+| Templates | 30 | — | — | — | 30 templates |
 | Manifest | — | 1 | 1 | 1 (`opencode.json`) | constants |
 | Rules | — | — | 1 (.mdc) | — | from orchestrator |
 | Hooks | — | 1 | 1 | 1 (`gse-guardrails.ts`) | shared constants |

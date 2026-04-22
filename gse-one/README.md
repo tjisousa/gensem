@@ -11,7 +11,7 @@ Mono-plugin architecture — cross-platform parity. See [CHANGELOG](../CHANGELOG
 
 ## What is GSE-One?
 
-GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile. 23 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
+GSE-One is designed for users of **any expertise level** — from beginners building their first project to experienced engineers managing complex applications. The agent adapts its language, decisions, and level of autonomy to your profile. 24 commands covering planning, requirements, design, production, quality, delivery, deployment, and capitalization.
 
 **v0.14.0 highlights:**
 - **Interactive QCM** — clickable options (AskUserQuestion / Cursor clarifying questions) instead of numbered text lists
@@ -135,16 +135,16 @@ claude plugin install gse-one
 gse-one/
 ├── src/                        # Shared source of truth
 │   ├── principles/             # 16 core principles (P1-P16)
-│   ├── activities/             # 23 activity definitions
+│   ├── activities/             # 24 activity definitions
 │   ├── agents/                 # 11 agents (10 specialized + orchestrator)
-│   └── templates/              # 29 artefact & config templates
+│   └── templates/              # 30 artefact & config templates
 ├── plugin/                     # Single deployable directory (3 platforms)
 │   ├── .claude-plugin/         # Claude Code manifest
 │   ├── .cursor-plugin/         # Cursor manifest
-│   ├── skills/                 # 23 skills (shared, with name: field)
-│   ├── commands/               # 23 /gse-<name>.md (Cursor)
+│   ├── skills/                 # 24 skills (shared, with name: field)
+│   ├── commands/               # 24 /gse-<name>.md (Cursor)
 │   ├── agents/                 # 11 agents (shared)
-│   ├── templates/              # 29 templates (shared)
+│   ├── templates/              # 30 templates (shared)
 │   ├── tools/                  # Python tools (dashboard, etc.)
 │   ├── rules/                  # 1 .mdc (Cursor-only, ignored by Claude/opencode)
 │   ├── hooks/                  # 2 hooks files (Claude + Cursor)

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.58.0] - 2026-04-22
+
+Layers impacted: **spec** (§1.1.4 architecture table, Appendix A activity summary, §P6 `AUD-` prefix note), **design** (§3.1 repository-structure commentary, §3.2 terminology, §4 intro note, §5.18 `/gse:deploy` intro, §12 File Inventory), **implementation** (orchestrator P6 bullet + Command Reference table, README Key Features + audit check description).
+
+**Minor release — `/gse:audit` count propagation + `AUD-` meta-scope clarification.** Triggered by the 2026-04-22 full audit run (Cluster 1 of 10), which detected that the v0.56.x introduction of the 24th activity `/gse:audit` had not been propagated across the count-bearing locations of the corpus. This release closes the drift in one coordinated sweep and clarifies the scope of the `AUD-` artefact prefix.
+
+### Added
+
+- **`AUD-` meta-scope note** in spec §P6 Artefact ID allocation table (`gse-one-spec.md`) — the `AUD-` prefix now carries an inline qualification: *"meta-scope, produced by `/gse:audit`, not a project artefact"*. Distinguishes audit findings (methodology drift, produced by the maintainer-side `/gse:audit` tool) from project artefacts (REQ-, DES-, TST-, etc., produced by the user's SDLC activities) while keeping all 12 canonical prefixes in a single table.
+- **`AUDIT               /gse:audit     (methodology drift detection, cross-cutting)` line** in spec Appendix A — Activity Summary (`gse-one-spec.md`). Placed immediately after `ORCHESTRATION` for semantic adjacency. The enumeration now matches the "Total: 24 commands" footer.
+- **`audit` row** in the orchestrator Command Reference table (`gse-one/src/agents/gse-orchestrator.md`), inserted between `go` and `hug` (cross-cutting proximity). Beginner label kept as `*(auto — hidden from beginner)*` per the /gse:audit activity's self-invocation semantics.
+
+### Changed
+
+- **`23 → 24` everywhere** for activities / skills / commands. Updated in 14 locations across 4 files:
+  - `gse-one-spec.md` §1.1.4 "Mono-Plugin Architecture" table (Skills 23→24, Commands 23→24).
+  - `gse-one-implementation-design.md` §3.1 terminology mapping + 4 ASCII tree comments (`src/activities/`, `plugin/skills/`, `plugin/commands/`, `plugin/opencode/skills/`, `plugin/opencode/commands/`), §3.2 skills-directory row, §12 File Inventory (Skills + Commands rows), §11.1 generator step table activity-row count.
+  - `gse-one/src/agents/gse-orchestrator.md` P6 bullet (ID prefixes `11 → 12`, AUD- added with meta-scope note).
+  - `README.md` Key Features bullet and Auditing-the-plugin table (check #5 numeric consistency).
+- **`28 / 29 → 30` everywhere** for templates. Updated in 4 locations: `gse-one-spec.md` §1.1.4 (Templates 28→30), `gse-one-implementation-design.md` §3.1 two ASCII tree comments (src/templates + plugin/templates, with explicit note that MANIFEST.yaml acts as self-descriptor and is not counted) + §12 File Inventory Templates row, `README.md` two ASCII tree comments. Note: the 30 file count already matches the 30 templates shipped; the Cluster 10 MANIFEST entry for `sprint/audit.md` (next audit batch) will bring MANIFEST entries to 30 in lockstep.
+- **Design §4 intro note** — replaces the stale "17 skills that required specific design decisions + 5 activities implemented directly from the spec" comptability (17+5=22, drifted twice since first drafted) with a self-descriptive reference to §5 as the index of skill designs. Activities without a §5.x subsection are implemented directly from the spec. No more numerical maintenance burden when an activity is added.
+- **Design §5.18 `/gse:deploy` intro** — replaces the fragile ordinal "as the 23rd command" with a stable functional description ("the Hetzner Cloud + Coolify v4 deployment command"). The ordinal would have needed a bump with every future command.
+
+### Audit trail
+
+- **Cluster 1 of 10** from the 2026-04-22 v0.57.0 audit (`_LOCAL/audits/audit-2026-04-22-135551-v0.57.0.md`) resolved. Sub-decisions applied per user validation of Q1–Q7: count → 24 (Q1), templates → 30 (Q2), AUD- preserved in §P6 with meta-scope note (Q3 option B3), Appendix A audit line position = after ORCHESTRATION (Q4), ordinal removed (Q5), orchestrator audit row position = between go and hug (Q6), minor version bump (Q7).
+- Remaining audit clusters to be treated in subsequent releases: Cluster 2 (design §5.17 duplicate → §5.19 rename), Cluster 3 (orphan state fields — `last_task`, `audit_history`, `gse_version`, `sprint/audit.md` MANIFEST entry), Cluster 4 (v0.53.0 cursor-centralization regression in compound/pause/resume/task/integrate), Cluster 5 (coach invocation drift — go.md moment tag, coach.md table, P14 wording), Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md — implement or retract), Cluster 8 (design §5.16 `/gse:deliver` double-listing), Cluster 9 (deploy `skip` role retraction), Cluster 10 (`sprint/audit.md` in MANIFEST — converges templates count with MANIFEST entries).
+
 ## [0.57.0] - 2026-04-22
 
 Layers impacted: **spec** (§P4, §P6, §3.1, §3.10, §14.3, new §9.3.1, new §15 Methodology Audit, §16 Glossary renumbered), **design** (§3.2 opencode manifest, new §3.4 Dashboard parser format contracts, §5.14 invariant, §5.15 deliver guardrail, new §5.17 audit architecture), **implementation** (orchestrator P4 + Activity Execution Fidelity Invariant, activities go/hug/deliver/tests + new audit, principles/human-in-the-loop, templates/sprint/tests + new audit, plugin/tools/dashboard.py + new project-audit.py, generator opencode permission).
