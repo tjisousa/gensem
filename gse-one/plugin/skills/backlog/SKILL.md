@@ -155,12 +155,12 @@ For each TASK with `github_issue: null` and (`github.enabled: true` AND `github.
 
 Map statuses between GSE-One and GitHub:
 
-| GSE-One Status | GitHub State |
+| GSE-One Status (+ condition) | GitHub State |
 |---------------|-------------|
-| `pool`        | open (label: `pool`) |
-| `planned`     | open (label: `sprint-NN`) |
+| `open` AND `sprint: null` (pool) | open (label: `pool`) |
+| `planned` | open (label: `sprint-NN`) |
 | `in-progress` | open (label: `in-progress`) |
-| `done`        | closed |
+| `done` | closed |
 
 Report sync summary: "Synced 15 items. 2 new from GitHub, 1 status updated, 12 unchanged."
 

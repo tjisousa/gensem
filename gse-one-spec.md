@@ -2203,7 +2203,7 @@ items:
       derives_from: [DES-003]
     acceptance_criteria: "User can login via GitHub OAuth"
     status: in-progress              # open | planned | in-progress | review | fixing | done | delivered | deferred
-    origin: plan                     # plan | review | collect | user | import
+    origin: plan                     # plan | review | collect | user | import | ad-hoc
     origin_ref: null
     git:
       branch: gse/sprint-03/feat/auth
@@ -2593,7 +2593,7 @@ deploy:
   provider: hetzner                    # only supported provider
   server_type: cax21                   # cax21 | cax31 | cax41
   datacenter: fsn1                     # fsn1 | nbg1 | hel1
-  app_type: auto                       # auto | python | streamlit | static
+  app_type: auto                       # auto | streamlit | python | node | static | custom
   health_check_timeout: 120            # seconds
 ```
 

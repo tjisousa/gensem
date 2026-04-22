@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.1] - 2026-04-22
+
+Layers impacted: **spec** (§12.3 origin enum, §13.1 deploy.app_type enum), **implementation** (3 activities: reqs.md, assess.md, backlog.md)
+
+**Post-audit proposition P6 — Schema drift bundle (template ↔ activity ↔ spec).** Four small schema inconsistencies surfaced by the 2026-04-21 audit, grouped because they share the same root cause: the spec lagged behind the template + code (upward drifts), and two activities used invalid enum values (downward fixes).
+
+### Changed
+- **Spec §12.3 `origin` enum extended to 6 values** (was 5). The backlog.yaml template (line 23), task.md (line 95), and backlog.md (line 122) already declared and used the 6th value `ad-hoc` (for tasks created on-demand by `/gse:task` outside the sprint planning flow). The spec example block at line 2206 now documents the same 6-value enumeration: `plan | review | collect | user | import | ad-hoc`. **Upward refinement** — the spec catches up with the runtime reality.
+- **Spec §13.1 `deploy.app_type` enum extended to 6 values** (was 4). The design doc §5.18 (line 2406) and the deploy.py tool already supported 6 values (`auto | streamlit | python | node | static | custom`). The spec example config block at line 2596 now matches: previously listed only `auto | python | streamlit | static`, missing `node` (for which a Dockerfile.node template exists) and `custom` (which bypasses template generation for user-provided Dockerfiles). **Upward refinement** — the spec catches up with the design + code.
+
+### Fixed
+- **`reqs.md` Step 8 persist block now includes `elicitation_summary`** — Step 0.5 ("Needs Elicitation") mandates saving a résumé of the user's stated needs plus the agent's reformulation into the `elicitation_summary` frontmatter field. The template `sprint/reqs.md` (line 6) includes this field as part of the canonical schema. But Step 8's persist block (the YAML frontmatter the activity writes at file creation time) previously omitted the field, meaning agents executing `/gse:reqs` could silently skip it. Step 8 now lists `elicitation_summary: "{user's original words + agent's reformulation from Step 0.5}"` inline in the persisted YAML.
+- **`assess.md` Step 5 no longer writes an invalid status value** — previously said "Set `status: pool` and `sprint: null`" when creating candidate tasks from assessment gaps. `pool` is NOT a valid value of the TASK status enumeration (the canonical 8 values are `open | planned | in-progress | review | fixing | done | delivered | deferred` per `backlog.yaml` template line 19). The pool concept is expressed by the combination `status: open` + `sprint: null`, not by a status value named "pool". Fixed to `status: open` with a parenthetical clarification for readers.
+- **`backlog.md` Step 3 GitHub-sync mapping table corrected** — the first row previously mapped a non-existent GSE-One status `pool` to GitHub `open (label: pool)`. Rewrote the first column header from "GSE-One Status" to "GSE-One Status (+ condition)" and the first row to `open` AND `sprint: null (pool)`, which reflects the actual data model. GitHub side keeps the `pool` label (meaningful as a GitHub Issue classifier).
+
+### Notes
+- No modifications to `backlog.yaml` template, the orchestrator, the `origin` enum at the template level, or `deploy.py` — those were already correct. Work was on the *descriptive* and *prescriptive* layers (spec + 3 activities) to match the runtime reality.
+- No regeneration impact — 3 activity files touched flow through the generator to `plugin/skills/*/SKILL.md` and `plugin/commands/gse-*.md`. Verified via `--verify`.
+
 ## [0.48.0] - 2026-04-22
 
 Layers impacted: **spec** (no change — already canonical), **design** (§11.1 + §12 count alignment, new `--verify` paragraph), **implementation** (6 agents, 4 activities, 1 template, generator), **CLAUDE.md** (archetype table + communication rules)

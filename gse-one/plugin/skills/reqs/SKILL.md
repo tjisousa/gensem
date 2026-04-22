@@ -321,6 +321,7 @@ gse:
   type: requirement
   sprint: {NN}
   branch: gse/sprint-{NN}/integration
+  elicitation_summary: "{user's original words + agent's reformulation from Step 0.5}"
   status: draft                        # draft | reviewed | approved
   created: "{YYYY-MM-DD}"
   updated: "{YYYY-MM-DD}"

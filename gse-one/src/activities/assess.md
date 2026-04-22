@@ -120,7 +120,7 @@ For each uncovered or partially covered goal, automatically generate candidate w
 1. Create TASK entries in the backlog pool:
    - One TASK per identified gap
    - Set `traces.derives_from` to the gap ID
-   - Set `status: pool` and `sprint: null`
+   - Set `status: open` and `sprint: null` (the combination `status: open` + `sprint: null` represents a task in the backlog pool — unassigned to any sprint — per the backlog.yaml schema)
 
 2. Report created items:
 ```
