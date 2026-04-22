@@ -1,4 +1,4 @@
-# P1 — Iterative-Incremental Development
+# P1 — Iterative & Incremental
 
 **Category:** Foundations
 **Principle:** All documents and artefacts are produced as increments within sprints, modular at the file-system level.

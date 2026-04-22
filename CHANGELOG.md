@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.48.8] - 2026-04-22
+
+Layers impacted: **implementation** (`principles/iterative-incremental.md` only)
+
+**Post-audit proposition P13 — Principle title alignment (minimalist scope).** The audit flagged title drift across spec/orchestrator/principle file for P1, P4, P7, P8, P11, P12, P13, P14, P15, P16 (10 principles). Analysis revealed only 1 real bug; the other 9 cases follow an intentional "spec long title / implementation short title" pattern that is consistent between orchestrator and principle source files. Fixed only the single genuine divergence and documented the convention.
+
+### Fixed
+- **`gse-one/src/principles/iterative-incremental.md` H1** — "P1 — Iterative-Incremental Development" → "P1 — Iterative & Incremental". The file was the sole source using "Iterative-Incremental Development" (with hyphen and "Development" suffix) while the orchestrator bullet used "Iterative & Incremental" (with ampersand, no suffix) and the spec §2 used "Iterative & Incremental Lifecycle". The three-way divergence is eliminated by aligning the file on the orchestrator's short form.
+
+### Adopted (methodology convention, to be documented in CLAUDE.md at next batch)
+- **Principle title pattern — "spec long / implementation short"**:
+  - **Spec §2 headers** carry the full descriptive title, optionally with a parenthetical sub-title (e.g., "Knowledge Transfer (Coaching)", "Agent Fallibility (Self-Awareness)", "Consequence Visibility (Risk Analysis Presentation)"). The full form is pedagogical and stable for cross-references under the "number + name" convention (P-NAMED-REFS task).
+  - **Orchestrator bullets + principle source file H1** use the short form: main title before any parenthetical, or a coherent shorter phrasing. Example: spec "Knowledge Transfer (Coaching)" → short "Knowledge Transfer"; spec "Risk-Based Decision Classification" → short "Risk Classification".
+  - **Critical rule**: the short form MUST be identical between orchestrator and principle file. Divergences between these two sources are bugs (as was the P1 case fixed above).
+  - **P13 noted exception**: the spec title "Event-Driven Behaviors (Hooks)" uses "Event-Driven Behaviors" as the main title and "(Hooks)" as the parenthetical. However, the orchestrator and principle file use "Hooks" (the parenthetical) as their short form — inverted from the usual pattern. This is preserved as vernacular usage: "Hooks" is the term used throughout the methodology (`hooks.claude.json`, `PreToolUse hooks`, etc.). Can be revisited later if it causes confusion.
+
+### Not applied (after analysis — intentional pattern, not bugs)
+- **P4, P7, P8, P11, P12, P13, P14, P15, P16** — 9 principles flagged by the audit as having divergent titles. On inspection: orchestrator and principle file use the short form consistently with each other; spec §2 uses the long form. This is not an error — it's a deliberate two-form convention that the audit mis-classified as drift. Forcing spec long form into all sources would add verbosity without methodological benefit, violating the anti-rigidity principle.
+
+### Notes
+- 1 file modified + CHANGELOG entry + new task (`PRINCIPLE-TITLES`) to add the convention to CLAUDE.md at next batch.
+- 49 unit tests pass, cross-platform parity identical.
+
 ## [0.48.7] - 2026-04-22
 
 Layers impacted: **implementation** (`deploy.md` only)
