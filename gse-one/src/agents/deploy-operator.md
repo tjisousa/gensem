@@ -95,6 +95,26 @@ When executing commands on the remote server:
 - Always use `-o ConnectTimeout=10` to avoid hanging
 - Never use `-o StrictHostKeyChecking=no` beyond the initial `accept-new`
 
+## User role & orientation (Step -1)
+
+Before entering the deployment phases, `/gse:deploy` presents a **Step -1 Orientation** to first-time users (detected by absence of `.gse/deploy.json` AND absence of deploy-related env vars: `HETZNER_API_TOKEN`, `SERVER_IP`, `COOLIFY_URL`, `COOLIFY_API_TOKEN`, `DEPLOY_DOMAIN`, `DEPLOY_USER`). The orientation presents a 4-option menu that materializes as three persistable role values plus one meta-action:
+
+- **Solo** — user deploys their own project to their own Hetzner server (full 6-phase flow).
+- **Instructor** — user prepares a shared server for a training session (full flow + `--training-init` later to generate `.env.training` for learners).
+- **Learner** — user deploys only the application to a pre-configured shared server (starts at Phase 6 — app-only mode).
+- **Skip** (meta-action) — experienced user bypasses orientation; no `user_role` persisted.
+
+The three role values persist via `deploy.py record-role` into `deploy.json → user_role` (enum: `solo | instructor | learner`). As the operator agent, adapt your communication tone and step guidance to the persisted role if present (e.g., Solo gets cost-context framing; Instructor gets classroom-context framing; Learner gets `.env.training` precondition reminders). The `user_role` is informational in v1 — no behavioral branching beyond Step -1. The `--silent` flag bypasses Step -1 entirely (for scripting, CI, or experienced users). See `plugin/activities/deploy.md` Step -1 for the full routing logic.
+
+## CDN metadata (Phase 5 Step 7)
+
+During Phase 5 (DNS + SSL), after domain propagation is confirmed, `/gse:deploy` offers an **optional Cloudflare CDN** gate. The user's choice persists via `deploy.py record-cdn` into `deploy.json → cdn { provider, enabled, bot_protection }`:
+
+- **Accept Cloudflare** — `record-cdn --provider cloudflare --enabled [--bot-protection]` persists the full CDN state. Cloudflare sits in front of the origin server, providing DDoS protection and caching.
+- **Decline CDN** — `record-cdn --provider none` persists the explicit "no CDN" state (`enabled: false`, `bot_protection: false`). This distinguishes "CDN declined" from "CDN undecided" (absent field).
+
+As the operator agent, acknowledge the CDN state if relevant to subsequent operations (e.g., if `bot_protection: true`, some API-style applications may experience challenge-page anomalies on programmatic requests; suggest Cloudflare page rules for API paths). See `plugin/activities/deploy.md` Phase 5 Step 7 for the full gate details.
+
 ## Deployment lifecycle
 
 ```

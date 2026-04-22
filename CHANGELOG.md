@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.60.0] - 2026-04-22
+
+Layers impacted: **spec** (§3.8 Deployment row — 4-option menu vs 3-role enum clarified), **design** (§5.18 Onboarding orientation prose + State schema enum — `skip` retracted, menu/enum distinction explicit), **implementation** (`plugin/tools/deploy.py` — record_role docstring; `activities/deploy.md` — Step -1 option (4) clarified; `agents/deploy-operator.md` — two new sections *User role & orientation* and *CDN metadata*).
+
+**Minor release — `skip` role retraction + deploy-operator enrichment + 2026-04-22 audit remediation series closure.** Closes Cluster 9 of the 2026-04-22 v0.57.0 audit — the 9th and final cluster of the remediation series. The v0.56.x deploy code never persisted `skip` as a `user_role` value (same pattern as the v0.52.0 `never_*` quartet: declared side, never written); design + docstring still listed it. This release retracts the dead enum value, makes the Step -1 menu-options vs role-enum distinction explicit across all 3 layers, and enriches the `deploy-operator` agent with the previously missing *User role & orientation* and *CDN metadata* sections.
+
+### Changed
+
+- **`gse-one-implementation-design.md` §5.18 Onboarding orientation prose (line 2422)** — *"4-option menu identifying the user's role: Solo / Instructor / Learner / Skip"* upgraded to explicitly separate *"three role options that persist via `deploy.py record-role`"* from *"a meta-action Skip (experienced user: bypass orientation without persisting a role)"*.
+- **`gse-one-implementation-design.md` §5.18 State schema enum (line 2439)** — `user_role` enum corrected from `solo | instructor | learner | skip` to `solo | instructor | learner`, with explicit note that the Step -1 "Skip" menu option does not persist a role.
+- **`gse-one-spec.md` §3.8 Deployment row (line 1246)** — the *"Step -1 Orientation that identifies their role (Solo / Instructor / Learner)"* phrasing upgraded to explicit mention of the 4-option menu structure (3 roles + Skip meta-action) for reader clarity.
+- **`gse-one/plugin/tools/deploy.py` `record_role` docstring (line 421)** — enum string `solo | instructor | learner | skip` corrected to `solo | instructor | learner`. Added a sentence clarifying that the Step -1 "Skip" menu option is a meta-action that does not call `record-role`.
+- **`gse-one/src/activities/deploy.md` Step -1 option (4)** — *"No role persistence. Proceed directly to Step 0."* enriched to *"Meta-action (not a role value): no `record-role` call; no `user_role` persisted in `deploy.json`. Proceed directly to Step 0. The 3 role values stored in `user_role` are `solo` / `instructor` / `learner` only — see design §5.18 State schema for the enum."* — the distinction is now readable from the activity file alone.
+
+### Added
+
+- **`gse-one/src/agents/deploy-operator.md` — ## User role & orientation (Step -1)** — new H2 section between `## Core Principles` and `## Deployment lifecycle`. Documents the 4-option menu (3 role options + Skip meta-action), the `record-role` persistence of `user_role` (enum: `solo | instructor | learner`), the `--silent` bypass, and operator-agent tone-adaptation guidance per persisted role.
+- **`gse-one/src/agents/deploy-operator.md` — ## CDN metadata (Phase 5 Step 7)** — new H2 section documenting the optional Cloudflare CDN gate, the `record-cdn` persistence of `cdn { provider, enabled, bot_protection }`, the distinction between "declined" (`provider: none`, `enabled: false`) and "undecided" (absent field), and operator-agent acknowledgment guidance (e.g., page-rule suggestions for API endpoints when `bot_protection: true`).
+
+### Removed
+
+- **`skip` from `user_role` enum** (dead aspirational value) — design §5.18 schema + deploy.py docstring. Same discipline as the v0.52.0 `never_*` quartet retirement and the v0.59.0 `last_task` retraction.
+
+---
+
+### 2026-04-22 Audit remediation series — summary
+
+This release closes a 9-cluster remediation series that started after the 2026-04-22 full audit of v0.57.0. The audit (full report at `_LOCAL/audits/audit-2026-04-22-135551-v0.57.0.md`) detected ~14 unique errors and ~40 warnings across the corpus, consolidated into 9 thematic clusters. Each cluster was treated per CLAUDE.md §Post-audit fix workflow: parallel verification, user-validated scope, atomic commit, 3-layer alignment (spec / design / impl).
+
+**Release map v0.58.0 → v0.60.0:**
+
+| Release | Type | Cluster(s) | Theme |
+|---|---|---|---|
+| v0.58.0 | minor | Cluster 1 | `/gse:audit` count propagation (24 activities, 12 ID prefixes incl. AUD- meta-scope, 30 templates) |
+| v0.58.1 | patch | Cluster 2 | design §5.17 duplicate subsection number — audit renumbered to §5.19 |
+| v0.59.0 | minor | Cluster 3 | state-schema orphans batch (4 errors + 4 warnings: `last_task` retraction, `audit_history` schema add, `gse_version` writer+reader activation, `sprint/audit.md` MANIFEST entry, `review_findings_open` writer, `pushback_dismissed` anchor, 2 backlog cleanups) |
+| v0.59.1 | patch | Cluster 4 | v0.53.0 cursor-centralization regression (5 activities + orchestrator triple-trigger rule) |
+| v0.59.2 | patch | Cluster 5 | coach invocation drift (go.md moment tag, coach.md table 8→12 rows, P14 canonical wording across 5 files) |
+| v0.59.3 | patch | Cluster 6 | broken cross-references (3 phantom anchors) + 7 bare path refs → `plugin/` |
+| v0.59.4 | patch | Cluster 7 | deliver Step 1.5 Guardrail 2 activation (test strategy coverage) + `--level` flag |
+| v0.59.5 | patch | Cluster 8 | Sprint Freeze double-listing fix + 3-category exempt typology |
+| **v0.60.0** | **minor** | **Cluster 9** | **`skip` role retraction + deploy-operator enrichment (this release)** |
+
+**Aggregate effect** (8 commits):
+- **~150 source edits** across ~60 unique files (spec, design, 16 activities, 11 agents, 7 templates, dashboard.py, deploy.py, CHANGELOG, VERSION).
+- **Zero test regression**: the 72-test unit suite stayed green at every release.
+- **Zero contract break**: no user-facing behavior change — the series was coherence restoration + schema alignment + canonical wording discipline.
+- **Methodology contributions** — each cluster produced a reusable pattern: 3-direction refinement framing (downward / upward / retraction per Principle 6); Meta-2 inline documentation of exceptions (e.g., cross-cutting invocation rows in coach.md); 3-category typology for guardrail exemptions (closed-sprint consumer / non-mutating / transition performer); explicit triple-trigger rules for phase transitions.
+- **Audit self-test**: v0.57.0 itself claimed 3 guardrails in deliver Step 1.5; v0.59.4 made that claim actually true. The /gse-audit engine detected the overreach; the post-audit fix loop closed it. The methodology audits itself.
+
+**Next steps for forkers**: re-run `/gse-audit` on this corpus (v0.60.0) and compare against the v0.57.0 report to validate that the 9 clusters are indeed resolved. Any new findings reveal either a regression (unlikely per the test-pass record) or a new drift pocket that has emerged since the 2026-04-22 run.
+
 ## [0.59.5] - 2026-04-22
 
 Layers impacted: **spec** (§14 lifecycle guardrail 3 — exempt prose upgraded to three-category typology), **design** (§5.16 Sprint Freeze mechanics — `/gse:deliver` removed from MUST consult list + exempt prose upgraded to three-category typology).

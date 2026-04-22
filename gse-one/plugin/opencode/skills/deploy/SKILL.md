@@ -90,7 +90,7 @@ Wait for confirmation → proceed to Step 0.
 4. Say: *"I'll detect your instructor's shared server from the training config and deploy your project at `{DEPLOY_USER}-{project-name}.{DEPLOY_DOMAIN}`. Expected duration: ~5 minutes."*
 5. Proceed to Step 0 (will detect app-only mode → Phase 6).
 
-**(4) Skip** — No role persistence. Proceed directly to Step 0.
+**(4) Skip** — Meta-action (not a role value): no `record-role` call; no `user_role` persisted in `deploy.json`. Proceed directly to Step 0. The 3 role values stored in `user_role` are `solo` / `instructor` / `learner` only — see design §5.18 State schema for the enum.
 
 ---
 

@@ -418,9 +418,11 @@ def record_domain(base: str, registrar: str = "") -> dict:
 
 
 def record_role(role: str) -> dict:
-    """Persist the user role in state (solo | instructor | learner | skip).
+    """Persist the user role in state (solo | instructor | learner).
 
-    Called by the skill's Step -1 Orientation once the user selects their role.
+    Called by the skill's Step -1 Orientation once the user selects a role option.
+    The Step -1 "Skip" menu option is a meta-action (bypass orientation, no role
+    persisted); it does not call record-role. See deploy.md Step -1 option (4).
     The role is purely informational in v1 — no behavioral branching beyond Step -1.
     Returns status-wrapped dict: {"status": "ok" | "error", "role": str}.
     """
