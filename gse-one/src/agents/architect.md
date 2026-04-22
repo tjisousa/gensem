@@ -69,4 +69,4 @@ Severity levels (baseline):
 - **MEDIUM** — Missing consideration that may cause problems at scale or during evolution
 - **LOW** — Best practice not followed; improvement opportunity
 
-Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5). The agent never emits CRITICAL directly.
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md § P15 Confidence Integration). The agent never emits CRITICAL directly.

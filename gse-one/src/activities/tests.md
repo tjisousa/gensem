@@ -143,7 +143,7 @@ After saving the strategy, check the auto-trigger conditions. The strategy revie
 - The current sprint's `complexity_budget > 15`
 - The flag `--review-strategy` or `--deep-review` was passed
 
-When the review fires, spawn the `test-strategist` sub-agent (see `agents/test-strategist.md`, "Strategy checklist") on the just-saved `test-strategy.md`. Findings are tagged `[STRATEGY]` and written into `docs/sprints/sprint-{NN}/review.md` using the standard RVW-NNN format. HIGH findings block `/gse:produce` (Hard guardrail) until resolved; MEDIUM / LOW warn but do not block.
+When the review fires, spawn the `test-strategist` sub-agent (see `plugin/agents/test-strategist.md`, "Strategy checklist") on the just-saved `test-strategy.md`. Findings are tagged `[STRATEGY]` and written into `docs/sprints/sprint-{NN}/review.md` using the standard RVW-NNN format. HIGH findings block `/gse:produce` (Hard guardrail) until resolved; MEDIUM / LOW warn but do not block.
 
 When none of the triggers fire, skip this pass — the strategy is trusted on the fly to keep light sprints agile. The user can always force it later with `--review-strategy`.
 
@@ -263,7 +263,7 @@ After all TST- artefacts are drafted, check the auto-trigger conditions. The spe
 - The total count of TST- drafted in this sprint is ≥ 20
 - The flag `--review-specs` or `--deep-review` was passed
 
-When the review fires, spawn the `test-strategist` sub-agent (see `agents/test-strategist.md`, "Specifications checklist") on the TST- specs. The reviewer checks: exact Given/When/Then correspondence between each TST- and its source REQ-, absence of tautological tests, boundary / empty / error case coverage, coherence of `traces` fields, and that every REQ `priority: must` has at least one TST-. Findings are tagged `[TST-SPEC]` and written into `docs/sprints/sprint-{NN}/review.md`. HIGH findings block `/gse:produce` (Hard guardrail) until resolved.
+When the review fires, spawn the `test-strategist` sub-agent (see `plugin/agents/test-strategist.md`, "Specifications checklist") on the TST- specs. The reviewer checks: exact Given/When/Then correspondence between each TST- and its source REQ-, absence of tautological tests, boundary / empty / error case coverage, coherence of `traces` fields, and that every REQ `priority: must` has at least one TST-. Findings are tagged `[TST-SPEC]` and written into `docs/sprints/sprint-{NN}/review.md`. HIGH findings block `/gse:produce` (Hard guardrail) until resolved.
 
 When none of the triggers fire, skip this pass to keep sprints with few or low-risk tests agile. The user can always force it later with `--review-specs`.
 

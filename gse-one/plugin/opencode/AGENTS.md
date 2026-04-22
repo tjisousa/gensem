@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.59.2 -->
+<!-- gse-one-version: 0.59.3 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -173,7 +173,7 @@ Each runtime exposes its own interactive-question tool — `AskUserQuestion` on 
 
 **Rationale for the reviewed/done split:** both statuses mean "ready to merge", but the distinction is preserved for the coach Axis 5 (`quality_trends`): a high ratio of `reviewed` (clean first-pass) vs `done` (fixed after findings) signals high PRODUCE quality. Collapsing them would silently erase this signal. The cost is one extra enum value in `backlog.yaml`; the benefit is a measurable quality trend the methodology is designed to surface.
 
-**Coach delegation — pedagogy + workflow monitoring (8 axes):** the orchestrator delegates observation of the AI+user collaboration to the **`coach`** sub-agent (see `agents/coach.md` for the full algorithm). The coach covers **8 axes** grouped into two categories:
+**Coach delegation — pedagogy + workflow monitoring (8 axes):** the orchestrator delegates observation of the AI+user collaboration to the **`coach`** sub-agent (see `plugin/agents/coach.md` for the full algorithm). The coach covers **8 axes** grouped into two categories:
 
 - **Pedagogy axis** (activity-start) — at the beginning of any activity (`/gse:collect`, `/gse:assess`, `/gse:plan`, `/gse:reqs`, `/gse:design`, `/gse:preview`, `/gse:tests`, `/gse:produce`, `/gse:review`, `/gse:fix`, `/gse:deliver`, `/gse:compound`, `/gse:integrate`, `/gse:task`, `/gse:deploy`), if `profile.yaml → dimensions.learning_goals` is non-empty AND `config.yaml → coach.enabled: true` AND `coach.axes.pedagogy: true` AND the sprint's preamble cap (`coach.max_preambles_per_sprint`, default 3) is not exhausted, the orchestrator invokes the coach for a **contextual pedagogical evaluation**. The coach returns either *"skip"* (silent) or *"propose"* with a precise topic formulation and 5-option P14 preamble content. On *"propose"*, the orchestrator presents the standard P14 Gate (Quick overview / Deep session / Not now / Not interested / Discuss); the response is persisted in `status.yaml → learning_preambles[]`. The coach also handles **inferred gap detection** (repeated questions, hesitations, explicit confusion) when `coach.proactive_gap_detection: true`, feeding `status.yaml → detected_gaps[]`.
 

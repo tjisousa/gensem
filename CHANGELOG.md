@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.59.3] - 2026-04-22
+
+Layers impacted: **spec** (§14.3 project layout tree ref + §14.3 Step 5 Adopt-mode ref), **design** (§5 Intent Capture Adopt-mode ref), **implementation** (6 reviewer agents + 5 activities + gse-orchestrator.md — broken anchor fix + residual bare-path sweep to `plugin/...` form).
+
+**Patch release — broken cross-references + path-form hygiene.** Closes Cluster 6 of the 2026-04-22 v0.57.0 audit. Three broken anchors detected (spec §14.3 Step 5.7, spec §3 Adopt Mode x2, review.md Step 3.5 x6) + 7 residual bare path references retired (5 `agents/X.md` + 2 `src/X/...`). Total 16 corrections across 12 files.
+
+### Changed
+
+- **`gse-one-spec.md` §14.3 project layout tree (line 2190)** — broken ref `§14.3 Step 5.7` (no such step) corrected to `§14.3 Step 5 — Intent Capture, sub-point 8 "Pivot / re-capture"` (convention number+name per CLAUDE.md). Actual content on pivot/archive is sub-point 8 of Step 5, not a fictional Step 5.7.
+- **`gse-one-spec.md` §14.3 Step 5 (line 3004)** — broken ref `§3 Adopt Mode` (§3 is "Activities (Commands)") corrected to `§14.2 — Adopting GSE-One on an Existing Project`. Actual adoption content lives in §14.2.
+- **`gse-one-implementation-design.md` §5 Intent Capture (line 1721)** — same broken ref `spec §3 Adopt Mode` corrected to `spec §14.2 — Adopting GSE-One on an Existing Project`.
+- **6 reviewer-archetype agents (architect, code-reviewer, requirements-analyst, test-strategist, ux-advocate, security-auditor)** — broken ref `see review.md Step 3.5` (no such step; review.md has Step 0-6 with Step 3 containing an unnumbered P15 subsection) corrected to `see review.md § P15 Confidence Integration`. `security-auditor.md` extended suffix `§Devil-Advocate P15 integration` also corrected to the canonical `devil-advocate.md § Integration with P15 Confidence Signaling`.
+
+### Path-form sweep (7 residual bare references upgraded to `plugin/...`)
+
+- **`gse-one/src/activities/plan.md` line 206** — state transition note: `agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md`.
+- **`gse-one/src/activities/review.md` line 250** — state transition note: `agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md`.
+- **`gse-one/src/activities/tests.md` lines 146 and 266** — test-strategist references: `agents/test-strategist.md` → `plugin/agents/test-strategist.md` (×2).
+- **`gse-one/src/activities/audit.md` line 137** — Phase 3 orchestrator pointer: `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md`.
+- **`gse-one/src/activities/compound.md` line 96** — decisions.md format pointer: `src/templates/decisions.md` → `plugin/templates/decisions.md`.
+- **`gse-one/src/agents/gse-orchestrator.md` line 175** — coach delegation pointer: `agents/coach.md` → `plugin/agents/coach.md`.
+
+All prose references across activities and agents now uniformly use the `plugin/` form per CLAUDE.md §Activity path reference conventions (pedagogical / authoritative-format pointer). Runtime-executable references continue using `$(cat ~/.gse-one)/X` form (unchanged).
+
+### Audit trail
+
+- **Cluster 6 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q6: E1 fix (A1 number+name), E2 fix (B1), E3 fix (C2 short canonical name), security-auditor variant (E), path-form sweep (D1), patch bump (F).
+- **Remaining audit clusters:** Cluster 7 (3rd test guardrail in deliver.md — implement or retract), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction). The final cluster will ship as minor v0.60.0.
+
 ## [0.59.2] - 2026-04-22
 
 Layers impacted: **spec** (§P14 intra-spec consistency — option 1 fluff cleaned), **design** (§5.1 `/gse:learn` proactive preamble — 4→5 options with pointer to canonical), **implementation** (orchestrator P14 bullet — canonical wording; activities go.md — moment tag fix; agents/coach.md — 4 rows added to Invocation contract, axis 1 orphan trigger retracted, preamble history paraphrase aligned, Meta-2 cross-cutting note extended; templates/profile.yaml — LRN mode enum).

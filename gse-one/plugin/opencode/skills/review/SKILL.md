@@ -248,7 +248,7 @@ If findings with severity HIGH or MEDIUM exist:
 - Recommend `/gse:fix` before delivery
 - Present findings sorted by severity (HIGH first, then MEDIUM, then LOW)
 
-> **State transition note (v0.53.0):** `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`) are maintained centrally by the orchestrator after the activity closes — see `agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. Activity-local state (TASK statuses, health scores) remains authored here.
+> **State transition note (v0.53.0):** `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`) are maintained centrally by the orchestrator after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. Activity-local state (TASK statuses, health scores) remains authored here.
 
 **Update health scores in `status.yaml`** (MANDATORY after every review). Compute and write the 8 health dimensions using the formulas from the spec:
 - `test_pass_rate`: (passing tests / total tests) × 10

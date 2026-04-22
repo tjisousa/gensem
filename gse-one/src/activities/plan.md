@@ -203,7 +203,7 @@ Initialize `.gse/plan.yaml` from the `plan.yaml` template (`plugin/templates/pla
 
 Present the plan for user approval (Gate). Set `status: active` once confirmed.
 
-> **State transition note (v0.53.0):** `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_sprint`, `current_phase`) are maintained **centrally by the orchestrator** after the activity closes — see `agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. Activities no longer write cursor fields directly, to avoid authority ambiguity with the central protocol. Activity-local state (backlog updates, activity_history reset, plan.yaml initialization) remains authored here.
+> **State transition note (v0.53.0):** `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_sprint`, `current_phase`) are maintained **centrally by the orchestrator** after the activity closes — see `plugin/agents/gse-orchestrator.md` — section "Sprint Plan Maintenance", and `gse-one-implementation-design.md` §10.1 — Sprint Plan Lifecycle. Activities no longer write cursor fields directly, to avoid authority ambiguity with the central protocol. Activity-local state (backlog updates, activity_history reset, plan.yaml initialization) remains authored here.
 
 ### Tactical Planning (`--tactical`)
 

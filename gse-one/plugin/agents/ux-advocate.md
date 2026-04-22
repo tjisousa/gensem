@@ -64,4 +64,4 @@ Severity levels (baseline):
 - **MEDIUM** — Significant friction or WCAG violation that degrades experience
 - **LOW** — Polish opportunity or enhancement for better user satisfaction
 
-Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5). The agent never emits CRITICAL directly.
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md § P15 Confidence Integration). The agent never emits CRITICAL directly.

@@ -2187,7 +2187,7 @@ This log is not shown to the user by default but is available via `/gse:status -
 │   │       └── release.md           # Release/delivery notes
 │   ├── dashboard.html               # Project health dashboard (generated, auto-refresh)
 │   ├── archive/                     # Archived sprints (older than current - 2)
-│   │   └── intent-vNN.md            # Previous intent versions after project pivot (§14.3 Step 5.7)
+│   │   └── intent-vNN.md            # Previous intent versions after project pivot (§14.3 Step 5 — Intent Capture, sub-point 8 "Pivot / re-capture")
 │   └── learning/                    # Learning notes (P14)
 │       ├── git-branching.md         # Personal course note on git branching
 │       ├── testing-strategies.md    # Personal course note on testing
@@ -3001,7 +3001,7 @@ When the project is **greenfield** (no source files after standard exclusions) a
 
 7. **Skip conditions (exempt):** Intent Capture is fully skipped in the following cases, regardless of any user verbal cue in step 6:
    - **Non-greenfield** — the project already contains source files (outside the standard exclusions). Intent is inferred from existing artefacts.
-   - **Adopt mode** — `/gse:go --adopt` has its own adoption flow; Intent Capture does not apply (see §3 Adopt Mode).
+   - **Adopt mode** — `/gse:go --adopt` has its own adoption flow; Intent Capture does not apply (see §14.2 — Adopting GSE-One on an Existing Project).
    - **Existing intent artefact** — a `docs/intent.md` with frontmatter `id: INT-*` is already present; the existing artefact is reused without re-capture.
 
 8. **Pivot / re-capture:** if at a later date the user wants to replace or evolve the intent (project pivot, scope reset), the existing `INT-001` is archived to `docs/archive/intent-vNN.md` and a new `INT-002` is created with the updated content. Downstream artefacts pointing to the old `INT-001` are not rewritten — the archive preserves the historical trace.

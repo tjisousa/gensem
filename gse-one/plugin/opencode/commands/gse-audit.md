@@ -136,7 +136,7 @@ Severity scale baseline: `HIGH` / `MEDIUM` / `LOW` (identical to review severity
 ## Invocation scenarios
 
 - **Manual by user** — `/gse:audit` invoked at any moment. Typical contexts: before `/gse:deliver` as a self-check, after suspicion of drift, periodic (weekly) review, after a training day to understand what happened.
-- **Auto by orchestrator (Phase 3)** — the orchestrator's *Methodology Audit Auto-Trigger Invariant* (documented in `src/agents/gse-orchestrator.md` after Phase 3 sub-proposition lands) detects drift signals in conversation history (user pushback patterns + coach correlation) and invokes `/gse:audit --auto`.
+- **Auto by orchestrator (Phase 3)** — the orchestrator's *Methodology Audit Auto-Trigger Invariant* (documented in `plugin/agents/gse-orchestrator.md` after Phase 3 sub-proposition lands) detects drift signals in conversation history (user pushback patterns + coach correlation) and invokes `/gse:audit --auto`.
 - **Scheduled / CI** — `plugin/tools/project-audit.py` can be invoked directly from CI or cron for headless execution, bypassing the activity workflow entirely.
 
 ## Interaction with other activities

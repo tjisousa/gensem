@@ -1718,7 +1718,7 @@ _Optional section. Lists ambiguities to resolve in downstream activities, each t
 
 **Exempt / skip conditions:**
 - Existing project (non-greenfield) → no Intent Capture; inferred implicit from existing artefacts.
-- Adopted project (`/gse:go --adopt`) → no Intent Capture; the adoption flow has its own analysis (see spec §3 Adopt Mode).
+- Adopted project (`/gse:go --adopt`) → no Intent Capture; the adoption flow has its own analysis (see spec §14.2 — Adopting GSE-One on an Existing Project).
 - User explicit skip ("I know the process", "no need") → no `intent.md` written, Inform note logged.
 - Existing `docs/intent.md` present → skip Intent Capture, use the existing artefact.
 

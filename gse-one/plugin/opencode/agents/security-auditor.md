@@ -72,4 +72,4 @@ Severity levels (baseline):
 - **MEDIUM** — Security weakness that should be addressed in current sprint
 - **LOW** — Hardening opportunity or defense-in-depth improvement
 
-Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md Step 3.5 / §Devil-Advocate P15 integration). The agent never emits CRITICAL directly.
+Note: CRITICAL is reserved for the P15 "Verified but wrong" escalation applied at review merge time (see review.md § P15 Confidence Integration / devil-advocate.md § Integration with P15 Confidence Signaling). The agent never emits CRITICAL directly.
