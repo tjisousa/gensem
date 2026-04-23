@@ -218,11 +218,22 @@ def ensure_dir(path):
 
 REGISTRY_FILE = Path.home() / ".gse-one"
 
+# Side-install location used ONLY by claude plugin mode. Claude Code's CLI
+# stores the plugin at an internal, version-dependent path that is not stable
+# for shell-script resolution. To keep `$(cat ~/.gse-one)/tools/X.py` working
+# regardless of claude-internals, install.py drops a self-contained copy of
+# the runtime-resolvable assets (tools/, templates/, references/, VERSION)
+# under ~/.gse-one.d/ and points the registry there. All other modes (cursor
+# plugin, cursor no-plugin, claude no-plugin, opencode plugin, opencode
+# no-plugin) point the registry at their own target install dir directly —
+# no side-install needed.
+GSE_ONE_DATA_DIR = Path.home() / ".gse-one.d"
+
 
 def _write_registry(plugin_path):
     """Write the plugin path to ~/.gse-one so tools can be resolved at runtime."""
     REGISTRY_FILE.write_text(str(Path(plugin_path).resolve()) + "\n", encoding="utf-8")
-    ok(f"Registry written: {REGISTRY_FILE}")
+    ok(f"Registry written: {REGISTRY_FILE} → {plugin_path}")
 
 
 def _remove_registry():
@@ -230,6 +241,45 @@ def _remove_registry():
     if REGISTRY_FILE.exists():
         REGISTRY_FILE.unlink()
         ok(f"Registry removed: {REGISTRY_FILE}")
+
+
+def _copy_common_assets(target):
+    """Copy tools/, templates/, references/, and VERSION into target.
+
+    These are the runtime-resolvable assets that skills reach via
+    `$(cat ~/.gse-one)/<subdir>/...`. Having them co-located with the registry
+    target makes every install mode self-contained — the gensem source repo
+    can be deleted after install and nothing breaks.
+
+    Idempotent: each subdir is removed-then-copied; VERSION is overwritten.
+    """
+    target = Path(target)
+    ensure_dir(target)
+    for subdir in ("tools", "templates", "references"):
+        src = PLUGIN_DIR / subdir
+        if src.is_dir():
+            copy_tree(src, target / subdir)
+    version_src = PLUGIN_DIR / "VERSION"
+    if version_src.exists():
+        shutil.copy2(version_src, target / "VERSION")
+
+
+def _remove_common_assets(target):
+    """Symmetric uninstaller for _copy_common_assets.
+
+    Removes any of tools/, templates/, references/, VERSION that exist under
+    target. Safe to call when target itself does not exist.
+    """
+    target = Path(target)
+    if not target.exists():
+        return
+    for subdir in ("tools", "templates", "references"):
+        d = target / subdir
+        if d.is_dir():
+            shutil.rmtree(d)
+    vf = target / "VERSION"
+    if vf.exists():
+        vf.unlink()
 
 
 # ---------------------------------------------------------------------------
@@ -506,7 +556,13 @@ def install_claude_plugin(scope):
             ok(f"Plugin installed (scope: {scope})")
             if result.stdout.strip():
                 info(result.stdout.strip())
-            _write_registry(PLUGIN_DIR)
+            # Side-install common runtime assets at ~/.gse-one.d/ so that
+            # shell-resolved paths remain stable even after the gensem source
+            # repo is deleted and regardless of where claude stores the plugin
+            # internally.
+            _copy_common_assets(GSE_ONE_DATA_DIR)
+            ok(f"Common assets copied to {GSE_ONE_DATA_DIR}")
+            _write_registry(GSE_ONE_DATA_DIR)
             tracker.add("Claude Code", "plugin", scope, plugin_path, "OK", f"v{VERSION}")
             return True
         else:
@@ -541,6 +597,11 @@ def uninstall_claude_plugin():
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
             ok("Plugin uninstalled from Claude Code")
+            # Symmetric removal of the side-install dropped at install time
+            _remove_common_assets(GSE_ONE_DATA_DIR)
+            if GSE_ONE_DATA_DIR.exists() and not any(GSE_ONE_DATA_DIR.iterdir()):
+                GSE_ONE_DATA_DIR.rmdir()
+                ok(f"Removed {GSE_ONE_DATA_DIR}")
             _remove_registry()
             tracker.add("Claude Code", "uninstall", "-", "-", "OK", "removed")
             return True
@@ -621,17 +682,9 @@ def install_claude_no_plugin(project_dir):
         agent_count += 1
     ok(f"Copied {agent_count} agents to {agents_dst}")
 
-    # Tools
-    tools_src = PLUGIN_DIR / "tools"
-    if tools_src.is_dir():
-        tools_dst = claude_dir / "tools"
-        copy_tree(tools_src, tools_dst)
-        ok(f"Copied tools to {tools_dst}")
-
-    # Templates
-    templates_dst = claude_dir / "templates"
-    copy_tree(PLUGIN_DIR / "templates", templates_dst)
-    ok(f"Copied templates to {templates_dst}")
+    # Common runtime assets (tools/, templates/, references/, VERSION)
+    _copy_common_assets(claude_dir)
+    ok(f"Copied common assets (tools, templates, references, VERSION) to {claude_dir}")
 
     # Hooks
     hooks_file = PLUGIN_DIR / "hooks" / "hooks.claude.json"
@@ -643,7 +696,9 @@ def install_claude_no_plugin(project_dir):
     _set_default_agent(settings_file, "gse-orchestrator")
     ok(f"Set default agent to gse-orchestrator")
 
-    _write_registry(PLUGIN_DIR)
+    # Registry points to the local install dir — self-contained, gensem source
+    # repo can be deleted after install and nothing breaks.
+    _write_registry(claude_dir)
 
     # Verify
     is_ok, detail = verify_no_plugin(project_dir, "claude")
@@ -681,15 +736,9 @@ def uninstall_claude_no_plugin(project_dir):
                 target.unlink()
         ok(f"Removed GSE-One agents from {agents_dir}")
 
-    templates_dir = claude_dir / "templates"
-    if templates_dir.exists():
-        shutil.rmtree(templates_dir)
-        ok(f"Removed {templates_dir}")
-
-    tools_dir = claude_dir / "tools"
-    if tools_dir.exists():
-        shutil.rmtree(tools_dir)
-        ok(f"Removed {tools_dir}")
+    # Symmetric removal of common runtime assets (tools, templates, references, VERSION)
+    _remove_common_assets(claude_dir)
+    ok(f"Removed common assets (tools, templates, references, VERSION) from {claude_dir}")
 
     info("Hooks and settings.json were not modified (manual cleanup if needed)")
     _remove_registry()
@@ -801,17 +850,9 @@ def install_cursor_no_plugin(project_dir):
         shutil.copy2(rule_file, rules_dst / rule_file.name)
     ok(f"Copied rule(s) to {rules_dst}")
 
-    # Tools
-    tools_src = PLUGIN_DIR / "tools"
-    if tools_src.is_dir():
-        tools_dst = cursor_dir / "tools"
-        copy_tree(tools_src, tools_dst)
-        ok(f"Copied tools to {tools_dst}")
-
-    # Templates
-    templates_dst = cursor_dir / "templates"
-    copy_tree(PLUGIN_DIR / "templates", templates_dst)
-    ok(f"Copied templates to {templates_dst}")
+    # Common runtime assets (tools/, templates/, references/, VERSION)
+    _copy_common_assets(cursor_dir)
+    ok(f"Copied common assets (tools, templates, references, VERSION) to {cursor_dir}")
 
     # Hooks
     hooks_src = PLUGIN_DIR / "hooks" / "hooks.cursor.json"
@@ -820,7 +861,9 @@ def install_cursor_no_plugin(project_dir):
         shutil.copy2(hooks_src, hooks_dst)
         ok(f"Copied hooks to {hooks_dst}")
 
-    _write_registry(PLUGIN_DIR)
+    # Registry points to the local install dir — self-contained, gensem source
+    # repo can be deleted after install and nothing breaks.
+    _write_registry(cursor_dir)
 
     # Verify
     is_ok, detail = verify_no_plugin(project_dir, "cursor")
@@ -838,11 +881,15 @@ def uninstall_cursor_no_plugin(project_dir):
 
     cursor_dir = Path(project_dir) / ".cursor"
 
-    for subdir in ("commands", "agents", "templates", "tools"):
+    for subdir in ("commands", "agents"):
         d = cursor_dir / subdir
         if d.exists():
             shutil.rmtree(d)
             ok(f"Removed {d}")
+
+    # Symmetric removal of common runtime assets (tools, templates, references, VERSION)
+    _remove_common_assets(cursor_dir)
+    ok(f"Removed common assets (tools, templates, references, VERSION) from {cursor_dir}")
 
     rules_dir = cursor_dir / "rules"
     if rules_dir.exists():
@@ -886,10 +933,17 @@ def install_opencode_plugin(env):
     ensure_dir(target)
 
     counts = _opencode_copy_tree(OPENCODE_PLUGIN_DIR, target)
+    # Common runtime assets (tools/, templates/, references/, VERSION) —
+    # needed because opencode skills shell out to $(cat ~/.gse-one)/tools/...
+    # and templates/references are consulted by activities at runtime.
+    _copy_common_assets(target)
+    ok(f"Copied common assets (tools, templates, references, VERSION) to {target}")
     _merge_agents_md(target / "AGENTS.md", OPENCODE_PLUGIN_DIR / "AGENTS.md")
     _merge_opencode_json(target / "opencode.json", OPENCODE_PLUGIN_DIR / "opencode.json")
 
-    _write_registry(PLUGIN_DIR)
+    # Registry points to the opencode install dir — self-contained, gensem source
+    # repo can be deleted after install and nothing breaks.
+    _write_registry(target)
 
     detail = (f"{counts['skills']} skills, {counts['commands']} commands, "
               f"{counts['agents']} agents, plugin+AGENTS.md")
@@ -910,6 +964,8 @@ def uninstall_opencode_plugin(env):
         return True
 
     removed = _opencode_remove_content(target)
+    # Symmetric removal of common runtime assets (tools, templates, references, VERSION)
+    _remove_common_assets(target)
     _strip_agents_md_block(target / "AGENTS.md")
     _strip_opencode_json_marker(target / "opencode.json")
 
@@ -942,12 +998,19 @@ def install_opencode_no_plugin(project_dir):
     ensure_dir(target)
 
     counts = _opencode_copy_tree(OPENCODE_PLUGIN_DIR, target)
+    # Common runtime assets (tools/, templates/, references/, VERSION) —
+    # needed because opencode skills shell out to $(cat ~/.gse-one)/tools/...
+    # and templates/references are consulted by activities at runtime.
+    _copy_common_assets(target)
+    ok(f"Copied common assets (tools, templates, references, VERSION) to {target}")
     # AGENTS.md lives at the project root in no-plugin mode (opencode convention)
     _merge_agents_md(project_dir / "AGENTS.md", OPENCODE_PLUGIN_DIR / "AGENTS.md")
     # opencode.json also at project root
     _merge_opencode_json(project_dir / "opencode.json", OPENCODE_PLUGIN_DIR / "opencode.json")
 
-    _write_registry(PLUGIN_DIR)
+    # Registry points to the .opencode install dir — self-contained, gensem source
+    # repo can be deleted after install and nothing breaks.
+    _write_registry(target)
 
     detail = (f"{counts['skills']} skills, {counts['commands']} commands, "
               f"{counts['agents']} agents, plugin+AGENTS.md")
@@ -970,6 +1033,8 @@ def uninstall_opencode_no_plugin(project_dir):
         return True
 
     removed = _opencode_remove_content(target)
+    # Symmetric removal of common runtime assets (tools, templates, references, VERSION)
+    _remove_common_assets(target)
     _strip_agents_md_block(project_dir / "AGENTS.md")
     _strip_opencode_json_marker(project_dir / "opencode.json")
 

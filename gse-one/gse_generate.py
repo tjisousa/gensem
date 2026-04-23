@@ -278,6 +278,16 @@ def generate(clean: bool = False) -> None:
     else:
         print(f"  WARNING: plugin/tools/ not found\n")
 
+    # 4.6. Unified VERSION file at plugin/ root
+    # Written here so every install target (claude .claude/, cursor .cursor/,
+    # opencode .opencode/, ~/.config/opencode/, ~/.gse-one.d/ side-install for
+    # claude plugin) can distribute a single version source, readable by skills
+    # uniformly as `cat "$(cat ~/.gse-one)/VERSION"` regardless of platform or
+    # install mode.
+    print("VERSION file:")
+    write_file(PLUGIN / "VERSION", f"{VERSION}\n")
+    print()
+
     # 5. Manifests
     print("Manifests:")
     claude_manifest = {
@@ -776,6 +786,19 @@ def verify() -> None:
     print(f"  Agents:      {agents}/{len(SPECIALIZED_AGENTS)} specialized + orchestrator={'OK' if orchestrator else 'MISSING'}")
     print(f"  Templates:   {templates}")
     print(f"  References:  {references}")
+
+    # Unified VERSION file — consumed by skills across all 6 install modes
+    version_file = PLUGIN / "VERSION"
+    if version_file.exists():
+        vf_content = version_file.read_text(encoding="utf-8").strip()
+        if vf_content == VERSION:
+            print(f"  VERSION:     OK ({vf_content})")
+        else:
+            print(f"  VERSION:     MISMATCH (file={vf_content}, expected={VERSION})")
+            errors.append(f"plugin/VERSION mismatch: {vf_content} != {VERSION}")
+    else:
+        print(f"  VERSION:     MISSING")
+        errors.append("Missing plugin/VERSION file")
 
     # Hand-maintained tools (not regenerated) — presence is critical because
     # hooks and skills invoke them at runtime.

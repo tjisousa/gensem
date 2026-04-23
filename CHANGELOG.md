@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.61.0] - 2026-04-23
+
+Layers impacted: **implementation** (`install.py` 6-mode refactor + `gse_generate.py` VERSION writer + `src/activities/go.md` + `src/activities/hug.md` branch collapse), **documentation** (`CLAUDE.md` Tool architecture section rewrite + Activity path reference convention clarification).
+
+**Minor release — registry model unification + install-mode self-containment.** Reworks `~/.gse-one` to point to the install target in all 6 install modes (3 platforms × plugin/no-plugin), instead of the gensem source repo. Adds a unified `plugin/VERSION` source file. Introduces `~/.gse-one.d/` side-install for claude plugin mode. Collapses per-platform branches in `go.md` and `hug.md` skills. Unblocks an opencode no-plugin student install that had no access to Python tools because `_opencode_copy_tree` omitted `tools/`, `templates/`, `references/` — all three now distributed symmetrically across all three no-plugin modes (claude + cursor were also missing `references/`; fixed in the same pass).
+
+**Rationale.** Before v0.61.0, only cursor plugin mode was self-contained — the registry pointed to a full copy of `PLUGIN_DIR` at `~/.cursor/plugins/local/gse-one/`. The other 5 modes pointed `~/.gse-one` at the gensem source repo (`<path>/gse-one/plugin/`), so skills would break silently if a student cloned gensem just to run the installer and then moved/deleted the repo. The new model makes every install mode self-contained: after install, the gensem source repo can be deleted without breaking any skill. Bonus: a unified `VERSION` file at the registry root replaces three per-platform manifest reads (`.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json`, `opencode/opencode.json`) with a single `cat "$(cat ~/.gse-one)/VERSION"` — removing a long-standing 3-branch conditional in `hug.md`.
+
+### Added
+
+- **`gse-one/plugin/VERSION`** — new generator-managed 1-line text file at the plugin root, carrying the current version. Distributed by `install.py` to every install target so skills can read the plugin version uniformly via `cat "$(cat ~/.gse-one)/VERSION"`. Replaces the previous 3-branch manifest-read pattern (claude `.claude-plugin/plugin.json` / cursor `.cursor-plugin/plugin.json` / opencode `opencode/opencode.json`) that only resolved correctly in plugin mode.
+- **`~/.gse-one.d/`** — new side-install directory used ONLY by claude plugin mode. Contains `tools/`, `templates/`, `references/`, `VERSION`. `~/.gse-one` registry file points here in claude plugin mode, decoupling shell-path resolution from claude's opaque plugin storage.
+- **`_copy_common_assets(target)` and `_remove_common_assets(target)` helpers in `install.py`** — single point of truth for the 4 runtime-resolvable assets distributed in every install mode (`tools/`, `templates/`, `references/`, `VERSION`). Called by all 6 install functions and their symmetric uninstallers.
+- **`CLAUDE.md` — "Tool architecture" section rewrite** — full per-mode table documenting the new registry model, the side-install `~/.gse-one.d/` rationale, and the generic read patterns for tools / templates / references / VERSION.
+
+### Changed
+
+- **`install.py` — all 6 install modes** refactored to write `~/.gse-one` pointing to the install target (was: `PLUGIN_DIR` source repo in 5 of 6 modes). Registry targets:
+  - `claude plugin` → `~/.gse-one.d/` (new side-install)
+  - `claude no-plugin` → `<project>/.claude/`
+  - `cursor plugin` → `~/.cursor/plugins/local/gse-one/` (unchanged — already self-contained since v0.x)
+  - `cursor no-plugin` → `<project>/.cursor/`
+  - `opencode plugin` → `~/.config/opencode/`
+  - `opencode no-plugin` → `<project>/.opencode/`
+- **`install.py` — `_opencode_copy_tree` callers** extended with `_copy_common_assets(target)` call so opencode plugin and opencode no-plugin now distribute `tools/`, `templates/`, `references/`, `VERSION` (was: only `skills/`, `commands/`, `agents/`, `plugins/`). This is the direct fix for the student-install issue where opencode no-plugin had no Python support for the dashboard.
+- **`install.py` — claude no-plugin and cursor no-plugin** now also distribute `references/` (was: only `tools/` + `templates/`). Fixes a latent bug where `deploy-operator.md` agent referenced `references/hetzner-infrastructure.md` and `references/ssh-operations.md` in agents that would only resolve if the gensem repo stayed accessible.
+- **`gse-one/gse_generate.py`** — new step 4.6 writes `plugin/VERSION` (a 1-line file containing the current version). Verification step (`--verify`) gained a `VERSION: OK (X.Y.Z)` check that errors out on missing file or mismatch.
+- **`gse-one/src/activities/go.md`** — Activity Execution Fidelity Invariant table collapsed from 3 branches (claude / cursor / opencode) to 2 (claude+opencode both use `skills/<name>/SKILL.md`, cursor uses `commands/gse-<name>.md`). Claude and opencode now share the same registry sub-path — a consequence of the registry now pointing to a mono-platform install target.
+- **`gse-one/src/activities/hug.md` Step 4 — `.gse/` creation**: plugin-version stamping collapsed from 3 platform-specific manifest reads to a single `cat "$(cat ~/.gse-one)/VERSION"` call. Simpler, platform-agnostic, works in plugin AND no-plugin modes.
+- **`CLAUDE.md` — "Activity path reference conventions"** updated: `$(cat ~/.gse-one)/X` form description refreshed to reflect the target-pointing registry and the 6 possible resolution roots.
+
+### Fixed
+
+- **opencode no-plugin installation now actually ships Python tools, templates, and references** — prior versions copied only `skills/`, `commands/`, `agents/`, `plugins/` into `.opencode/`, leaving `$(cat ~/.gse-one)/tools/dashboard.py` etc. unresolved unless the gensem source repo stayed on disk at its install-time path. The opencode-no-plugin student install that triggered this release reported "no Python support for the dashboard" for exactly this reason.
+- **Latent `references/` distribution gap in claude no-plugin and cursor no-plugin** — `install.py` copied `tools/` and `templates/` but not `references/`, so `deploy-operator.md` citations to `references/hetzner-infrastructure.md` / `references/ssh-operations.md` would only resolve via the gensem source repo. Fixed by routing all 3 no-plugin modes through `_copy_common_assets()`.
+- **Version-stamping broken in 4 of 6 install modes** (all no-plugin modes + opencode plugin) — `hug.md` Step 4 read plugin version from a platform-specific manifest that only existed in some modes. Replaced with a unified `VERSION` file distributed to all 6 targets.
+
+### Audit trail
+
+- **Out-of-series release**, triggered by a post-v0.60.1 student support incident: a participant installed the plugin in opencode no-plugin mode inside `.opencode/` and reported no access to the dashboard. Root-cause analysis revealed the broader registry asymmetry described above (5 of 6 modes not self-contained; `references/` missing from all no-plugin; version-stamping broken in 4 of 6).
+- **Scope discipline** — the release bundles: (1) the student-unblocking fix (opencode no-plugin tools/templates/references), (2) the latent `references/` fix (claude + cursor no-plugin), (3) the registry-target unification (all 6 modes), (4) the VERSION file unification, (5) the `hug.md` + `go.md` branch collapse. All five are coherent under the same design decision ("installs must be self-contained"); splitting the release would have left intermediate states with partial guarantees.
+- **Test stability** — 72-test unit suite green before and after. Body parity (orchestrator vs .mdc vs AGENTS.md) identical. External-docs consistency check passes (install.py retains the "10 specialized agents" phrase per `verify_external_docs`).
+- **Three-direction refinement framing (per CLAUDE.md Post-audit fix workflow)** — this release is a mix: **downward** (install.py aligns to the new design decision), **upward** (CLAUDE.md catches up to document the new convention), and **retraction** (the 3-branch manifest-version-read pattern in `hug.md` is replaced by a unified read, retiring two dead branches per platform).
+
 ## [0.60.1] - 2026-04-22
 
 Layers impacted: **design** (§5.18 Subdomain derivation rule + motivating example), **implementation** (activities/deploy.md Step -1 + Step 0 URL announcements; agents/deploy-operator.md status-table example; templates/deploy-env-training.example header comment + examples; tests/test_deploy.py `test_training_mode` assertion).
