@@ -36,7 +36,7 @@ Common to all 11: YAML frontmatter with `name` + `description`; opening `**Role:
 ### Build pipeline — mandatory for every commit to main
 Every commit to main MUST follow this full pipeline:
 1. **Bump** `VERSION` (patch for fixes, minor for features)
-2. **Update `CHANGELOG.md`** — add a `## [X.Y.Z] - YYYY-MM-DD` block at the top with `### Added/Changed/Fixed/Removed` sections per Keep a Changelog convention (plus an optional "Layers impacted" line)
+2. **Update `CHANGELOG.md`** — add a `## [X.Y.Z] - YYYY-MM-DD` block at the top with `### Added/Changed/Fixed/Removed` sections per Keep a Changelog convention
 3. **Generate** — `cd gse-one && python3 gse_generate.py --verify`
 4. **Add all** — VERSION, CHANGELOG.md, manifests, all regenerated files in `plugin/`
 5. **Commit** — with `feat:`, `fix:`, `docs:`, or `chore:` prefix, and `vX.Y.Z —` pattern in the subject
@@ -47,6 +47,23 @@ Never skip a step. Never commit without regenerating. Never push without bumping
 - Never edit files in `gse-one/plugin/` directly except `plugin/tools/` — the generator overwrites everything else from `src/`.
 - Changes to activities go in `src/activities/`, changes to agents go in `src/agents/`.
 - The orchestrator and .mdc rule are generated from the same source — body parity is verified automatically.
+
+#### CHANGELOG style discipline (adopted v0.62.1)
+
+CHANGELOG entries must stay scan-friendly. The commit message (`git log`) carries the "why" and the "how"; spec/design/CLAUDE.md carry the methodological rationale. The CHANGELOG answers only "what changed".
+
+**Rules for new entries:**
+
+1. **Header only**: `## [X.Y.Z] - YYYY-MM-DD`. No `Layers impacted: ...` line — the sections below make it explicit by listing the changed files.
+2. **Optional 1-sentence intro in italics** (≤30 words), only if a release carries a non-obvious framing. Default: no intro.
+3. **Sections limited to**: `### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Deprecated`, `### Security`. No `### Rationale`, `### Design decisions`, `### Methodology notes`, `### Verification`, `### Notes`, `### Audit trail`, `### Notes for users`, `### Deferred`.
+4. **Bullets ≤ 25 words each**, single line, verb-first (`Added X`, `Changed Y`, `Fixed Z`). No multi-paragraph bullets. No embedded "Rationale:" sub-explanation.
+5. **No tables, no synthesis blocks spanning multiple releases**. If a synthesis adds value (release-series summary, post-audit report, migration guide), create a dedicated file under `docs/post-audit-reports/<date>-<theme>.md` and reference it from the CHANGELOG entry in one line.
+6. **No enumeration fichier-par-fichier avec numéros de ligne**. Use git diff / git log for that. Summarize the change at the semantic level.
+
+**Budget**: aim for ≤ 15 lines per release. Exceptionally up to 25 for a genuinely multi-facet release; beyond that, migrate the detail to `docs/post-audit-reports/`.
+
+**Why**: pre-v0.62, releases frequently reached 30-50 lines with prose introductions, section meta (rationale, notes, verification, audit trail), and exhaustive bullet-level detail. The triple redundancy (commit / spec / CHANGELOG) alourdit le fichier sans bénéfice lecteur. The v0.62.1 retroactive condensation reduced v0.48.0-v0.62.0 from ~950 to ~290 lines (-69%) without information loss — the migrated content lives in `docs/post-audit-reports/` for audit-trail preservation.
 
 ### Tool architecture — registry-based resolution, self-contained installs
 

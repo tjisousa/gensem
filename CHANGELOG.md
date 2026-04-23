@@ -5,953 +5,394 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.62.0] - 2026-04-23
+## [0.62.1] - 2026-04-23
 
-Layers impacted: **maintainer tooling** (`gse-one/audit.py` +5 deterministic categories, `.claude/audit-jobs.json` +5 jobs, `.claude/commands/gse-audit.md` category F documentation, `.claude/agents/methodology-auditor.md` Principle 11), **methodology** (`src/activities/hug.md` multilingual marker relocation).
-
-**Minor release — audit category F (Distribution hygiene).** Introduces a sixth audit category treating the distributed plugin (`gse-one/plugin/`) as a finished product with stricter invariants than the source tree. Five deterministic checks run via `audit.py` (no LLM sub-agent), fast enough for CI. Complements the existing A-E categories which target internal cohesion and strategic critique — category F targets production-readiness of the distributed artefact.
-
-**Rationale.** The existing 21 LLM jobs + 12 Python deterministic categories focused on internal coherence (spec ↔ design ↔ impl) and uniformity within source layers. Nothing treated the plugin as a distribution target whose quality bar is higher than the source. The targeted French-language audit (v0.61.1) revealed this structural gap: residual non-English content persisted in the distributed plugin for months without any automated detection. Category F fills the gap by encoding 5 distribution invariants (language, secrets, personal info, debug residue, runtime path integrity) as deterministic Python checks, turning one-off manual sweeps into continuous automated guardrails.
+*CHANGELOG style discipline adopted + retroactive condensation of verbose v0.48.0–v0.62.0 entries.*
 
 ### Added
-
-- **`gse-one/audit.py` — 5 new deterministic audit functions** in Category F (Distribution hygiene):
-  - `audit_plugin_language()` — scans `plugin/**/*.{md,mdc,py,ts,json,yaml,yml}` for accented Latin characters outside marked multilingual zones. Zone semantics: opened by `<!-- multilingual by design: <reason> -->`, closed by explicit `<!-- /multilingual by design -->` OR by the next markdown header (implicit). Language-selection UI labels (Français/Español/日本語/Deutsch/English) and the four Step 0 multilingual fallback prompts are allow-listed unconditionally.
-  - `audit_plugin_secrets()` — scans for leaked credentials: PEM private keys, OpenAI/GitHub/Slack/AWS/Google API keys, Bearer tokens, assigned secrets (`api_key = "..."`). Placeholder allow-list: `placeholder`, `example`, `YOUR_`, `<tag>`, `abc<digits>`, `test<digits>`, `xyz`, `live-abc`, `sample-`, `changeme`. Path-level allow-list: `security-auditor.md` (Claude + opencode) — these agents document detection patterns by role.
-  - `audit_plugin_personal()` — scans for maintainer-identity leaks: `/Users/<name>`, `/Volumes/<label>`, `nicolas.guelfi`, `@laposte.net`, `@uni.lu`, Dropbox workspace hints. Linux service users allow-listed (deploy, root, ubuntu, admin, www-data, app, user, ec2-user, debian, pi, git, docker, jenkins, postgres, mysql, redis, nginx, apache) — these are generic infrastructure conventions, not personal paths.
-  - `audit_plugin_debug()` — scans Python/TypeScript code for debug residue: `print()` / `pprint()` outside CLI tools (dashboard.py, deploy.py, project-audit.py), `console.log/debug/info`, dead branches (`if False:`, `if 0:`, `if __name__ == "debug":`), commented-out code blocks of 4+ consecutive lines matching a code heuristic (starts with `# `/`// ` AND contains `=()/{};`).
-  - `audit_plugin_runtime_paths()` — scans markdown/code for `$(cat ~/.gse-one)/<subpath>` references and validates each top-level subpath against the install.py distribution allow-list (tools, templates, references, VERSION, skills, commands, agents, rules, hooks, opencode).
-- **`.claude/audit-jobs.json` — 5 new Category F job entries** mirroring the Python checks for LLM verification passes (Principle 10 structured verdict): `plugin-language-hygiene`, `plugin-secret-leak-hygiene`, `plugin-personal-leak-hygiene`, `plugin-debug-residue-hygiene`, `plugin-runtime-path-integrity`.
-- **`.claude/agents/methodology-auditor.md` — Principle 11 (Product-vs-source dualism).** Documents the distinction between source-oriented audit (Principles 1-10) and distribution-oriented audit (Category F), with guidance for verification passes on Category F findings.
-- **`.claude/commands/gse-audit.md` — Category F row in the scope table** + `--distribution-only` flag documentation + intro paragraph on F semantics and CI-friendliness.
-- **`src/activities/hug.md` Step 0 subsection marker relocation** — the `<!-- multilingual by design -->` marker moved from Step 0 substep 3 to the Step 0 header, so the new exclusion-zone semantic (extends until the next markdown header) now covers the entire Step 0 subsection including the English/Français/Español/Deutsch list in substep 2 and the French text fallback label at line 64.
+- CLAUDE.md "CHANGELOG style discipline" subsection (Build pipeline): no `Layers impacted` header, no prose intro, no meta sections (Rationale / Notes / Audit trail / Verification), bullets ≤25 words, budget ≤15 lines per release.
+- `docs/post-audit-reports/2026-04-22-series-v0.58-v0.60.md`: preserves the 9-cluster synthesis migrated from inline v0.60.0 CHANGELOG.
 
 ### Changed
+- Condensed v0.48.0 → v0.62.0 CHANGELOG entries (34 releases) from ~950 lines to ~300 lines (-68%). Content preserved at the semantic level; rationale + meta sections migrated to commit messages, spec/design, or `docs/post-audit-reports/`.
 
-- **Audit engine CATEGORIES list** extended from 12 to 17 deterministic categories (adds: plugin_language, plugin_secrets, plugin_personal, plugin_debug, plugin_runtime_paths).
-- **`/gse-audit` catalog** extended from 21 to 26 jobs across 6 categories (was 5).
-- **`gse-audit.md` description** updated: "Orchestrates the Python deterministic engine (audit.py) + 26 parallel LLM sub-agents" (was: 21).
+## [0.62.0] - 2026-04-23
 
-### Verification
+### Added
+- Audit category F "Distribution hygiene": 5 deterministic checks — language, secrets, personal leaks, debug residue, runtime path integrity.
+- `/gse-audit --distribution-only` flag.
+- Principle 11 "Product-vs-source dualism" in methodology-auditor.md.
+- Explicit `<!-- /multilingual by design -->` end marker + header-based implicit closure in hug.md Step 0.
 
-Smoke test (`python3 gse-one/audit.py --category plugin_language --category plugin_secrets --category plugin_personal --category plugin_debug --category plugin_runtime_paths`) on the v0.61.1 baseline returns 5/5 INFO findings:
-- `plugin_language` → plugin/ is English-monolingual (excluded zones respected)
-- `plugin_secrets` → no secret/credential patterns detected
-- `plugin_personal` → no maintainer-personal paths/identities
-- `plugin_debug` → no debug residue
-- `plugin_runtime_paths` → all `$(cat ~/.gse-one)/X` references valid (7 distinct roots used)
-
-### Methodology notes
-
-- Category F is the first non-directional category orthogonal to the source/spec/design axis — it audits the distribution artefact as a product, not as a projection of a higher layer. This matches a legitimate third dimension of quality absent from the original A-E taxonomy.
-- All 5 checks are deterministic (Python, no LLM). Total runtime <5s. Suitable for CI gating via `--fail-on error`.
-- The secret-detection allow-list uses heuristic patterns (abc123, test123, etc.) rather than a path allow-list to keep future edits of `security-auditor.md` detectable if real secrets ever slip in. Path allow-list applies only to `security-auditor.md` itself (and opencode mirror) because its role is to document detection patterns by design.
-- Principle 11 makes explicit that a finding tolerable in `src/` may be an error in `plugin/` — the distribution bar is higher.
+### Changed
+- `audit.py` CATEGORIES extended 12→17; `/gse-audit` catalog 21→26 jobs across 6 categories.
 
 ## [0.61.1] - 2026-04-23
 
-Layers impacted: **documentation** (`src/activities/{hug,compound,review}.md`, `src/agents/gse-orchestrator.md`), **implementation** (`gse_generate.py` comments, `plugin/tools/dashboard.py` comment).
-
-**Patch release — i18n hygiene sweep.** Removes residual French prose from the distributed plugin in six cohesive clusters identified by a targeted language audit. No schema, no behavior, no user-facing invariant changes — purely cosmetic/documentation alignment in preparation for broader distribution.
-
 ### Added
-
-- **`src/activities/hug.md` Step 0 substep 3** — inline marker `<!-- multilingual by design: pre-language-selection UI -->` above the two multilingual example blocks (AskUser template + text fallback). Documents the intentional multilingual content at the one site of the plugin where the user has not yet chosen a language, protecting these blocks from future audit passes that would wrongly flag them as "untranslated".
+- `<!-- multilingual by design: pre-language-selection UI -->` marker in hug.md Step 0.
 
 ### Changed
-
-- **`src/agents/gse-orchestrator.md` Beginner term mapping table (lines 252-255)** — replaced the four French example strings with English equivalents while keeping the ✅/❌ emojis for visual UX: `"✅ vérifié"` → `"✅ verified"`, `"❌ échec"` → `"❌ failed"`, `"✅ corrigé"` → `"✅ corrected"`, `"vérification automatique"` → `"automated verification"`. Aligns the 4 outliers with the 15+ other rows of the table (all English paraphrases).
-- **`src/activities/hug.md` beginner-flow example trace (lines 121-132)** — full translation of the illustrative transcript from French to English. Preserves the pedagogical value (illustrates the 1-question-at-a-time cadence mechanic in a realistic setting) while removing the implicit "beginner ⇒ francophone" bias. The adjacent expert-flow example was already in English — the two examples are now symmetric.
-- **`src/activities/hug.md` Step 5.5 beginner dashboard message (line 298)**, **`src/activities/compound.md` beginner dashboard message (line 264)**, **`src/activities/review.md` beginner dashboard message (line 267)** — three illustrative "For beginners" phrases translated from French to English, each suffixed with `(adapt wording to the user's language)`. Removes the dissymmetry where these three activities showed beginner examples in French while ~15 other activities showed them in English.
-- **`AMÉL` prefix renamed to `ENH`** across the corpus (project-internal follow-up identifier, stood for "AMÉLioration"). Consistent with the other anglophone methodology prefixes (TASK, LRN, DEC, RVW, GUARD). Five occurrences updated:
-  - `gse_generate.py:379` — dashboard sync hook docstring
-  - `gse_generate.py:574` — opencode plugin generator docstring
-  - `gse_generate.py:624` — emitted TypeScript comment in `plugin/opencode/plugins/gse-guardrails.ts`
-  - `src/agents/gse-orchestrator.md:88` — "tracked as AMÉL follow-ups" prose
-  - `plugin/tools/dashboard.py:63` — debounce helpers section comment
+- Orchestrator beginner term mapping: 4 French examples replaced with English equivalents (✅/❌ emojis retained).
+- hug.md beginner-flow trace: translated FR→EN (adjacent expert-flow was already EN).
+- 3 "For beginners" dashboard messages (compound, review, hug) aligned in English with `(adapt wording to the user's language)` suffix.
+- Internal prefix `AMÉL` renamed to `ENH` (5 occurrences across `gse_generate.py`, `gse-orchestrator.md`, `dashboard.py`).
 
 ### Removed
-
-- **`src/activities/hug.md` git identity Gate (line 224)** — removed the French confirmation example `"c'est fait"` from the list of user confirmation cues, leaving only `("done" / "ok")`. The LLM understands all languages natively; enumerating one is inconsistent (no Spanish or German equivalents were listed).
-
-### Methodology notes
-
-- No false positive was detected in this audit cycle — all 6 clusters validated directly by the maintainer. No `audit.py` detector refinement needed.
-- Meta-1 (Anti-rigidity discipline) explicitly preserved Cluster 1 (pre-language-selection UI): the remaining multilingual content in `hug.md:42-67` is intentional and documented inline.
-- Pre-1.0 backward-compatibility waiver applies: the `AMÉL` → `ENH` rename is an internal-identifier change with no user-facing contract impact. Not a breaking change under SemVer; no migration path needed.
+- French cue `"c'est fait"` from hug.md git identity Gate (kept `"done"` / `"ok"`).
 
 ## [0.61.0] - 2026-04-23
 
-Layers impacted: **implementation** (`install.py` 6-mode refactor + `gse_generate.py` VERSION writer + `src/activities/go.md` + `src/activities/hug.md` branch collapse), **documentation** (`CLAUDE.md` Tool architecture section rewrite + Activity path reference convention clarification).
-
-**Minor release — registry model unification + install-mode self-containment.** Reworks `~/.gse-one` to point to the install target in all 6 install modes (3 platforms × plugin/no-plugin), instead of the gensem source repo. Adds a unified `plugin/VERSION` source file. Introduces `~/.gse-one.d/` side-install for claude plugin mode. Collapses per-platform branches in `go.md` and `hug.md` skills. Unblocks an opencode no-plugin student install that had no access to Python tools because `_opencode_copy_tree` omitted `tools/`, `templates/`, `references/` — all three now distributed symmetrically across all three no-plugin modes (claude + cursor were also missing `references/`; fixed in the same pass).
-
-**Rationale.** Before v0.61.0, only cursor plugin mode was self-contained — the registry pointed to a full copy of `PLUGIN_DIR` at `~/.cursor/plugins/local/gse-one/`. The other 5 modes pointed `~/.gse-one` at the gensem source repo (`<path>/gse-one/plugin/`), so skills would break silently if a student cloned gensem just to run the installer and then moved/deleted the repo. The new model makes every install mode self-contained: after install, the gensem source repo can be deleted without breaking any skill. Bonus: a unified `VERSION` file at the registry root replaces three per-platform manifest reads (`.claude-plugin/plugin.json`, `.cursor-plugin/plugin.json`, `opencode/opencode.json`) with a single `cat "$(cat ~/.gse-one)/VERSION"` — removing a long-standing 3-branch conditional in `hug.md`.
-
 ### Added
-
-- **`gse-one/plugin/VERSION`** — new generator-managed 1-line text file at the plugin root, carrying the current version. Distributed by `install.py` to every install target so skills can read the plugin version uniformly via `cat "$(cat ~/.gse-one)/VERSION"`. Replaces the previous 3-branch manifest-read pattern (claude `.claude-plugin/plugin.json` / cursor `.cursor-plugin/plugin.json` / opencode `opencode/opencode.json`) that only resolved correctly in plugin mode.
-- **`~/.gse-one.d/`** — new side-install directory used ONLY by claude plugin mode. Contains `tools/`, `templates/`, `references/`, `VERSION`. `~/.gse-one` registry file points here in claude plugin mode, decoupling shell-path resolution from claude's opaque plugin storage.
-- **`_copy_common_assets(target)` and `_remove_common_assets(target)` helpers in `install.py`** — single point of truth for the 4 runtime-resolvable assets distributed in every install mode (`tools/`, `templates/`, `references/`, `VERSION`). Called by all 6 install functions and their symmetric uninstallers.
-- **`CLAUDE.md` — "Tool architecture" section rewrite** — full per-mode table documenting the new registry model, the side-install `~/.gse-one.d/` rationale, and the generic read patterns for tools / templates / references / VERSION.
+- `plugin/VERSION` — generator-managed 1-line file distributed to every install target.
+- `~/.gse-one.d/` side-install directory for Claude Code plugin mode.
+- `_copy_common_assets()` / `_remove_common_assets()` helpers in `install.py`.
 
 ### Changed
-
-- **`install.py` — all 6 install modes** refactored to write `~/.gse-one` pointing to the install target (was: `PLUGIN_DIR` source repo in 5 of 6 modes). Registry targets:
-  - `claude plugin` → `~/.gse-one.d/` (new side-install)
-  - `claude no-plugin` → `<project>/.claude/`
-  - `cursor plugin` → `~/.cursor/plugins/local/gse-one/` (unchanged — already self-contained since v0.x)
-  - `cursor no-plugin` → `<project>/.cursor/`
-  - `opencode plugin` → `~/.config/opencode/`
-  - `opencode no-plugin` → `<project>/.opencode/`
-- **`install.py` — `_opencode_copy_tree` callers** extended with `_copy_common_assets(target)` call so opencode plugin and opencode no-plugin now distribute `tools/`, `templates/`, `references/`, `VERSION` (was: only `skills/`, `commands/`, `agents/`, `plugins/`). This is the direct fix for the student-install issue where opencode no-plugin had no Python support for the dashboard.
-- **`install.py` — claude no-plugin and cursor no-plugin** now also distribute `references/` (was: only `tools/` + `templates/`). Fixes a latent bug where `deploy-operator.md` agent referenced `references/hetzner-infrastructure.md` and `references/ssh-operations.md` in agents that would only resolve if the gensem repo stayed accessible.
-- **`gse-one/gse_generate.py`** — new step 4.6 writes `plugin/VERSION` (a 1-line file containing the current version). Verification step (`--verify`) gained a `VERSION: OK (X.Y.Z)` check that errors out on missing file or mismatch.
-- **`gse-one/src/activities/go.md`** — Activity Execution Fidelity Invariant table collapsed from 3 branches (claude / cursor / opencode) to 2 (claude+opencode both use `skills/<name>/SKILL.md`, cursor uses `commands/gse-<name>.md`). Claude and opencode now share the same registry sub-path — a consequence of the registry now pointing to a mono-platform install target.
-- **`gse-one/src/activities/hug.md` Step 4 — `.gse/` creation**: plugin-version stamping collapsed from 3 platform-specific manifest reads to a single `cat "$(cat ~/.gse-one)/VERSION"` call. Simpler, platform-agnostic, works in plugin AND no-plugin modes.
-- **`CLAUDE.md` — "Activity path reference conventions"** updated: `$(cat ~/.gse-one)/X` form description refreshed to reflect the target-pointing registry and the 6 possible resolution roots.
+- `install.py` all 6 install modes now write `~/.gse-one` pointing to the install target (was: gensem source repo in 5 of 6 modes). Installs are self-contained.
+- opencode (both modes) and claude/cursor no-plugin now distribute `tools/`, `templates/`, `references/`, `VERSION` uniformly.
+- `go.md` Activity Execution Fidelity table collapsed 3→2 branches.
+- `hug.md` Step 4: plugin-version read unified to `cat "$(cat ~/.gse-one)/VERSION"`.
+- CLAUDE.md "Tool architecture" section rewritten with per-mode registry table.
 
 ### Fixed
-
-- **opencode no-plugin installation now actually ships Python tools, templates, and references** — prior versions copied only `skills/`, `commands/`, `agents/`, `plugins/` into `.opencode/`, leaving `$(cat ~/.gse-one)/tools/dashboard.py` etc. unresolved unless the gensem source repo stayed on disk at its install-time path. The opencode-no-plugin student install that triggered this release reported "no Python support for the dashboard" for exactly this reason.
-- **Latent `references/` distribution gap in claude no-plugin and cursor no-plugin** — `install.py` copied `tools/` and `templates/` but not `references/`, so `deploy-operator.md` citations to `references/hetzner-infrastructure.md` / `references/ssh-operations.md` would only resolve via the gensem source repo. Fixed by routing all 3 no-plugin modes through `_copy_common_assets()`.
-- **Version-stamping broken in 4 of 6 install modes** (all no-plugin modes + opencode plugin) — `hug.md` Step 4 read plugin version from a platform-specific manifest that only existed in some modes. Replaced with a unified `VERSION` file distributed to all 6 targets.
-
-### Audit trail
-
-- **Out-of-series release**, triggered by a post-v0.60.1 student support incident: a participant installed the plugin in opencode no-plugin mode inside `.opencode/` and reported no access to the dashboard. Root-cause analysis revealed the broader registry asymmetry described above (5 of 6 modes not self-contained; `references/` missing from all no-plugin; version-stamping broken in 4 of 6).
-- **Scope discipline** — the release bundles: (1) the student-unblocking fix (opencode no-plugin tools/templates/references), (2) the latent `references/` fix (claude + cursor no-plugin), (3) the registry-target unification (all 6 modes), (4) the VERSION file unification, (5) the `hug.md` + `go.md` branch collapse. All five are coherent under the same design decision ("installs must be self-contained"); splitting the release would have left intermediate states with partial guarantees.
-- **Test stability** — 72-test unit suite green before and after. Body parity (orchestrator vs .mdc vs AGENTS.md) identical. External-docs consistency check passes (install.py retains the "10 specialized agents" phrase per `verify_external_docs`).
-- **Three-direction refinement framing (per CLAUDE.md Post-audit fix workflow)** — this release is a mix: **downward** (install.py aligns to the new design decision), **upward** (CLAUDE.md catches up to document the new convention), and **retraction** (the 3-branch manifest-version-read pattern in `hug.md` is replaced by a unified read, retiring two dead branches per platform).
+- opencode no-plugin installs now include Python tools (unblocks dashboard usage).
+- Version-stamping in `hug.md` now works across all 6 install modes.
 
 ## [0.60.1] - 2026-04-22
 
-Layers impacted: **design** (§5.18 Subdomain derivation rule + motivating example), **implementation** (activities/deploy.md Step -1 + Step 0 URL announcements; agents/deploy-operator.md status-table example; templates/deploy-env-training.example header comment + examples; tests/test_deploy.py `test_training_mode` assertion).
-
-**Patch release — training subdomain format reordering.** `/gse:deploy` training-mode subdomain format changed from `{DEPLOY_USER}-{project-name}.{DEPLOY_DOMAIN}` to `{project-name}-{DEPLOY_USER}.{DEPLOY_DOMAIN}` (application first). The Python code (`deploy.py build_subdomain`) was corrected out-of-band by the maintainer; this release aligns the 6 documentation/skill files that were still showing the old format, plus the 2 design references (§5.18 rule + motivating example), plus 1 template (`.env.training` header comment) and 1 test assertion that would otherwise fail.
-
-**Rationale.** In training mode, each participant can deploy multiple distinct projects in the same course (e.g., `blog-alice`, `todo-alice`). The varying component (the project) should come first in the subdomain for readability and sorting — a learner scanning the Coolify dashboard sees *what* they deployed before *who* they are. This matches the intuition that users cluster by application domain, not by user identity, when managing multiple apps.
-
 ### Changed
-
-- **`gse-one/src/activities/deploy.md` Step -1 (Learner role persistence) + Step 0 (training mode detection)** — two URL announcements to the user upgraded from `{DEPLOY_USER}-{project-name}.{DEPLOY_DOMAIN}` to `{project-name}-{DEPLOY_USER}.{DEPLOY_DOMAIN}`. Regenerates into `plugin/commands/gse-deploy.md`, `plugin/skills/deploy/SKILL.md`, and their opencode mirrors.
-- **`gse-one/src/agents/deploy-operator.md` status-table example** — `alice-blog`/`alice-todo` rows renamed to `blog-alice`/`todo-alice` to reflect the new ordering. Regenerates into `plugin/agents/deploy-operator.md` and `plugin/opencode/agents/deploy-operator.md`.
-- **`gse-one/src/templates/deploy-env-training.example` header comment (lines 10-11)** — the format guide distributed to learners updated + examples (`blog-alice.training.example.com`, `todo-alice.training.example.com`). Regenerates into `plugin/templates/deploy-env-training.example`.
-- **`gse-one-implementation-design.md` §5.18 Subdomain derivation (line 2427) + Multi-application rationale (line 2433)** — rule and motivating example aligned on the new format, plus an inline rationale note explaining the application-first ordering choice for readability.
-- **`gse-one/tests/test_deploy.py::test_training_mode`** — assertion updated from `"alice-todo-app.training.example.com"` to `"todo-app-alice.training.example.com"` to match the new `build_subdomain` output. Test suite stays green (72 tests, 0 skipped).
-
-### Audit trail
-
-- **Out-of-series release**, not part of the 9-cluster 2026-04-22 audit remediation (which concluded at v0.60.0). Triggered by a maintainer code change in `deploy.py` followed by a documentation/test catch-up sweep to restore 3-layer alignment (spec / design / impl) and green test state.
-- **Coherent drift detection** — after the initial 6-file update plan the user provided, a grep sweep detected 3 additional residuals (`deploy-env-training.example`, design §5.18 rule, design §5.18 example) + 1 failing test. Including these keeps the release complete — the alternative would have been an immediate follow-up patch.
+- `/gse:deploy` training subdomain format: `{DEPLOY_USER}-{project}.{DOMAIN}` → `{project}-{DEPLOY_USER}.{DOMAIN}` (application first for readability). Aligned 6 docs/skill/template sites + 1 test assertion to match `deploy.py build_subdomain`.
+- design §5.18 Subdomain derivation rule + motivating example updated to new format.
 
 ## [0.60.0] - 2026-04-22
 
-Layers impacted: **spec** (§3.8 Deployment row — 4-option menu vs 3-role enum clarified), **design** (§5.18 Onboarding orientation prose + State schema enum — `skip` retracted, menu/enum distinction explicit), **implementation** (`plugin/tools/deploy.py` — record_role docstring; `activities/deploy.md` — Step -1 option (4) clarified; `agents/deploy-operator.md` — two new sections *User role & orientation* and *CDN metadata*).
-
-**Minor release — `skip` role retraction + deploy-operator enrichment + 2026-04-22 audit remediation series closure.** Closes Cluster 9 of the 2026-04-22 v0.57.0 audit — the 9th and final cluster of the remediation series. The v0.56.x deploy code never persisted `skip` as a `user_role` value (same pattern as the v0.52.0 `never_*` quartet: declared side, never written); design + docstring still listed it. This release retracts the dead enum value, makes the Step -1 menu-options vs role-enum distinction explicit across all 3 layers, and enriches the `deploy-operator` agent with the previously missing *User role & orientation* and *CDN metadata* sections.
-
-### Changed
-
-- **`gse-one-implementation-design.md` §5.18 Onboarding orientation prose (line 2422)** — *"4-option menu identifying the user's role: Solo / Instructor / Learner / Skip"* upgraded to explicitly separate *"three role options that persist via `deploy.py record-role`"* from *"a meta-action Skip (experienced user: bypass orientation without persisting a role)"*.
-- **`gse-one-implementation-design.md` §5.18 State schema enum (line 2439)** — `user_role` enum corrected from `solo | instructor | learner | skip` to `solo | instructor | learner`, with explicit note that the Step -1 "Skip" menu option does not persist a role.
-- **`gse-one-spec.md` §3.8 Deployment row (line 1246)** — the *"Step -1 Orientation that identifies their role (Solo / Instructor / Learner)"* phrasing upgraded to explicit mention of the 4-option menu structure (3 roles + Skip meta-action) for reader clarity.
-- **`gse-one/plugin/tools/deploy.py` `record_role` docstring (line 421)** — enum string `solo | instructor | learner | skip` corrected to `solo | instructor | learner`. Added a sentence clarifying that the Step -1 "Skip" menu option is a meta-action that does not call `record-role`.
-- **`gse-one/src/activities/deploy.md` Step -1 option (4)** — *"No role persistence. Proceed directly to Step 0."* enriched to *"Meta-action (not a role value): no `record-role` call; no `user_role` persisted in `deploy.json`. Proceed directly to Step 0. The 3 role values stored in `user_role` are `solo` / `instructor` / `learner` only — see design §5.18 State schema for the enum."* — the distinction is now readable from the activity file alone.
+*Closes 2026-04-22 audit remediation series (v0.58.0–v0.60.0); full synthesis in `docs/post-audit-reports/2026-04-22-series-v0.58-v0.60.md`.*
 
 ### Added
+- deploy-operator.md: new "User role & orientation (Step -1)" section.
+- deploy-operator.md: new "CDN metadata (Phase 5 Step 7)" section.
 
-- **`gse-one/src/agents/deploy-operator.md` — ## User role & orientation (Step -1)** — new H2 section between `## Core Principles` and `## Deployment lifecycle`. Documents the 4-option menu (3 role options + Skip meta-action), the `record-role` persistence of `user_role` (enum: `solo | instructor | learner`), the `--silent` bypass, and operator-agent tone-adaptation guidance per persisted role.
-- **`gse-one/src/agents/deploy-operator.md` — ## CDN metadata (Phase 5 Step 7)** — new H2 section documenting the optional Cloudflare CDN gate, the `record-cdn` persistence of `cdn { provider, enabled, bot_protection }`, the distinction between "declined" (`provider: none`, `enabled: false`) and "undecided" (absent field), and operator-agent acknowledgment guidance (e.g., page-rule suggestions for API endpoints when `bot_protection: true`).
+### Changed
+- spec §3.8 + design §5.18 + deploy.py docstring + deploy.md Step -1: 4-option menu vs 3-role enum distinction made explicit across the 3 layers.
 
 ### Removed
-
-- **`skip` from `user_role` enum** (dead aspirational value) — design §5.18 schema + deploy.py docstring. Same discipline as the v0.52.0 `never_*` quartet retirement and the v0.59.0 `last_task` retraction.
-
----
-
-### 2026-04-22 Audit remediation series — summary
-
-This release closes a 9-cluster remediation series that started after the 2026-04-22 full audit of v0.57.0. The audit (full report at `_LOCAL/audits/audit-2026-04-22-135551-v0.57.0.md`) detected ~14 unique errors and ~40 warnings across the corpus, consolidated into 9 thematic clusters. Each cluster was treated per CLAUDE.md §Post-audit fix workflow: parallel verification, user-validated scope, atomic commit, 3-layer alignment (spec / design / impl).
-
-**Release map v0.58.0 → v0.60.0:**
-
-| Release | Type | Cluster(s) | Theme |
-|---|---|---|---|
-| v0.58.0 | minor | Cluster 1 | `/gse:audit` count propagation (24 activities, 12 ID prefixes incl. AUD- meta-scope, 30 templates) |
-| v0.58.1 | patch | Cluster 2 | design §5.17 duplicate subsection number — audit renumbered to §5.19 |
-| v0.59.0 | minor | Cluster 3 | state-schema orphans batch (4 errors + 4 warnings: `last_task` retraction, `audit_history` schema add, `gse_version` writer+reader activation, `sprint/audit.md` MANIFEST entry, `review_findings_open` writer, `pushback_dismissed` anchor, 2 backlog cleanups) |
-| v0.59.1 | patch | Cluster 4 | v0.53.0 cursor-centralization regression (5 activities + orchestrator triple-trigger rule) |
-| v0.59.2 | patch | Cluster 5 | coach invocation drift (go.md moment tag, coach.md table 8→12 rows, P14 canonical wording across 5 files) |
-| v0.59.3 | patch | Cluster 6 | broken cross-references (3 phantom anchors) + 7 bare path refs → `plugin/` |
-| v0.59.4 | patch | Cluster 7 | deliver Step 1.5 Guardrail 2 activation (test strategy coverage) + `--level` flag |
-| v0.59.5 | patch | Cluster 8 | Sprint Freeze double-listing fix + 3-category exempt typology |
-| **v0.60.0** | **minor** | **Cluster 9** | **`skip` role retraction + deploy-operator enrichment (this release)** |
-
-**Aggregate effect** (8 commits):
-- **~150 source edits** across ~60 unique files (spec, design, 16 activities, 11 agents, 7 templates, dashboard.py, deploy.py, CHANGELOG, VERSION).
-- **Zero test regression**: the 72-test unit suite stayed green at every release.
-- **Zero contract break**: no user-facing behavior change — the series was coherence restoration + schema alignment + canonical wording discipline.
-- **Methodology contributions** — each cluster produced a reusable pattern: 3-direction refinement framing (downward / upward / retraction per Principle 6); Meta-2 inline documentation of exceptions (e.g., cross-cutting invocation rows in coach.md); 3-category typology for guardrail exemptions (closed-sprint consumer / non-mutating / transition performer); explicit triple-trigger rules for phase transitions.
-- **Audit self-test**: v0.57.0 itself claimed 3 guardrails in deliver Step 1.5; v0.59.4 made that claim actually true. The /gse-audit engine detected the overreach; the post-audit fix loop closed it. The methodology audits itself.
-
-**Next steps for forkers**: re-run `/gse-audit` on this corpus (v0.60.0) and compare against the v0.57.0 report to validate that the 9 clusters are indeed resolved. Any new findings reveal either a regression (unlikely per the test-pass record) or a new drift pocket that has emerged since the 2026-04-22 run.
+- `skip` from `user_role` enum (dead aspirational value; never written).
 
 ## [0.59.5] - 2026-04-22
 
-Layers impacted: **spec** (§14 lifecycle guardrail 3 — exempt prose upgraded to three-category typology), **design** (§5.16 Sprint Freeze mechanics — `/gse:deliver` removed from MUST consult list + exempt prose upgraded to three-category typology).
-
-**Patch release — Sprint Freeze double-listing fix.** Closes Cluster 8 of the 2026-04-22 v0.57.0 audit. Design §5.16 previously listed `/gse:deliver` in both the "MUST consult `.gse/plan.yaml.status`" list AND the "exempt from preflight" list — a logical contradiction (an activity cannot simultaneously be obliged to consult a guard and exempt from it). Spec §14 lifecycle guardrail 3 was correct (deliver only in exempt); the bug was in the design doc. Fixed by retracting deliver from the MUST consult list, and clarifying the exempt prose into three explicit categories so the reader understands why deliver is exempt.
-
 ### Changed
-
-- **`gse-one-implementation-design.md` §5.16 Sprint Freeze Design Mechanics — MUST consult list** — `/gse:deliver (transitions TASK reviewed or done → delivered)` entry retracted. The four remaining entries (`/gse:task`, `/gse:produce`, `/gse:review`, `/gse:fix`) are real consumers of the guard: they mutate TASK state within a sprint and must check the sprint is still active before doing so. `/gse:deliver` belongs to a distinct category (transition performer, see below).
-- **`gse-one-implementation-design.md` §5.16 — Exempt activities prose** — single-line enumeration upgraded to a three-category typology: *closed-sprint consumers* (`/gse:compound`, `/gse:integrate` — operate on a frozen sprint post-delivery), *non-mutating activities* (11 activities that do not transition TASK state), *sprint-opening* (`/gse:plan --strategic`), and the *transition performer itself* (`/gse:deliver` — Step 9.2 sets `plan.yaml.status: completed`, the freeze trigger; a preflight check would be pointless or self-blocking). The reader now understands *why* each exempt activity is exempt, not just *that* it is.
-- **`gse-one-spec.md` §14 lifecycle guardrail 3 — Exempt prose** — propagated the same three-category typology in compressed form, cross-referenced to design §5.16 for mechanics. Spec + design now carry the same conceptual structure.
-
-### Audit trail
-
-- **Cluster 8 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q4: retraction from MUST consult (Q1 A1), exempt-prose upgrade to 3 categories (Q2 B1), spec §14 mirror (Q3 C1), patch bump (Q4).
-- **Conceptual contribution** — the three-category typology (closed-sprint consumer / non-mutating / transition performer) is a reusable pattern for any future lifecycle guardrail that has a transition-performer edge case. Documents *why* deliver is different rather than hiding the nuance in a flat list.
-- **Remaining audit cluster:** Cluster 9 (deploy `skip` role retraction — dead enum value). The final cluster ships as **minor v0.60.0** to close the 2026-04-22 audit remediation series.
+- design §5.16 Sprint Freeze: `/gse:deliver` retracted from "MUST consult" list (was double-listed in consult AND exempt).
+- spec §14 guardrail 3 + design §5.16: exempt activities prose upgraded to three-category typology (closed-sprint consumer / non-mutating / transition performer).
 
 ## [0.59.4] - 2026-04-22
 
-Layers impacted: **design** (§5.15 Deploy & Recovery Extensions — Test-Specific Guardrails subsection expanded from 1 to 3 guardrails), **implementation** (activities/deliver.md Step 1.5 — new Guardrail 2 block with 4-option Gate; activities/tests.md Options — new `--run --level <level>` flag).
-
-**Patch release — deliver.md Guardrail 2 activation (spec §9.3.1 fidelity).** Closes Cluster 7 of the 2026-04-22 v0.57.0 audit. The v0.57.0 release declared three test-specific guardrails in spec §9.3.1 and its CHANGELOG entry, but deliver.md Step 1.5 only implemented two (Unexecuted tests + Stale evidence). The middle one — *Unexecuted test strategy* (declared test level has no `TCP-` campaign covering it) — was missing. Cluster 7 closes this gap by activating the guardrail faithfully per spec (Hard, block) and adding the `--run --level <level>` flag in tests.md that the Gate's default action requires.
-
 ### Added
-
-- **`gse-one/src/activities/deliver.md` Step 1.5 — Guardrail 2 "Unexecuted test strategy"** — new Hard guardrail block inserted between Guardrail 1 (Unexecuted tests) and Guardrail 3 (Stale evidence). Reads `docs/sprints/sprint-{NN}/test-strategy.md` H2 sections to identify declared levels (unit / integration / e2e / policy — a level is *declared* when its H2 section contains at least one `### TST-NNN` entry), then cross-checks `docs/sprints/sprint-{NN}/test-reports/` to collect covered levels (via the authoritative TST `level:` frontmatter field). If any declared level has no `TCP-` campaign covering it, delivery is blocked with a 4-option Gate: *Run the missing level now* (default) / *Deliver partial* / *Reclassify the level as deferred* / *Discuss*. Step 1.5 now has an explicit 3-block structure with each guardrail labeled ("Guardrail 1", "Guardrail 2", "Guardrail 3") for clarity.
-- **`gse-one/src/activities/tests.md` Options — `--run --level <level>`** — new flag row added between `--run <test-id>` and `--visual`. Executes only tests at a specific level (`unit` / `integration` / `e2e` / `policy`). Consumer: deliver.md Step 1.5 Guardrail 2's default Gate action when an uncovered declared level is detected.
-- **`gse-one-implementation-design.md` §5.15 — Test-Specific Guardrails subsection** — expanded from a single Test Execution Evidence paragraph to three labeled paragraphs (Guardrail 1, Guardrail 2, Guardrail 3) mirroring spec §9.3.1 and deliver.md Step 1.5 in a single canonical reference.
-
-### Audit trail
-
-- **Cluster 7 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q2: Option A (faithful activation as Hard per spec) + `--level <level>` flag addition + patch v0.59.4 bump.
-- **Honesty of CHANGELOG v0.57.0** — the entry that claimed "three new guardrails enforced by /gse:deliver Step 1.5" is now actually true. The audit detected the gap; this patch closes it.
-- **Remaining audit clusters:** Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction). The final cluster will ship as minor v0.60.0.
+- deliver.md Step 1.5 Guardrail 2 "Unexecuted test strategy" (Hard, blocks when declared test level has no TCP- campaign). Spec §9.3.1 fidelity.
+- tests.md `--run --level <level>` flag (unit / integration / e2e / policy).
+- design §5.15 Test-Specific Guardrails expanded: 1 → 3 labeled guardrails.
 
 ## [0.59.3] - 2026-04-22
 
-Layers impacted: **spec** (§14.3 project layout tree ref + §14.3 Step 5 Adopt-mode ref), **design** (§5 Intent Capture Adopt-mode ref), **implementation** (6 reviewer agents + 5 activities + gse-orchestrator.md — broken anchor fix + residual bare-path sweep to `plugin/...` form).
-
-**Patch release — broken cross-references + path-form hygiene.** Closes Cluster 6 of the 2026-04-22 v0.57.0 audit. Three broken anchors detected (spec §14.3 Step 5.7, spec §3 Adopt Mode x2, review.md Step 3.5 x6) + 7 residual bare path references retired (5 `agents/X.md` + 2 `src/X/...`). Total 16 corrections across 12 files.
+### Fixed
+- 3 broken cross-references: spec §14.3 Step 5.7 → Step 5 sub-point 8; spec §3 Adopt Mode → §14.2 (also in design §5); review.md Step 3.5 → §P15 Confidence Integration (6 reviewer agents).
 
 ### Changed
-
-- **`gse-one-spec.md` §14.3 project layout tree (line 2190)** — broken ref `§14.3 Step 5.7` (no such step) corrected to `§14.3 Step 5 — Intent Capture, sub-point 8 "Pivot / re-capture"` (convention number+name per CLAUDE.md). Actual content on pivot/archive is sub-point 8 of Step 5, not a fictional Step 5.7.
-- **`gse-one-spec.md` §14.3 Step 5 (line 3004)** — broken ref `§3 Adopt Mode` (§3 is "Activities (Commands)") corrected to `§14.2 — Adopting GSE-One on an Existing Project`. Actual adoption content lives in §14.2.
-- **`gse-one-implementation-design.md` §5 Intent Capture (line 1721)** — same broken ref `spec §3 Adopt Mode` corrected to `spec §14.2 — Adopting GSE-One on an Existing Project`.
-- **6 reviewer-archetype agents (architect, code-reviewer, requirements-analyst, test-strategist, ux-advocate, security-auditor)** — broken ref `see review.md Step 3.5` (no such step; review.md has Step 0-6 with Step 3 containing an unnumbered P15 subsection) corrected to `see review.md § P15 Confidence Integration`. `security-auditor.md` extended suffix `§Devil-Advocate P15 integration` also corrected to the canonical `devil-advocate.md § Integration with P15 Confidence Signaling`.
-
-### Path-form sweep (7 residual bare references upgraded to `plugin/...`)
-
-- **`gse-one/src/activities/plan.md` line 206** — state transition note: `agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md`.
-- **`gse-one/src/activities/review.md` line 250** — state transition note: `agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md`.
-- **`gse-one/src/activities/tests.md` lines 146 and 266** — test-strategist references: `agents/test-strategist.md` → `plugin/agents/test-strategist.md` (×2).
-- **`gse-one/src/activities/audit.md` line 137** — Phase 3 orchestrator pointer: `src/agents/gse-orchestrator.md` → `plugin/agents/gse-orchestrator.md`.
-- **`gse-one/src/activities/compound.md` line 96** — decisions.md format pointer: `src/templates/decisions.md` → `plugin/templates/decisions.md`.
-- **`gse-one/src/agents/gse-orchestrator.md` line 175** — coach delegation pointer: `agents/coach.md` → `plugin/agents/coach.md`.
-
-All prose references across activities and agents now uniformly use the `plugin/` form per CLAUDE.md §Activity path reference conventions (pedagogical / authoritative-format pointer). Runtime-executable references continue using `$(cat ~/.gse-one)/X` form (unchanged).
-
-### Audit trail
-
-- **Cluster 6 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q6: E1 fix (A1 number+name), E2 fix (B1), E3 fix (C2 short canonical name), security-auditor variant (E), path-form sweep (D1), patch bump (F).
-- **Remaining audit clusters:** Cluster 7 (3rd test guardrail in deliver.md — implement or retract), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction). The final cluster will ship as minor v0.60.0.
+- 7 residual bare path references upgraded to `plugin/...` form (activities: plan, review, tests×2, audit, compound; orchestrator).
 
 ## [0.59.2] - 2026-04-22
 
-Layers impacted: **spec** (§P14 intra-spec consistency — option 1 fluff cleaned), **design** (§5.1 `/gse:learn` proactive preamble — 4→5 options with pointer to canonical), **implementation** (orchestrator P14 bullet — canonical wording; activities go.md — moment tag fix; agents/coach.md — 4 rows added to Invocation contract, axis 1 orphan trigger retracted, preamble history paraphrase aligned, Meta-2 cross-cutting note extended; templates/profile.yaml — LRN mode enum).
-
-**Patch release — coach invocation drift + P14 preamble canonical wording sweep.** Closes Cluster 5 of the 2026-04-22 v0.57.0 audit. Eight misalignments across the coach ecosystem — from a missing moment-tag word in `/gse:go` (potentially silencing coach axes 2-8 at post-recovery) to a spec-intra inconsistency on the P14 preamble canonical wording.
-
 ### Changed
-
-- **`gse-one/src/activities/go.md` Step 2.8** — moment tag corrected from `/gse:go after recovery` to canonical `/gse:go after recovery check` (aligns with coach.md Invocation contract + design §5.17 + design §5.14). If the coach compares moment tags literally, the post-recovery workflow overview (axes 2-8) now activates as documented.
-- **`gse-one/src/agents/gse-orchestrator.md` P14 bullet** — 5-option wording aligned on spec §P14 canonical (line 951 declares *"implementations use this exact wording"*). Changes: `Quick overview — ~5 min` → `Quick overview (5 min) — concise introduction`; `Deeper session — full explanation` → `Deep session (15 min) — worked example + practice`; 5th option `Discuss` enriched to `Discuss — tell me more before I decide`. Cross-platform coherence preserved (orchestrator source of truth for Claude Code, Cursor rule, opencode AGENTS.md).
-- **`gse-one-implementation-design.md` §5.1 `/gse:learn` proactive preamble** — previously showed only 4 options (missing *"Discuss"* + used *"Deeper session"*). Now points to spec §P14 canonical with the full 5-option block inline (preserving a self-sufficient read while removing the 4-option drift).
-- **`gse-one/src/agents/coach.md` Invocation contract table** — expanded from 8 to 12 rows, adding `mid_sprint_stall`, `gate_sequence_end`, `activity_skip_event`, `session_boundary` in alignment with design §5.17. Each event-trigger row is explicitly annotated *(event trigger, cross-cutting)* with its detection source. The *Note on cross-cutting invocation* is extended from covering row 1 only to covering row 1 + rows 7-12, clarifying that event triggers (counter thresholds, status.yaml signals) are dispatched by the orchestrator not by activities.
-- **`gse-one/src/agents/coach.md` Evaluation algorithm (axis 1)** — *"preamble history"* paraphrase replaced with canonical field name `learning_preambles[] (from status.yaml)`.
-- **`gse-one-spec.md` §P14 Proactive proposals template (line 844)** — option 1 fluff *"with key concepts + how they apply to your project"* removed to match exactly the canonical line 951 *"Quick overview (5 min) — concise introduction"*. Spec §P14 now has a single canonical form at both declaration sites (template + canonical block).
-- **`gse-one/src/templates/profile.yaml` (line 69, `competency_map.topics.mode`)** — enum comment `# quick | deep` upgraded to `# contextual | quick | deep (mirrors LRN mode — see learn.md Step 4)`. Aligns with spec §P14 + learn.md + learning-note.md — the `contextual` mode is now representable in the competency map.
+- go.md Step 2.8 moment tag corrected to canonical `/gse:go after recovery check` (was: `after recovery`).
+- Orchestrator P14 bullet aligned on spec §P14 5-option canonical wording.
+- coach.md Invocation contract table: 8 → 12 rows (4 event-trigger rows added).
+- design §5.1 `/gse:learn` proactive preamble aligned on spec §P14 canonical.
+- spec §P14 template option 1 prose aligned with canonical block (removed fluff).
+- profile.yaml `competency_map.topics.mode` enum: added `contextual` (3 values).
 
 ### Removed
-
-- **`gse-one/src/agents/coach.md` axis 1 Invocation point column (line 33)** — orphan trigger *"Gate decisions with high pedagogical load"* retracted. No corresponding row in the Invocation contract table, no activity wiring. Axis 1 keeps two real triggers (Activity start + detected inferred-gap threshold), both properly anchored.
-
-### Audit trail
-
-- **Cluster 5 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q10 (all approved, full scope): moment tag fix (Q1 A1), design §5.1 pointer to canonical (Q2 B2), coach.md table expansion (Q3 C1), profile.yaml enum (Q4 D1), axis 1 orphan retraction (Q5 E1), orchestrator P14 canonical (Q6 F1), preamble history rename (Q7 G1), spec §P14 fluff cleanup (Q8 H1), Meta-2 annotations (Q9 I1), patch bump (Q10).
-- **Remaining audit clusters:** Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction). The final cluster will ship as minor v0.60.0.
+- coach.md axis 1 orphan trigger "Gate decisions with high pedagogical load" (no anchor).
 
 ## [0.59.1] - 2026-04-22
 
-Layers impacted: **design** (§10.1 Sprint Plan Lifecycle maintenance — explicit transition triggers), **implementation** (orchestrator Sprint Plan Maintenance Step 4.2 — explicit triple-trigger rule; activities compound, pause, resume, integrate, deliver — retraction of direct cursor writes).
-
-**Patch release — v0.53.0 cursor-centralization regression fix.** Closes Cluster 4 of the 2026-04-22 v0.57.0 audit. Four activities (compound, pause, resume, integrate) were still writing cursor fields (`last_activity`, `last_activity_timestamp`, and for compound also `current_phase: LC03`) directly in violation of the v0.53.0 central-cursor protocol. A fifth activity (deliver) kept a dual-write of `current_phase: LC03` justified by an inline rationale that contradicted the orchestrator's documented capability. Root cause: the orchestrator's transition rule (`gse-orchestrator.md:491` Sprint Plan Maintenance Step 4.2) was vague — *"Update `current_phase` if transitioning (LC01→LC02, LC02→LC03)"* — without specifying the deterministic triggers. Fix: (a) make the triggers explicit, (b) retract defensive writes across all 5 activities.
-
 ### Changed
-
-- **`gse-orchestrator.md` Sprint Plan Maintenance Step 4.2** — the terse *"Update `current_phase` if transitioning"* is replaced by an explicit triple-trigger rule documenting LC00→LC01 (first `/gse:hug` or `/gse:go` closure), LC01→LC02 (first LC02 activity closure in sprint), LC02→LC03 (deliver closure when `plan.yaml.status == completed`). Explicit backward-transition policy (no backward without override). Removes the ambiguity that justified defensive activity-side writes.
-- **`gse-one-implementation-design.md` §10.1 Sprint Plan Lifecycle maintenance Step 6** — inline summary of the 3 deterministic transitions added (mirror of orchestrator), with cross-reference to `plugin/agents/gse-orchestrator.md` as canonical source.
-- **`gse-one/src/activities/deliver.md` Step 9.3 rationale** — the paragraph claiming *"DELIVER is the activity that performs [the transition] — the orchestrator cannot infer LC03 from last_activity alone"* is replaced by a correct explanation documenting the orchestrator's deterministic trigger (`last_activity == deliver` AND `plan.yaml.status == completed`, both set by Step 9.2 before Step 9.3 closes).
+- Orchestrator Sprint Plan Maintenance Step 4.2: vague "update current_phase if transitioning" replaced by explicit triple-trigger rule (LC00→LC01, LC01→LC02, LC02→LC03).
+- design §10.1 Sprint Plan Lifecycle Step 6: mirror sync on the 3 deterministic transitions.
 
 ### Removed
-
-- **`compound.md` Step 4.2** — 3 direct cursor writes removed: `last_activity: compound`, `last_activity_timestamp: {now}`, `current_phase: LC03`. The `current_phase` write was additionally a pure no-op (already set by `/gse:deliver` Step 9.3, retired in this release too).
-- **`pause.md` Step 3.1** — 2 direct cursor writes removed (`last_activity`, `last_activity_timestamp`). Session state bullets (`session_paused: true`, `pause_checkpoint: checkpoint-{...}.yaml`) preserved — they are legitimately activity-local.
-- **`resume.md` Step 6.1** — 2 direct cursor writes removed (`last_activity`, `last_activity_timestamp`). Session state preserved. Side-fix absorbed: *"Remove `pause_checkpoint` field"* → *"Reset `pause_checkpoint: \"\"`"* (schema-stable representation of absence — closes state-management warning from the 2026-04-22 audit).
-- **`integrate.md` Step 4.1** — 2 direct cursor writes removed (`last_activity`, `last_activity_timestamp`).
-- **`deliver.md` Step 9.3** — direct write of `current_phase: LC03` removed, along with the misleading "DELIVER-specific" rationale. Health-score refresh remains (legitimately activity-local).
-
-### Audit trail
-
-- **Cluster 4 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q6: retraction in 4 activities (Q1 A1), absorption of resume.md schema-stable reset warning (Q2), retraction of deliver.md LC03 write (Q3 B1), explicit orchestrator triple-trigger rule (Q4 C1), design §10.1 mirror sync (Q5), patch bump (Q6 — per user-declared versioning strategy: patches v0.59.x for each cluster, minor v0.60.0 reserved for the final cluster).
-- **Post-audit versioning strategy** — subsequent clusters (5 through 9) will each ship as a patch bump (v0.59.2, v0.59.3, …). The final cluster of the 2026-04-22 audit sequence will trigger the minor bump to v0.60.0.
-- **Remaining audit clusters:** Cluster 5 (coach invocation drift — go.md moment tag, coach.md table, P14 preamble wording), Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction).
+- Direct cursor writes (`last_activity`, `last_activity_timestamp`, `current_phase`) retracted from 5 activities (compound, pause, resume, integrate, deliver). Centralized per orchestrator protocol (v0.53.0 regression fix).
 
 ## [0.59.0] - 2026-04-22
 
-Layers impacted: **spec** (§12.3 backlog example + status enum, §12.4 status.yaml sample), **design** (§5.16 status.yaml sample, §14.3 open-questions table — question #3 gse_version status), **implementation** (activities produce/task/hug/review/fix, principles/adversarial-review, templates/status.yaml, templates/MANIFEST.yaml, plugin/tools/dashboard.py).
-
-**Minor release — state schema orphans batch: 4 errors + 4 warnings resolved.** Closes Cluster 3 of the 2026-04-22 v0.57.0 audit, plus the related warning-level findings bundled per user validation of Q7 (option G). The cluster covers the complete state-schema-coherence sweep: writers without schema slots, schema slots without writers, and dead sample fields.
-
 ### Added
-
-- **`status.yaml.audit_history` field** (`gse-one/src/templates/status.yaml`) — new schema slot for `/gse:audit` Step 6 writer, active since v0.57.0 but previously writing into undeclared territory. List of `{timestamp, trigger, findings_total, findings_applied, findings_deferred, report_ref}`, capped at 20 entries (older summarized). Consumer: spec §14 Methodology Audit trend analysis + `/gse:audit --auto` cooldown checks.
-- **`status.yaml.gse_version` writer activation** (`gse-one/src/activities/hug.md` Step 4 scaffolding) — adds a bullet instructing `/gse:hug` to stamp the active plugin manifest's `version` field into `status.yaml.gse_version` at project init. Resolves a v0.47.8-era promise where the field was declared with inline comment *"filled by /gse:hug from VERSION registry"* but no code path existed. Cross-runtime: reads Claude Code `.claude-plugin/plugin.json`, Cursor `.cursor-plugin/plugin.json`, or opencode `opencode.json`.
-- **`status.yaml.gse_version` reader activation** (`gse-one/plugin/tools/dashboard.py`) — dashboard header now displays `"init with GSE-One v{X.Y.Z}"` when the field is populated (empty-safe fallback for pre-v0.59 projects). Closes the "declared-but-uncabled" gap that resembled the v0.52.0 `never_*` quartet pattern.
-- **`sprint/audit.md` MANIFEST entry** (`gse-one/src/templates/MANIFEST.yaml`) — declares the audit report template (already on disk, consumed by `/gse:audit` since v0.57.0) with target `docs/sprints/sprint-{NN}/audit-{YYYY-MM-DDThhmm}.md` (alternate session-level target `.gse/audits/audit-{timestamp}.md` noted). MANIFEST entries now align with the 30 templates on disk. Closes the Cluster 10 side-mention from CHANGELOG v0.58.0.
-- **`status.yaml.review_findings_open` writer contract** — `/gse:review` Step 6 now sets the counter to the sum of HIGH + MEDIUM unresolved findings across all sprint `review.md` files; `/gse:fix` Step 6 now decrements it when findings resolve (to 0 when all resolved). Activates the dormant git-push warning hook (spec §6 System Hooks) that had a reader but no writer since v0.47.
-- **`pushback_dismissed` writer anchor documentation** (`gse-one/src/principles/adversarial-review.md`) — explicit *Writer contract* paragraph clarifying that both P16 counters (`consecutive_acceptances`, `pushback_dismissed`) are maintained by the orchestrator (not per-activity) because pushback Gates are cross-cutting. Closes the anchor-less writer gap.
+- `status.yaml.audit_history` schema slot (cap 20 entries) for `/gse:audit` Step 6 writer.
+- `status.yaml.gse_version` writer (hug.md Step 4) + reader (dashboard.py header).
+- `sprint/audit.md` entry in `MANIFEST.yaml`.
+- `status.yaml.review_findings_open` writer contract (review.md Step 6 + fix.md Step 6) — activates dormant git-push warning hook.
+- `pushback_dismissed` writer anchor in principles/adversarial-review.md (orchestrator owns P16 counters).
 
 ### Changed
-
-- **Spec §12.3 TASK status enum comment (line 2252)** — the enum comment `# open | planned | in-progress | review | fixing | done | delivered | deferred` upgraded to include `reviewed` (9 values total, matching the backlog.yaml template which has had 9 since v0.51.0). The `reviewed` terminal state (clean first pass, no fix needed) is actively used by `/gse:review` Step 6 and consumed by `/gse:deliver` Step 1.1.
-- **Design §14.3 open-question #3 (`gse_version`)** — status upgraded from *"field exists [...] Migration logic is not yet implemented"* to a nuanced tri-state: writer activated in v0.59.0 (hug.md Step 4), reader activated in v0.59.0 (dashboard.py header), migration logic deferred until the first breaking schema change after public release.
+- spec §12.3 TASK status enum: 8 → 9 values (added `reviewed`, aligns with backlog.yaml).
+- design §14.3 open-question #3 (`gse_version`): writer + reader now activated; migration logic deferred to first breaking schema change.
 
 ### Removed
-
-- **`status.yaml.last_task` orphan writes** (2 locations) — `produce.md` Step 5.3 and `task.md` Step 6.3 previously wrote `last_task: TASK-{ID}` into `status.yaml`, but the field was never declared in the schema and never read. Retraction per Principle 6 direction: the current TASK is already derivable from `backlog.yaml` (TASK with `status: in-progress`) and `checkpoint.yaml.last_task` handles the session-context use case (pause/resume). Same pattern as the v0.52.0 `never_*` quartet retirement.
-- **`task.md` Step 6.3 direct cursor writes** (absorbed from Cluster 4) — the 3 bullets (`last_activity: task`, `last_activity_timestamp: {now}`, `last_task: TASK-{ID}`) are all removed; `task.md` now fully delegates cursor maintenance to the orchestrator Sprint Plan Maintenance Step 4 per v0.53.0 central-cursor protocol. Partially anticipates Cluster 4 (remaining activities: compound, pause, resume, integrate).
-- **Retired top-level `complexity:` block in spec §12.4 sample + design §5.16 sample** — the `status.yaml` template already flagged this as retired in v0.52.0 ("previously declared here but had no writer"), but the spec and design samples still carried the dead block. Now removed in both samples, with a single-line retirement note pointing to `.gse/plan.yaml.budget` as authoritative.
-- **`commits: 12` in spec §12.3 backlog.yaml example (line 2260)** — retraction cleanup. Template removed this field in v0.52/v0.53 per CLAUDE.md convention ("git is authoritative source"); the spec example was the last straggler.
-
-### Audit trail
-
-- **Cluster 3 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q7 (all approved, full scope G option): retraction `last_task` (Q1 A1), schema `audit_history` (Q2 B1), activation `gse_version` writer + reader (Q3 C1b), MANIFEST `sprint/audit.md` (Q4 D1), anticipation `task.md` cursor cleanup (Q5 E), minor bump v0.59.0 (Q6 F), bundle with 4 related warnings (Q7 G).
-- **Partial absorption of Cluster 4** — `task.md` now fully aligned with v0.53.0 central-cursor protocol. Remaining Cluster 4 work: compound.md, pause.md, resume.md, integrate.md still write cursor fields directly.
-- **Remaining audit clusters:** Cluster 4 (cursor-centralization regression in 4 remaining activities), Cluster 5 (coach invocation drift — go.md moment tag, coach.md table, P14 preamble wording), Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md), Cluster 8 (design §5.16 `/gse:deliver` Sprint Freeze double-listing), Cluster 9 (deploy `skip` role retraction).
+- `status.yaml.last_task` orphan writes (produce.md + task.md) — field never in schema, never read.
+- task.md Step 6.3 direct cursor writes (cursor-centralization per v0.53.0 protocol).
+- top-level `complexity:` block from spec §12.4 + design §5.16 samples (dead schema; plan.yaml.budget is authoritative).
+- `commits: 12` from spec §12.3 backlog example (git is authoritative).
 
 ## [0.58.1] - 2026-04-22
 
-Layers impacted: **spec** (§P14 cross-reference upgrade), **design** (§5.x heading renumber).
-
-**Patch release — design §5.17 duplicate subsection number fix.** Closes Cluster 2 of the 2026-04-22 v0.57.0 audit. The v0.56.x `/gse:audit` addition mis-numbered its design subsection as `§5.17` instead of `§5.19`, creating a duplicate heading (Coach-hosting §5.17 Additional Skill Extensions at line 2178 + audit §5.17 at line 2481, with §5.18 `/gse:deploy` sitting between them). Monotonic §5.x ordering now restored (§5.1 → §5.16 → §5.17 Extensions → §5.18 deploy → §5.19 audit).
-
 ### Changed
-
-- **`gse-one-implementation-design.md` §5.19 heading** — renumbered from `### 5.17 \`/gse:audit\` — Project methodology audit` to `### 5.19 \`/gse:audit\` — Project methodology audit`. Section content unchanged. The first §5.17 (Additional Skill Extensions, containing the Coach agent design mechanics) keeps its number; all 10 active cross-references across spec, design §5.14, activities (pause, learn, compound, go, plan), and `.claude/agents/methodology-auditor.md` already pointed semantically to the Coach §5.17 and remain correct with zero update needed.
-- **`gse-one-spec.md` §P14 Workflow monitoring axes (line 945)** — cross-reference upgraded from `design §5.17` to `design §5.17 — Additional Skill Extensions (Coach agent subsection)` per CLAUDE.md §"Cross-reference convention — number + name". Protects the reference against future renumbering and makes the target unambiguous for readers.
-
-### Audit trail
-
-- **Cluster 2 of 10** from the 2026-04-22 v0.57.0 audit resolved per user validation of Q1–Q3: renumber second §5.17 → §5.19 (Q1 option A1), upgrade spec §P14:945 to number+name convention (Q2 option B3), patch version bump (Q3 option C1).
-- **Unique property of this cluster** — all existing §5.17 cross-references pointed to the first §5.17 (Coach/Extensions), so renumbering the second §5.17 touched zero reference lines. A rare clean-fix cluster.
+- design `/gse:audit` heading renumbered §5.17 → §5.19 (fixes duplicate with Coach §5.17; monotonic §5 ordering restored).
+- spec §P14:945 cross-reference upgraded to "design §5.17 — Additional Skill Extensions" (number+name convention).
 
 ## [0.58.0] - 2026-04-22
 
-Layers impacted: **spec** (§1.1.4 architecture table, Appendix A activity summary, §P6 `AUD-` prefix note), **design** (§3.1 repository-structure commentary, §3.2 terminology, §4 intro note, §5.18 `/gse:deploy` intro, §12 File Inventory), **implementation** (orchestrator P6 bullet + Command Reference table, README Key Features + audit check description).
-
-**Minor release — `/gse:audit` count propagation + `AUD-` meta-scope clarification.** Triggered by the 2026-04-22 full audit run (Cluster 1 of 10), which detected that the v0.56.x introduction of the 24th activity `/gse:audit` had not been propagated across the count-bearing locations of the corpus. This release closes the drift in one coordinated sweep and clarifies the scope of the `AUD-` artefact prefix.
-
 ### Added
-
-- **`AUD-` meta-scope note** in spec §P6 Artefact ID allocation table (`gse-one-spec.md`) — the `AUD-` prefix now carries an inline qualification: *"meta-scope, produced by `/gse:audit`, not a project artefact"*. Distinguishes audit findings (methodology drift, produced by the maintainer-side `/gse:audit` tool) from project artefacts (REQ-, DES-, TST-, etc., produced by the user's SDLC activities) while keeping all 12 canonical prefixes in a single table.
-- **`AUDIT               /gse:audit     (methodology drift detection, cross-cutting)` line** in spec Appendix A — Activity Summary (`gse-one-spec.md`). Placed immediately after `ORCHESTRATION` for semantic adjacency. The enumeration now matches the "Total: 24 commands" footer.
-- **`audit` row** in the orchestrator Command Reference table (`gse-one/src/agents/gse-orchestrator.md`), inserted between `go` and `hug` (cross-cutting proximity). Beginner label kept as `*(auto — hidden from beginner)*` per the /gse:audit activity's self-invocation semantics.
+- `AUD-` meta-scope note in spec §P6 Artefact ID allocation table.
+- `AUDIT` row in spec Appendix A Activity Summary.
+- `audit` row in orchestrator Command Reference table.
 
 ### Changed
-
-- **`23 → 24` everywhere** for activities / skills / commands. Updated in 14 locations across 4 files:
-  - `gse-one-spec.md` §1.1.4 "Mono-Plugin Architecture" table (Skills 23→24, Commands 23→24).
-  - `gse-one-implementation-design.md` §3.1 terminology mapping + 4 ASCII tree comments (`src/activities/`, `plugin/skills/`, `plugin/commands/`, `plugin/opencode/skills/`, `plugin/opencode/commands/`), §3.2 skills-directory row, §12 File Inventory (Skills + Commands rows), §11.1 generator step table activity-row count.
-  - `gse-one/src/agents/gse-orchestrator.md` P6 bullet (ID prefixes `11 → 12`, AUD- added with meta-scope note).
-  - `README.md` Key Features bullet and Auditing-the-plugin table (check #5 numeric consistency).
-- **`28 / 29 → 30` everywhere** for templates. Updated in 4 locations: `gse-one-spec.md` §1.1.4 (Templates 28→30), `gse-one-implementation-design.md` §3.1 two ASCII tree comments (src/templates + plugin/templates, with explicit note that MANIFEST.yaml acts as self-descriptor and is not counted) + §12 File Inventory Templates row, `README.md` two ASCII tree comments. Note: the 30 file count already matches the 30 templates shipped; the Cluster 10 MANIFEST entry for `sprint/audit.md` (next audit batch) will bring MANIFEST entries to 30 in lockstep.
-- **Design §4 intro note** — replaces the stale "17 skills that required specific design decisions + 5 activities implemented directly from the spec" comptability (17+5=22, drifted twice since first drafted) with a self-descriptive reference to §5 as the index of skill designs. Activities without a §5.x subsection are implemented directly from the spec. No more numerical maintenance burden when an activity is added.
-- **Design §5.18 `/gse:deploy` intro** — replaces the fragile ordinal "as the 23rd command" with a stable functional description ("the Hetzner Cloud + Coolify v4 deployment command"). The ordinal would have needed a bump with every future command.
-
-### Audit trail
-
-- **Cluster 1 of 10** from the 2026-04-22 v0.57.0 audit (`_LOCAL/audits/audit-2026-04-22-135551-v0.57.0.md`) resolved. Sub-decisions applied per user validation of Q1–Q7: count → 24 (Q1), templates → 30 (Q2), AUD- preserved in §P6 with meta-scope note (Q3 option B3), Appendix A audit line position = after ORCHESTRATION (Q4), ordinal removed (Q5), orchestrator audit row position = between go and hug (Q6), minor version bump (Q7).
-- Remaining audit clusters to be treated in subsequent releases: Cluster 2 (design §5.17 duplicate → §5.19 rename), Cluster 3 (orphan state fields — `last_task`, `audit_history`, `gse_version`, `sprint/audit.md` MANIFEST entry), Cluster 4 (v0.53.0 cursor-centralization regression in compound/pause/resume/task/integrate), Cluster 5 (coach invocation drift — go.md moment tag, coach.md table, P14 wording), Cluster 6 (broken cross-references), Cluster 7 (3rd test guardrail in deliver.md — implement or retract), Cluster 8 (design §5.16 `/gse:deliver` double-listing), Cluster 9 (deploy `skip` role retraction), Cluster 10 (`sprint/audit.md` in MANIFEST — converges templates count with MANIFEST entries).
+- Activities/skills/commands count: 23 → 24 everywhere (14 locations across 4 files).
+- Templates count: 28/29 → 30 everywhere (4 locations).
+- design §4 intro: stale "17+5" count replaced by self-descriptive reference to §5.
+- design §5.18 `/gse:deploy` intro: fragile ordinal "23rd command" replaced with functional description.
 
 ## [0.57.0] - 2026-04-22
 
-Layers impacted: **spec** (§P4, §P6, §3.1, §3.10, §14.3, new §9.3.1, new §15 Methodology Audit, §16 Glossary renumbered), **design** (§3.2 opencode manifest, new §3.4 Dashboard parser format contracts, §5.14 invariant, §5.15 deliver guardrail, new §5.17 audit architecture), **implementation** (orchestrator P4 + Activity Execution Fidelity Invariant, activities go/hug/deliver/tests + new audit, principles/human-in-the-loop, templates/sprint/tests + new audit, plugin/tools/dashboard.py + new project-audit.py, generator opencode permission).
-
-**Minor release — cross-runtime QCM canonical + methodology audit Phase 1 + deliver test_evidence guardrail.** Triggered by a Cursor sprint transcription (CalcApp) exposing 11 methodology drifts. Eleven sub-propositions were analyzed, merged into eight coherent clusters of change, and applied against the corpus with 3-layer alignment (spec / design / impl) preserved at each step.
+*Triggered by a Cursor sprint transcription (CalcApp) exposing 11 methodology drifts, merged into 8 coherent clusters.*
 
 ### Added
-
-- **Spec §9.3.1 Test-Specific Guardrails** — three new guardrails enforced by `/gse:deliver` Step 1.5: *Unexecuted tests before DELIVER* (Hard, blocks merge when must-priority REQs lack `test_evidence.status: pass`), *Unexecuted test strategy* (Hard, blocks merge when test-strategy declares a level never run), *Stale test evidence* (Soft, warns when evidence predates latest code). Consumer of the `test_evidence` field defined in §6.3 and §12.3 that previously had no enforcement site.
-- **Spec §15 Methodology Audit** — new top-level section (Glossary renumbered §16). Describes purpose, hybrid phased architecture (deterministic layer + semantic layer in Phase 2), manual/auto-trigger/CI invocation, report location convention, relationship with inline guardrails / coach / review, pre-release Phase 1 scope.
-- **Spec §P6 canonical prefix `AUD-`** — for audit findings (methodology drift), distinct from `RVW-` (review findings). Severity scale HIGH/MEDIUM/LOW (CRITICAL reserved for P15 escalation).
-- **Spec §3.1 + §3.10 `/gse:audit`** — 24th GSE-One activity (was 23). Cross-cutting, invokable at any time. Header command count bumped in TOC.
-- **Design §3.4 Dashboard parser format contracts** — documents the canonical artefact formats that `dashboard.py` consumes (`### REQ-NNN` H3, `RVW-NNN [SEVERITY]` brackets, `health.dimensions.<dim>` nested, `test-reports/` location). Closes the implicit contract gap that caused the CalcApp dashboard to show "0 REQs / No findings / No health data" despite valid artefacts.
-- **Design §3.2 opencode manifest paragraph** — documents the `permission` block set (`skill.*`, `question`, `bash` denylist) with methodological rationale for each entry. `question: allow` supports P4 interactive mode QCM.
-- **Design §5.17 `/gse:audit` — Project methodology audit** — new sub-section detailing the architecture for contributors: artefact inventory, deterministic layer design (mirrors dashboard.py pattern), JSON finding schema, integration with dashboard / coach / §3.4 contracts, Phase 2 and Phase 3 design sketches.
-- **Activity Execution Fidelity Invariant** (spec §14.3, design §5.14, orchestrator) — replaces the previous "Activity Routing Fidelity Invariant" (v0.56 pre-fix). Extended scope: not only inter-activity routing but also **intra-activity Step execution**. Every Step defined in an activity source MUST be executed in order, with legitimate skip only when the Step is conditional (source declares a guard), user-overridden, or frontmatter-declared exempt. Agent-driven skips MUST emit Inform-tier. Exempt activities (display-only): status, health, backlog display, audit (self-verifying). Documents 4 failure modes observed on CalcApp sprint 1 (Step 2.6 Dashboard Refresh skipped, Step 2.7 Git Baseline skipped, HUG Step 4 Git Init skipped, produce canonical test run §6.3 partially skipped).
-- **`/gse:audit` activity** (`src/activities/audit.md`) — new activity file, 6 Steps: (1) run deterministic audit, (2) Phase 2 semantic layer placeholder, (3) generate consolidated report, (4) Gate with 4 options, (5) apply corrections, (6) finalize. Flags: `(no args)`, `--auto` (Phase 3 trigger), `--fix` (auto-apply safe LOW), `--no-fix`, `--quick`, `--help`. Manual + auto-trigger + CI invocation scenarios.
-- **`project-audit.py` deterministic audit engine** (`plugin/tools/project-audit.py`) — direct-edit tool with `# @gse-tool project-audit 0.1.0` header. 15 Phase 1 checks: dashboard-freshness, test-evidence on must REQs, required files per phase, REQ H3 format, RVW brackets format, health dimensions nested, test-reports non-empty, activity history coherence, workflow completed vs artefacts, git state consistency, sprint freeze honored, intent artefact greenfield, backlog traces populated, coach workflow_observations, open questions resolution. JSON output via `--json`, severity filter via `--severity-filter`, exit codes graded 0/1/2/3 for CI.
-- **`audit.md` template** (`src/templates/sprint/audit.md`) — report template with frontmatter (type, sprint, trigger, audit_version, phase, findings breakdown, actions applied/deferred, status draft/reviewed/applied), phased sections (Deterministic Phase 1 / Semantic Phase 2 placeholder / Actions / Deferred / Notes).
-- **`/gse:deliver` Step 1.5 — Test Execution Evidence** (`src/activities/deliver.md`) — new Step between 1.4 (REQ→TST traceability) and 2 (Merge). Reads `test_evidence.status` on each TASK implementing a must-priority REQ. Blocks on `{absent, fail, skipped}` with Gate (4 options: Run tests now / Deliver partial / Reclassify spike-deferred / Discuss). Stale evidence raises Soft guardrail. Missing consumer of the `test_evidence` field now realized.
-- **`AskUser` methodology alias + runtime mapping table** (orchestrator P4) — abstracts the platform-specific interactive question tool names. Runtime resolution: Claude Code → `AskUserQuestion`; Cursor ≥2.4 → `AskQuestion`; opencode → `question`. Methodology artefacts reference `AskUser`, the orchestrator owns the mapping.
-- **`/gse:go` Step 1 source-path pointer** (New-project row) — explicit reference to the target activity's runtime-specific source path (Claude Code `skills/hug/SKILL.md`, Cursor `commands/gse-hug.md`, opencode `opencode/skills/hug/SKILL.md`) to enforce Activity Execution Fidelity.
-- **opencode permission `question: allow`** (`gse_generate.py` + generated `plugin/opencode/opencode.json`) — enables the native interactive question tool on opencode runtime. Without this, QCM interactions degrade to per-call permission prompts or text fallback on opencode. Previously missing by omission.
-- **E2E screenshots as default evidence** — new "E2E Evidence (default)" note in template `src/templates/sprint/tests.md` + default config documentation in activity `src/activities/tests.md` Step 2 (Playwright `screenshot: 'on'`, Cypress `cy.screenshot()`). Distinct from visual regression (`--visual`) which is opt-in pixel-diff.
+- spec §9.3.1 Test-Specific Guardrails: 3 guardrails on `/gse:deliver` Step 1.5 (Unexecuted tests, Unexecuted test strategy, Stale evidence).
+- spec §15 Methodology Audit (Glossary renumbered §16).
+- spec §P6 `AUD-` prefix (audit findings, distinct from `RVW-`).
+- `/gse:audit` activity (24th GSE-One activity, cross-cutting).
+- design §3.4 Dashboard parser format contracts.
+- design §5.17 `/gse:audit` architecture subsection.
+- Activity Execution Fidelity Invariant (spec §14.3, design §5.14, orchestrator): every Step MUST execute unless conditional/user-overridden/frontmatter-exempt; agent-driven skips emit Inform.
+- `project-audit.py` deterministic engine (15 Phase 1 checks).
+- `sprint/audit.md` report template.
+- deliver.md Step 1.5 Test Execution Evidence (consumer of `test_evidence` field).
+- `AskUser` methodology alias + runtime mapping (orchestrator P4): AskUserQuestion (Claude) / AskQuestion (Cursor ≥2.4) / question (opencode).
+- opencode permission `question: allow`.
+- E2E screenshots as default evidence in tests.md.
 
 ### Changed
-
-- **P4 — Human-in-the-Loop elevated from "preferred" to "canonical"** (spec §P4, orchestrator P4, principles/human-in-the-loop.md rule 3). Interactive mode becomes the **canonical** interaction pattern — `MUST use` for any finite-option question that fits the tool's limit (~4-5 options). Text fallback bifurcated into two categories: **content-forced** (silent — options exceed limit, or free-text answer) and **runtime-forced** (MUST emit Inform-tier note explaining why — tool unavailable, permission denied). Inform note MUST NOT fire on content-forced fallbacks.
-- **dashboard.py format parser aligned on canonical formats** (`plugin/tools/dashboard.py`): `count_reqs()` now matches `### REQ-NNN` H3 heading (was `id: REQ-`); `count_review_findings()` matches `RVW-NNN [SEVERITY]` canonical brackets AND tolerates `(SEVERITY)` parentheses (observed LLM drift), adds CRITICAL severity; health scores lookup prioritizes nested `health.dimensions.<dim>` path (template canonical) with flat and top-level fallbacks, dimension list aligned on template (`complexity_budget`, `traceability` added; `delivery_velocity` dropped as non-template).
+- P4 Human-in-the-Loop elevated from "preferred" to "canonical": interactive mode MUST for finite-option questions; text fallback bifurcated into content-forced (silent) vs runtime-forced (emits Inform).
+- dashboard.py format parsers aligned on canonical formats (count_reqs: `### REQ-NNN` H3; count_review_findings: `RVW-NNN [SEVERITY]` brackets, adds CRITICAL; health dimensions: nested `health.dimensions.<dim>` lookup with fallbacks).
 
 ### Fixed
-
-- **`/gse:go` on greenfield projects preserves HUG Step 0 QCM.** Previously, when `/gse:go` inline-executed HUG on an empty project, the agent paraphrased Step 0 from memory and emitted a degraded 3-option text-only language question instead of the canonical 5-option multi-language interactive block. Root cause: no Step-level fidelity rule. Fixed by the Activity Execution Fidelity Invariant + explicit source-path pointer in go.md Step 1. Observed originally in a Cursor 3.1 session (2026-04-22 CalcApp sprint).
-- **`/gse:deliver` no longer silently merges without test evidence.** Previously, `/gse:deliver` Step 1.4 checked REQ→TST *traceability* (artefacts defined) but not *execution evidence* (tests actually run). Step 1.5 is the missing consumer of `test_evidence.status`; blocks Hard on `{absent, fail, skipped}`.
-- **Dashboard no longer reports "0 REQs / 0 findings / No health data" on valid projects.** Root cause: parser regex drift from template/agent canonical formats. Fixed in `dashboard.py` count_reqs, count_review_findings, and health dimensions lookup (see **Changed**).
-
-### Retracted / Absorbed
-
-- **Proposition 2 (ship MCP server for Cursor)** — retracted. Root-cause invalidated: Cursor 2.4 (2026-01-22) added native `AskQuestion` in Agent Mode, polished in 3.1 (2026-04-14). No current GSE-One target runtime lacks a native QCM tool.
-- **Propositions D/E/F/G (QCM persistence, prove before claim, P9 self-check, coach pedagogy forced)** — not applied as inline invariants. Absorbed into the future project-reviewer agent's semantic checklist (audit Phase 2).
-- **Proposition I (git baseline enforcement)** — consolidated into Proposition C (Activity Execution Fidelity Invariant). A skipped HUG Step 4 Git Initialization now becomes an automatic Inform-tier drift under the new rule.
-
-### Notes
-
-- **Source of the release:** Cursor 3.1.17 sprint transcription on a greenfield project (CalcApp budgeting web app). The transcription surfaced 11 distinct methodology drifts during the first sprint (language QCM degraded, agent drift to text lists, P9 jargon for beginner, agent announces work it hasn't done, tests not run before deliver, no proactive learning sessions, no screenshots, dashboard absent, dashboard format parsing broken, git baseline missing, QCM preference forgotten mid-session). Eight of eleven drifts are addressed by this release; the remaining three (P9 self-check, prove-before-claim, proactive learning) are deferred to the audit semantic layer (Phase 2).
-- **Runtime capability matrix stabilized:** QCM interactive tools now explicitly mapped in orchestrator P4 — `AskUserQuestion` on Claude Code, `AskQuestion` on Cursor ≥2.4, `question` on opencode. All three supported runtimes expose native QCM; no MCP shim required. The `AskUser` methodology alias decouples activity content from runtime-specific tool names.
-- **Phase 2 / Phase 3 audit deferred:** the project-reviewer semantic sub-agent (Phase 2) and the orchestrator Methodology Audit Auto-Trigger Invariant (Phase 3) are designed in this release but not implemented. Their design sketches in design §5.17 serve as implementation pointers for subsequent sub-propositions.
-- **Methodology meta-rule observed:** this release applied the 4-phase post-audit fix workflow documented in v0.56.0 CLAUDE.md. Anti-false-positive verification was inline per proposition (not a separate sub-agent sweep) because the source was a single transcription, not a cross-file audit. Three-layer alignment (spec / design / impl) verified at each of the 8 sub-releases before moving to the next.
+- `/gse:go` on greenfield now preserves HUG Step 0 canonical 5-option QCM (was degraded to 3-option text).
+- `/gse:deliver` now blocks Hard on missing/failed/skipped test evidence (was: silent merge).
+- Dashboard no longer reports "0 REQs / 0 findings / No health data" on valid projects.
 
 ## [0.56.0] - 2026-04-22
 
-Layers impacted: **CLAUDE.md** (new "Post-audit fix workflow" section), **maintainer tooling** (methodology-auditor Principles 6 + 10 + YAML output + anti-patterns; `/gse-audit` skill new Phase 3.5)
-
-**Minor release — methodology capitalization of the v0.51 → v0.55 post-audit session.** Codifies the patterns that emerged across 6 releases (76 corrections applied, 5 false positives documented, 0 regression on 72 unit tests). Parallel to v0.50.0's "retrospective capitalization" pattern — durable learning from a completed sprint is captured in the methodology corpus, not lost.
-
 ### Added
-
-- **`CLAUDE.md` — new `Post-audit fix workflow` section** documenting the 4-phase protocol observed during v0.51 → v0.55: Phase 1 parallel anti-false-positive verification (1 methodology-auditor sub-agent per cluster, structured verdicts), Phase 2 consolidation + user validation, Phase 3 cluster-based application (not file-based), Phase 4 version bump + CHANGELOG + regen + commit + push, Phase 5 FP documentation in CHANGELOG. Includes:
-  - **Version bump matrix** mapping release scope to bump type (patch / minor / major) with concrete examples from v0.51 → v0.55.
-  - **Pattern: contract change release isolation** — defer contract changes to dedicated releases, never bundle with unrelated fixes. Reference: WC17.4+5 deferred from v0.53.0 → v0.55.0.
-  - **Pattern: three refinement directions (not two)** — downward, upward, AND retraction (net deletion of dead code / orphan fields / obsolete duplicates). Reference: ~10 retractions in v0.52 → v0.53 that would have been misclassified as "downward" in the 2-direction framing.
-- **`.claude/agents/methodology-auditor.md` — Principle 10 "Structured verdict in verification mode"** — distinguishes initial-audit mode (no verdict) from verification-pass mode (mandatory `CONFIRMED | FALSE_POSITIVE | NEEDS_REFINEMENT | SCOPE_CHANGE`). Each verdict carries a `verdict_rationale` field. Verification is the defense against LLM fabrication — 2026-04-22 session detected 4/12 false positives (33%) via this protocol.
-- **`.claude/commands/gse-audit.md` — new Phase 3.5 "Anti-false-positive verification pass (post-audit, on-demand)"** — documents the maintainer-invoked verification workflow: spawn 1 methodology-auditor per cluster (parallel, single message, multiple Agent invocations), aggregate into 4 verdict groups, present consolidated plan for bulk user validation, document FALSE_POSITIVE with root cause in the resolving release's CHANGELOG. Includes the focused verification prompt template.
+- CLAUDE.md "Post-audit fix workflow" section (5-phase protocol, version bump matrix, contract change isolation pattern).
+- methodology-auditor.md Principle 10 "Structured verdict in verification mode" (CONFIRMED / FALSE_POSITIVE / NEEDS_REFINEMENT / SCOPE_CHANGE).
+- `.claude/commands/gse-audit.md` Phase 3.5 "Anti-false-positive verification pass".
 
 ### Changed
-
-- **`methodology-auditor.md` Principle 6 extended from 2 to 3 refinement directions** — added `retraction` as a first-class direction alongside `downward` and `upward`. A 4-question checklist helps the auditor pick the right direction: is the content used on either side? is one side a stale duplicate? is the divergent content more complete on the lower side? is the divergent content a legitimate upper-side specification? Historical evidence cited: ~45 downward, ~20 upward, ~10 retraction across v0.51 → v0.55.
-- **`methodology-auditor.md` YAML output format** — added `verdict` and `verdict_rationale` fields (verification mode only), added `retraction` to the `direction` enum.
-- **`methodology-auditor.md` Anti-patterns** — added two rules: (a) never propose `downward` alignment when content is dead on both sides — use `retraction` instead; (b) never skip the verdict classification when spawned in verification mode.
-
-### Notes
-
-- **Why codify now vs later?** User preference (2026-04-22): capitalize concrete patterns immediately rather than "decant 24-48h". Rationale: the patterns are load-bearing for any future audit cycle, and the details fade fast (exact verdict names, exact cluster sizing, exact retraction vs downward distinction). Deferring risks losing the precision that made the v0.51 → v0.55 train successful.
-- **Anti-rigidity caveat (Meta-1 applied to meta-methodology itself)** — three patterns observed only once or twice were NOT codified: upward centralization (WC18), anti-rigidity win documentation (5 cases, all already covered by Meta-1), pattern G+H in the internal analysis. The threshold for codification was "≥3 convergent occurrences across distinct clusters/releases", verified empirically. If future sessions exercise these single-occurrence patterns again, they can be promoted.
-- **Release line** — v0.56.0 is the 7th and final release of the audit v0.50 resolution campaign. The audit engine is now measurably self-improved (3 FP classes eliminated at source), the methodology corpus carries 76 new corrections, and the workflow that produced them is now explicit in CLAUDE.md + methodology-auditor + /gse-audit. A follow-up `/gse-audit` run against this state will be the baseline for the next cycle.
-- Pipeline: 72 unit tests pass; cross-platform parity identical; `gse_generate.py --verify` clean.
+- methodology-auditor.md Principle 6 extended: 2 → 3 refinement directions (downward / upward / retraction).
+- methodology-auditor.md YAML output: added `verdict` + `verdict_rationale` fields; `direction` enum gained `retraction`.
 
 ## [0.55.0] - 2026-04-22
 
-Layers impacted: **tools** (`gse-one/plugin/tools/deploy.py` — docstrings + contract unification), **tests** (`gse-one/tests/test_deploy.py` — 11 new contract tests)
-
-**Minor release — deploy.py `record_*` contract unification + docstring sweep (audit v0.50 WC17.4 + WC17.5 bundle).** Dedicated release for the bundled contract change deferred from v0.53.0. Applies the uniform status-wrapped return contract to all 5 `record_*` library functions (mirroring the `record_role` reference pattern introduced earlier), adds 17 docstrings (9 public + 8 private helpers), and adds 11 contract tests (2 per record_* × 5 functions + 1 edge case for record_cdn). Test count: 49 → 60.
+### Added
+- 11 contract tests in `test_deploy.py` (test count 49 → 60).
+- 17 docstrings in `deploy.py` (9 public + 8 private helpers).
 
 ### Changed
-
-- **WC17.5 contract unification — 5 `record_*` library functions** now return a uniform status-wrapped dict `{"status": "ok"|"error", ...}` mirroring `record_role` (the v0.48 reference pattern):
-  - `record_phase` — returns `{"status", "phase", "completed_at"}` on success, or `{"status": "error", "error": "unknown phase '...'"}` on invalid phase. Removed the library-level `_err()`/sys.exit call — the failure path now surfaces via the status field and exits in the CLI wrapper.
-  - `record_server` — new validation: both `name` and `ipv4` must be non-empty (previously no validation — silently recorded bogus data).
-  - `record_coolify` — new validation: `url` must be non-empty.
-  - `record_domain` — new validation: `base` must be non-empty.
-  - `record_cdn` — new validation: when `enabled=True`, `provider` must be non-empty. Disabling with empty provider remains valid (covered by a dedicated test).
-  - `record_role` — unchanged (already conformed since v0.48).
-- **WC17.5 CLI wrapper alignment — 5 `_cmd_record_*` wrappers** now mirror `_cmd_record_role`: read the library dict, always call `_json_out(result)`, and `sys.exit(2)` if `result.get("status") != "ok"`. This concentrates exit semantics in the CLI layer and keeps the library pure (importable, testable without exit side-effects).
-
-### Added
-
-- **WC17.4 docstrings** — 9 public + 8 private helpers in `deploy.py` now carry one-line docstrings matching the `record_role` reference style (purpose + when called + return-shape note when non-obvious):
-  - Public: `load_state`, `save_state`, `init_state`, `record_phase`, `record_server`, `record_coolify`, `record_domain`, `record_cdn`, `app_status` (9 total; remaining public functions were already documented — `parse_env`, `set_env`, `delete_env`, `sanitize_component`, `build_subdomain`, `detect_situation`, `record_role`, `wait_dns`, `poll_health`, `deploy_app`, `destroy`, `preflight`, `training_init`, `training_reap`).
-  - Private (optional per Python convention, but valuable for maintainability): `_empty_state`, `_find_application`, `_upsert_application`, `_git_info`, `_streamlit_config_checks`, `_entry_point_check`, `_dockerfile_check`, `_render_state_human`.
-- **11 contract tests** in `gse-one/tests/test_deploy.py`, grouped in 5 new test classes (`RecordPhaseContractTests`, `RecordServerContractTests`, `RecordCoolifyContractTests`, `RecordDomainContractTests`, `RecordCdnContractTests`). Each class covers 2 cases (happy path + validation-error path) except `RecordCdnContractTests` which has 3 (enabled+provider ok, enabled without provider rejected, disabled without provider accepted). Test count: 49 → 60.
-
-### Notes
-
-- **Zero skill impact** — `gse-one/src/activities/deploy.md` invokes `record-*` CLI subcommands at 14 call sites, all fire-and-forget (no stdout parsing). The skill relies solely on exit codes (0 = ok, non-zero = error). Verified by the v0.54.0 audit pass: 0 line changes in deploy.md needed.
-- **Zero spec / design impact** — neither `gse-one-spec.md` nor `gse-one-implementation-design.md` documents the in-library return shape of `record_*` functions. The design §5.18 subcommand list (already corrected in v0.53.0) is unaffected.
-- **Pre-release backward-compat** — per CLAUDE.md §"Pre-release backward-compat", the change is applied directly without migration tooling. Python importers are alerted via the docstring "Returns status-wrapped dict" note.
-- **Anti-rigidity respected** — `load_state()` retains its `_err()`/sys.exit call on corrupt JSON (the failure is unrecoverable; no meaningful remedy from the CLI wrapper). This is NOT an inconsistency — it's a documented semantic distinction: corrupt state is a fatal library error, invalid inputs are CLI-recoverable. The `load_state` docstring explains the rationale.
-- **LOC delta** — +293 insertions, −28 deletions (deploy.py: +69/−22 for contract + docstrings; test_deploy.py: +140 new tests; CHANGELOG: +60; VERSION: +1/−1). Higher than the v0.54.0 audit estimate (+143/−11) because docstrings ran longer and the test class boilerplate is less compact than the helper-shared pattern.
-- **Cumulative tally (audit v0.50 →)**: v0.51.0 errors (15), v0.51.1 simple warnings (31), v0.52.0 structural warnings (8), v0.53.0 structural + Python hygiene (10), v0.54.0 upward + audit improvements (10), v0.55.0 deploy.py contract (2 sub-clusters). **Total: 76 corrections applied, 5 false positives documented.**
-- **Minor bump rationale (0.54.0 → 0.55.0)** — breaking-ish contract change for Python importers (record_* return shape), new validation behavior on 4 functions (record_server / coolify / domain / cdn now reject empty required fields), and substantial test addition (+22% test count). Minor is appropriate per SemVer for feature-level additions in a pre-1.0 project.
-- Pipeline: 72 unit tests pass (60 in test_deploy.py — 49 previously + 11 new — plus 12 in test_audit.py); cross-platform parity identical; `gse_generate.py --verify` clean.
+- 5 `record_*` library functions in `deploy.py` now return uniform `{"status": "ok"|"error", ...}` dict (mirrors `record_role` reference pattern).
+- 5 `_cmd_record_*` CLI wrappers: read dict, call `_json_out`, exit 2 on error.
+- record_server / record_coolify / record_domain / record_cdn: new validation on empty required fields.
 
 ## [0.54.0] - 2026-04-22
 
-Layers impacted: **spec** (§3.2.2 NEW, §14.3 Step 5 skip matrix, §P13 opencode wording), **design** (§7 P11 citation), **activities** (preview, hug), **templates** (profile.yaml comment), **audit engine** (audit.py CHANGELOG filter, partitive lookahead, ±1 info drift), **maintainer tooling** (.claude/audit-jobs.json indent-tolerant perspective guideline)
-
-**Minor release — v0.50 audit warnings batch 4 (upward refinements + audit engine improvements).** Applies 10 confirmed corrections from 4 warning clusters + 1 bonus, verified by 4 parallel methodology-auditor sub-agents. One FALSE POSITIVE (WC22.1) documented with cosmetic comment clarification; one cluster (WC17.4+5) deferred to dedicated v0.55.0 release for bundled deploy.py contract change.
-
 ### Added
-
-- **Spec §3.2.2 Profile Update Mode** — new subsection under §3 Command Catalog documenting the `/gse:hug --update` behavior: dimension-to-impact-to-notification table (5 dimensions with user-visible behavioral consequences), silent-update dimensions, and the invariant that --update never interrupts in-flight activities. Upward refinement (WC21.2) — the activity artefact (`hug.md` Step 4.5) already formalized this table; the spec now catches up.
-- **Spec §14.3 Step 5 skip matrix** — new clause #7 enumerating the 3 Intent Capture skip conditions (non-greenfield, adopt mode, existing `intent.md`) that design §5 Intent Capture already documented. Upward refinement (WC21.1) — closes the spec/design gap.
-- **Spec §P13 opencode wording** — Hooks paragraph now explicitly documents all 3 platforms (Claude Code + Cursor via PreToolUse/PostToolUse command hooks; opencode via native TS plugin with `tool.execute.before/after` handlers). Upward refinement (WC21.3) — the design + implementation had supported opencode since the opencode subtree was introduced; the spec P13 text was never refreshed.
-- **Design §7 P11 citation** — opening paragraph now explicitly cites spec §P11 — Guardrails as the source of the Soft/Hard/Emergency tier taxonomy used by hooks. Upward refinement (WC21.4) — the design used the P11 vocabulary 10+ times without attribution, whereas P12/P13/P14/P15/P16 are cited by name; this breadcrumb restores the traceability chain.
-- **hug.md learning_goals Inform** — Step 2 dimensions table row 10 now documents the 3 entry points into `/gse:learn` (direct invocation, coach proactive gap detection, compound Axe 3 retrospective proposal). Clarifies that leaving `learning_goals` empty does NOT disable learning — the opt-in design of the coach preserves user consent while the documentation previously made the paths invisible (WC22.3).
+- spec §3.2.2 Profile Update Mode (catches up on hug.md Step 4.5 dimension table).
+- spec §14.3 Step 5 skip matrix clause #7 (3 Intent Capture skip conditions).
+- spec §P13: opencode native TS plugin hooks now documented alongside Claude Code and Cursor.
+- design §7: explicit citation of spec §P11 Guardrails as source of Soft/Hard/Emergency tier taxonomy.
+- hug.md Step 2: 3 entry points into `/gse:learn` documented (direct invocation, coach proactive gap, compound Axe 3).
 
 ### Changed
-
-- **preview.md Step 2.5 applicability widened** — the UX Heuristic Pass is no longer gated to `project.domain ∈ {web, mobile}` (a narrow 2-domain positive list). Replaced with a **surface-based decision matrix** covering all 9 canonical domain values (spec §3.2.1): `web`/`mobile` always run; `other`/`embedded`/`scientific`/`data` run when the preview artefact has a UI surface; `api`/`cli`/`library` skip. This matches the step's stated intent ("UX issues at prototype stage"), allows scientific Streamlit dashboards and embedded HMIs to benefit from Nielsen + WCAG checks, and eliminates the domain-list drift (WC22.2 NEEDS_REFINEMENT).
-- **profile.yaml dimensions comment clarified** — line 21 comment now explicitly states "12 here + 1 in user.name above = 13 total" to disambiguate the deliberate split between `user.name` and the `dimensions:` block. WC22.1 FALSE POSITIVE from audit v0.50 documented; cosmetic-only (no schema change).
-- **audit.py WC24.1 CHANGELOG filter** — `audit_links()` now skips `CHANGELOG.md` entirely from broken-link detection. CHANGELOG historical entries about removed/merged files (e.g., the v0.37.0 `tutor.md → coach.md` merge narrative) are correct Keep-a-Changelog history, not broken links. False positive class flagged by audit v0.50 WC7 — now eliminated at source.
-- **audit.py WC24.2 partitive lookahead** — the `audit_numeric()` principles-count regex now has a negative lookahead blocking partitive phrasing (`N principle titles/IDs/names/headers/bullets/entries/of N`). Previously "10 principle titles" in CLAUDE.md:205 (a partition 10/16, not a total) triggered a warning "claims 10 — actual is 16". False positive class flagged by audit v0.50 WC6 — now eliminated at source.
-- **audit.py BONUS-3 off-by-one ±1 info drift** — numeric drift of exactly 1 (e.g., "10 specialized agents" vs actual 11) now emits an `info` finding with rationale ("often includes/excludes orchestrator") instead of being silently absorbed. Drift ≥2 remains a `warning`. Makes previously-invisible ±1 drifts auditable without false-positive noise.
-- **.claude/audit-jobs.json WC24.3 indent-tolerant perspective check** — `quality-assurance-cluster` job's checks array now documents that `perspective:` fields in Reviewer-archetype agents live inside Output Format example blocks at indented positions (2-space indent typical), not at top-level YAML. Guides LLM sub-agents to use indent-tolerant matching. False positive class flagged by audit v0.50 WC10 on devil-advocate.md — now documented at source.
-
-### Deferred (v0.55.0)
-
-- **WC17.4 + WC17.5 deploy.py contract unification** — 5 `record_*` functions + 5 `_cmd_record_*` wrappers + 17 docstrings + 10 new contract tests. Scoped to a dedicated release because the unified status-wrapped return contract is a breaking change for Python importers (transparent to the deploy.md skill which parses only exit codes). The v0.54.0 verification pass confirmed: 0 skill impact (14 fire-and-forget call sites in deploy.md), 0 existing-test breakage (49 tests preserved), ~+143/-11 LOC estimate. See v0.53.0 audit-auditor report for the full migration plan.
-
-### Deferred (v0.56.0+ audit engine refactor)
-
-- **BONUS-1** — `audit_cross_refs()` regex charset narrow (`[a-z][a-z-]+` for agent names). Broaden to `[A-Za-z0-9][A-Za-z0-9_-]+` in a future audit engine refresh to tolerate forker agent naming conventions.
-- **BONUS-2** — `audit_links()` regex only matches `gse-one/` prefix. Broaden to include `.claude/`, `assets/`, repo-root files (`VERSION`, `CHANGELOG.md`, `install.py`, `gse-one-spec.md`, …) in a future refresh.
-
-### Notes
-
-- **Direction mix** — 4 upward fixes (WC21.1/2/3/4: spec/design catch up to implementation maturity), 5 downward fixes (WC22.2/3 activity + audit engine improvements + profile.yaml comment), 1 pure refactor (WC24.3 audit-jobs.json).
-- **False positive eliminated at source** — v0.54.0 closes 3 of the 4 false positives detected by the v0.51.1 anti-false-positive protocol (WC6 partitive, WC7 CHANGELOG, WC10 indent-tolerant). WC11 (fix.md dashboard regen covered by PostToolUse hook) remains a documented-as-intentional non-issue.
-- **CLAUDE.md unchanged this release** — v0.53.0 already added the Activity path / structural convention sections. v0.54.0 focuses on spec + design + activities + audit engine, not meta-conventions.
-- **Release 4 of 5 post-audit** — cumulative tally: v0.51.0 errors (15), v0.51.1 simple warnings (31), v0.52.0 structural warnings (8), v0.53.0 structural + Python hygiene (10), v0.54.0 upward + audit improvements (10). Total: **74 corrections applied, 5 false positives documented**.
-- Pipeline: 61 unit tests pass; cross-platform parity identical; `gse_generate.py --verify` clean.
-- **Minor bump rationale (0.53.0 → 0.54.0)** — adds spec §3.2.2 (new sub-chapter), changes audit.py detection semantics (partitive, CHANGELOG filter, ±1 info), widens preview.md applicability rule (surface-based gate). Pre-release backward-compat rule permits the changes without migration tooling.
+- preview.md Step 2.5 UX Heuristic Pass: narrow 2-domain gate (web/mobile) → 9-domain surface-based decision matrix.
+- audit.py: CHANGELOG filter in `audit_links()`; partitive lookahead in `audit_numeric()`; ±1 drift emits info (not warning).
+- `.claude/audit-jobs.json` quality-assurance-cluster: indent-tolerant `perspective:` matching documented.
 
 ## [0.53.0] - 2026-04-22
 
-Layers impacted: **spec** (no-op), **design** (§5.18 subcommand list + state schema), **CLAUDE.md** (2 new convention sections), **agents** (deploy-operator), **activities** (plan, produce, review, fix, deliver, backlog, collect, learn, design, go), **tools** (dashboard.py, audit.py)
-
-**Minor release — v0.50 audit warnings batch 3 (structural refinements + Python hygiene).** Applies 10 confirmed corrections from 4 warning clusters verified by 4 parallel methodology-auditor sub-agents. Zero false positives this batch. 2 sub-findings deferred to a dedicated v0.54+ release (deploy.py record_* contract unification + matching docstring sweep).
+### Added
+- CLAUDE.md "Activity path reference conventions" section (runtime-executable / pedagogical / methodology-source forms).
+- CLAUDE.md "Activity structural conventions" section (Flat Step / Multi-mode / Phase-over-Step patterns with inline notes in 4 multi-mode activities).
 
 ### Changed
+- deploy-operator.md Anti-patterns: fused 2 bullets, corrected `/start (full rebuild)` → `GET /api/v1/deploy?uuid=...&force=true` (real Coolify redeploy path).
+- design §5.18 subcommand enumeration: 14 → 20 entries.
+- design §5.18 state schema: added `user_role` and `cdn { provider, enabled, bot_protection }` blocks.
+- audit.py: 11 `audit_*` category entry points received missing one-line docstrings.
+- dashboard.py `@gse-tool` version string normalized 0.17.0 → 1.0.
+- audit.py: `print()` calls moved from `collect_data()` library into `generate()` CLI entry point.
 
-- **Tool quality sweep — partial (WC17)** — applied 4 of 6 sub-findings; 2 (WC17.4 + WC17.5) deferred to v0.54+ for a bundled contract-change release:
-  - **WC17.1** — normalized `gse-one/plugin/tools/dashboard.py:2` `@gse-tool dashboard 0.17.0` → `1.0` (align on two-digit form used by the 4 other tools; the field is presence-only, not parsed by any consumer).
-  - **WC17.2** — added a `Dependencies:` paragraph to `gse-one/audit.py` module docstring documenting PyYAML as an optional dependency (used by `audit_templates()`; gracefully skipped if absent).
-  - **WC17.3** — added one-line docstrings to the 11 `audit_*` category entry points in `gse-one/audit.py` that lacked them (audit_version, audit_file_integrity, audit_plugin_parity, audit_cross_refs, audit_links, audit_git, audit_python, audit_templates, audit_todos, audit_test_coverage, audit_freshness; audit_numeric was already documented).
-  - **WC17.6** — moved validation-warning `print()` calls out of the `collect_data()` library function and into `generate()` (the CLI entry point). Eliminates stderr noise from any future programmatic caller of `collect_data()`; preserves the CLI user-facing warning banner via `data["_validation_warnings"]` already populated by the library.
-- **Sprint lifecycle cursor write centralization (WC18, direction=upward)** — 5 activities (plan, produce, review, fix, deliver) previously wrote `status.yaml` cursor fields (`last_activity`, `last_activity_timestamp`, `current_sprint`, `current_phase`) directly in their Finalize steps, DUPLICATING the central Sprint Plan Maintenance protocol documented in `gse-orchestrator.md` §Sprint Plan Maintenance and `gse-one-implementation-design.md` §10.1. Retired the duplicate writes; left a short inline "State transition note (v0.53.0)" in each activity pointing to the central protocol. Activity-local state (TASK statuses, health scores, `last_task`, `activity_history` init at plan, `current_phase: LC03` transition at deliver) REMAINS in the activities where it belongs. Impact: ~15 lines retired, ~10 lines of explanatory pointer added across 5 files, authority ambiguity resolved (one canonical owner of cursor fields: the orchestrator).
-- **Deploy-cluster upward refinements (WC19)** — 3 sub-findings CONFIRMED, all direction=upward:
-  - **WC19.1** — `gse-one-implementation-design.md:2424` subcommand enumeration expanded from 14 to 20 entries (added `record-role`, `record-cdn`, `wait-dns`, `preflight`, `training-init`, `training-reap`; grouped by purpose). The tool had grown past the design paragraph.
-  - **WC19.2** — `gse-one-implementation-design.md:2398` state schema paragraph now lists `user_role` (set by Step -1 Orientation) and `cdn { provider, enabled, bot_protection }` (set during Phase 5 Step 7) as top-level blocks.
-  - **WC19.3** — `gse-one/src/agents/deploy-operator.md` Anti-patterns list: fused 2 overlapping bullets into one, correcting `/start (full rebuild)` → `GET /api/v1/deploy?uuid=...&force=true` (the real redeploy path used by `deploy.py:554`; exposed as `CoolifyClient.trigger_deploy(uuid, force=True)`). The old `/start` guidance contradicted both the real tool behavior and the adjacent bullet at :120.
-  - **Bonus BC19.a** — `gse-one/src/agents/deploy-operator.md` "Deployment lifecycle" block now clarifies inline (per Meta-2) that Phases 1-5 are server-level (tracked in `phases_completed`) while Phase 6 is per-application (tracked via `applications[].status` + `coolify.app_uuid`). Resolves the implicit 6-phases-but-5-keys convention.
-- **Activity conventions documented (WC20, Meta-1 anti-rigidity preserved)** —
-  - **WC20.1** — added a new **"Activity path reference conventions"** section to CLAUDE.md (between "Memory policy" predecessor and "Repo-level tooling"). Documents the 3 deliberate path forms (`$(cat ~/.gse-one)/X` runtime-executable; `plugin/X/...` authoritative-format pointer; `gse-one/src/X/...` methodology-source pointer) with their semantic distinctions. The 4th bare form (`agents/X`) is documented as retired; upgraded 2 remaining occurrences: `gse-one/src/activities/design.md:201` (`agents/architect.md` → `plugin/agents/architect.md — authoritative checklist`) and `gse-one/src/activities/go.md:157` (bare `agents/coach.md` + `gse-orchestrator.md` → `plugin/agents/coach.md` + `plugin/agents/gse-orchestrator.md`).
-  - **WC20.2** — added a new **"Activity structural conventions"** section to CLAUDE.md documenting the 3 Workflow structural patterns as first-class citizens: Flat Step (default, ~18 activities), Multi-mode `### Mode → #### Step N` (4 activities: backlog, plan, collect, learn), Phase-over-Step (deploy only). Added inline "Workflow structure note" in the 4 multi-mode activities per Meta-2 (document exceptions inline). `fix.md` was excluded from scope (audit false positive partial: fix.md uses Flat Step, not multi-mode). Author guidance added to CLAUDE.md for choosing the right pattern when creating a new activity.
-
-### Deferred (v0.54+)
-
-- **WC17.4 + WC17.5** — `gse-one/plugin/tools/deploy.py` public function docstring sweep (9 functions in `record_*` family + 3 private helpers) + error-handling contract unification (record_phase uses `_err()`/sys.exit, record_role returns `{"status": "ok"|"error"}` dict, others return bare dicts — unify on the record_role pattern). Deferred because the contract change touches `_cmd_record_*` CLI wrappers AND potentially `src/activities/deploy.md` skill steps that read these returns; it benefits from a coordinated release where the NEW contract is documented alongside the refactor, avoiding a two-step documentation churn. Pre-release backward-compat rule (CLAUDE.md) permits the breaking change without migration tooling, so v0.54 is the right window before any public marketplace release locks the contract.
-
-### Notes
-
-- **Direction mix** — 7 downward fixes (tool docstrings, sprint cursor cleanup, activity conventions, anti-pattern fix), 3 upward fixes (design §5.18 state schema + subcommand list, Compliance archetype invocation pattern via CLAUDE.md convention documentation).
-- **WC18 upward pattern validated** — v0.51.0 introduced the pattern "where the lower layer is more complete or more correct, the spec/design catches up" (7 upward fixes in that release). WC18 is the MIRROR pattern: "where the central protocol is already complete, the duplicates in activity files retreat". Both are valid direction-of-travel; the 2026-04-22 audit session has now practiced both forms.
-- **CLAUDE.md governance growth** — now hosts 7 convention/governance sections: Build pipeline, Tool architecture, Versioning, Pre-release backward-compat, Cross-reference convention, Principle title convention, Activity path reference conventions (NEW), Activity structural conventions (NEW), Memory policy, Repo-level tooling, Communication style, Methodology meta-principles. This accretion is healthy — each section documents a forker-visible convention, not internal drift.
-- Pipeline: 61 unit tests pass; cross-platform parity identical; `gse_generate.py --verify` clean.
-- **Patch bump candidate vs minor** — considered 0.52.1 (patch) since zero user-facing breaking change. Chose 0.53.0 (minor) because WC18 retires direct writes from 5 activities (internal behavior change, even if net-visible result is identical via the orchestrator's central protocol) and CLAUDE.md gains 2 new first-class convention sections. Minor bump reflects the methodological refinement volume.
+### Removed
+- 5 activities (plan, produce, review, fix, deliver) stopped writing status.yaml cursor fields directly — centralized per orchestrator Sprint Plan Maintenance protocol.
 
 ## [0.52.0] - 2026-04-22
 
-Layers impacted: **spec** (§1.6 guardrail-enforcer row), **design** (§5.13-5.17 G-NNN cleanup, §5.14 Preflight sequence extension, §5.16 status.yaml sample), **agents** (gse-orchestrator, guardrail-enforcer), **activities** (go, resume, review), **principles** (adversarial-review), **templates** (status.yaml, backlog.yaml), **tools** (dashboard.py), **docs** (CHANGELOG v0.34.0 cross-ref)
-
-**Minor release — v0.50 audit warnings batch 2 (structural refinements).** Applies 8 confirmed corrections from 4 warning clusters verified by 4 parallel methodology-auditor sub-agents with anti-false-positive discipline. Mix of schema cleanup (retire dead fields), feature activation (wire up dormant writer), doc clarification (archetype + cross-refs), and code bug fix. Zero false positives this batch.
+### Added
+- `sessions_without_progress` writer (go.md Step 4 Stale Sprint Detection + resume.md Step 6), activating the coach `mid_sprint_stall` axis.
+- design §5.14 Preflight sequence: 3 new subsections (Recovery Check, Dependency Vulnerability Check, Git Baseline Verification).
 
 ### Changed
+- guardrail-enforcer documented as Compliance archetype (canonical rule reference, not runtime sub-agent spawn).
 
-- **Schema orphans retired (WC13 — 3 DROP + 1 ADD_WRITER + 1 CODE_FIX)** —
-  - **WC13.1 — retired P16 `never_*` quartet** (4 booleans: `never_discusses`, `terse_responses`, `never_modifies`, `never_questions`). Pure aspiration: named in design + principle + review but never in the `status.yaml` template schema and never written. P16 remains fully operational via `consecutive_acceptances` (primary trigger) and `pushback_dismissed` (per-sprint suppression). Updated: `gse-one/src/principles/adversarial-review.md` (§Passive acceptance signals simplified to 2 signals), `gse-one/src/activities/review.md` (§3f Passive Acceptance Detection simplified), `gse-one-implementation-design.md` (§5.16 status.yaml sample + §5.17 P16 signal-tracking paragraph).
-  - **WC13.2 — retired top-level `complexity:` block from `status.yaml` template.** Dead schema: no writer, no reader used it; the authoritative source is `plan.yaml.budget.{total,consumed,remaining}` (written by `/gse:plan`, `/gse:produce`, `/gse:task`, read by orchestrator and dashboard). Micro mode — which has no `plan.yaml` — explicitly has no budget by design. Replaced the block with a short explanatory comment.
-  - **WC13.3 — retired `git.commits: 0` field from `backlog.yaml` template.** Dead schema: no writer, no reader. `git rev-list --count` provides the value on demand without staleness risk.
-  - **WC13.4 — ADD WRITER for `sessions_without_progress`.** The counter was declared in `status.yaml:87` and referenced by `gse-orchestrator.md:171` + `coach.md` for `mid_sprint_stall` axis activation, but no activity incremented or reset it — rendering stale-sprint detection and the coach mid-sprint-stall axis dormant. Added the writer logic to `/gse:go` Step 4 — Stale Sprint Detection (compare current backlog TASK statuses against `activity_history[-1]` snapshot; increment if no change, reset if changed) and mirrored to `/gse:resume` Step 6 — Finalize. This activates two documented features that existed in prose only.
-  - **WC13.5 — FIX code bug in `dashboard.py:442-443`.** The two lines read `status.get('complexity_budget')` and `status.get('complexity_used')` — top-level keys that never existed in the `status.yaml` schema, silently returning `None`. Redirected to `data['plan']['budget']['total']` and `data['plan']['budget']['consumed']` (the live `plan.yaml` already parsed at line 428), with graceful Micro-mode fallback.
-- **G-NNN identifiers retired (WC14 — 15 tags stripped)** — legacy gap-analysis markers (G-002, G-003, G-004, G-005, G-006, G-007, G-008, G-009, G-010, G-011, G-014, G-025, G-026, G-027, G-028) that cluttered design §5 subsection titles and inline labels have been removed. The tags had no legend, no registry, no archive — they were opaque to any reader. Only one external reference existed (CHANGELOG.md v0.34.0), updated to a descriptive "design §5.17 — Complexity budget ranges mechanics note" cross-reference per CLAUDE.md "number + name" convention. Net effect: cleaner design doc navigation, zero semantic loss.
-- **guardrail-enforcer documented as Compliance archetype (WC15)** — spec §1.6 line 443 + `gse-one/src/agents/guardrail-enforcer.md` opening block clarified to reflect the observed reality: the agent is a **canonical rule reference** for the Soft/Hard/Emergency tier taxonomy and GUARD-NNN output format, NOT a runtime sub-agent spawn. Runtime enforcement happens via system hooks (`plugin/hooks/hooks.claude.json`) and inline Step 0 preflights in activities. Parallel to P13 Hooks and deploy.md Phase/Step exceptions documented under CLAUDE.md Meta-2 ("document exceptions inline"). Zero wire-up needed — the divergence carries semantic information (the Compliance archetype is deliberately invocation-less).
-- **Design §5.14 Preflight sequence extension (WC16)** — added 3 new short subsections to design §5.14 between the existing Step 1 and Step 2: Step 1.5 — Recovery Check, Step 1.6 — Dependency Vulnerability Check, Step 1.7 — Git Baseline Verification — each citing spec §14.3 for full semantics and `gse-one/src/activities/go.md` for concrete commands (number + name convention). Added a separate "Implementation-only preflight extensions" note covering Step 2.6 — Dashboard Refresh and Step 2.8 — Coach Workflow Overview (present in go.md but not in spec §14.3; Option C hybrid per the audit). Net: design §5.14 becomes a navigable map without duplicating spec/go.md content. ~45 lines added.
+### Fixed
+- dashboard.py:442-443: wrong `status.complexity_*` keys → `plan.budget.total/consumed` (with Micro-mode fallback).
 
-### Notes
-
-- **Verification methodology** — 4 parallel methodology-auditor sub-agents (one per cluster: WC13, WC14, WC15, WC16) applied Principles 1 (evidence-based), 8 (verify-before-report), 9 (anti-rigidity) to each candidate warning. All 4 clusters returned CONFIRMED; zero false positives. For WC13 (5 sub-findings), the auditor distinguished between DROP (3 cases: pure aspiration), ADD_WRITER (1 case: genuine need, cross-session state), and CODE_FIX (1 case: wrong read path in tool).
-- **Direction mix** — 4 downward fixes (schema drops, dashboard.py fix, design §5.14 extension, design §5.17 sample cleanup), 3 upward fixes (spec §1.6 archetype clarification, feature activation for sessions_without_progress, CHANGELOG cross-ref upgrade), 1 neutral (G-NNN strip).
-- **Feature activation caveat** — the `sessions_without_progress` writer now runs on every `/gse:go` / `/gse:resume`. Existing projects that do not have the field in their `status.yaml` will start from 0 (absent → default 0). No migration needed per pre-release backward-compatibility rule.
-- **Archetype clarification payoff** — the guardrail-enforcer is the 2nd agent (after the coach pedagogy axis 1 clarified in v0.51.0) documented as cross-cutting orchestrator-delegated rather than spawned. This pattern — a distinct archetype invocation contract — is now visible in CLAUDE.md §Agent archetypes + spec §1.6 + the agent file itself.
-- **Minor bump rationale (0.51.1 → 0.52.0)** — mix of schema changes (drop 3 fields from templates), feature activation (stale sprint Gate + coach mid_sprint_stall axis become live), code bug fix (dashboard.py wrong read path), archetype clarification (guardrail-enforcer = Compliance). Pre-release backward-compat rule (CLAUDE.md) permits direct schema drops without migration.
-- Pipeline: 61 unit tests pass; cross-platform parity identical; `gse_generate.py --verify` clean.
+### Removed
+- P16 `never_*` quartet (4 booleans declared but never written; P16 remains operational via `consecutive_acceptances` + `pushback_dismissed`).
+- Top-level `complexity:` block from status.yaml template (plan.yaml.budget is authoritative).
+- `git.commits: 0` from backlog.yaml template (git is authoritative).
+- 15 legacy G-NNN gap-analysis identifiers stripped from design §5 (no legend, no registry).
 
 ## [0.51.1] - 2026-04-22
 
-Layers impacted: **spec** (§P1 verified in v0.51.0, §P6 row consistency, §14.3 narrative, Appendix C cascade table), **agents** (gse-orchestrator, coach), **activities** (hug, go, plan, task, learn), **references** (hetzner-infrastructure, ssh-operations), **templates** (backlog.yaml, config.yaml, deploy-env.example, sprint/compound.md)
-
-**Patch release — v0.50 audit warnings (first batch: simple documentation and consistency fixes).** Applies 31 corrections from 8 confirmed warning clusters out of 12 verified by parallel methodology-auditor sub-agents with anti-false-positive discipline (Principles 1, 8, 9). Four additional clusters were verified as FALSE POSITIVES and documented below to refine future audits.
-
 ### Changed
-
-- **Cross-reference convention sweep (WC1 — 13 fixes)** — applied CLAUDE.md "number + name" convention to number-only cross-references found across the corpus:
-  - `go.md:77` — "HUG Step 5.5" → "HUG Step 5.5 — Dashboard Initialization"
-  - `sprint/compound.md:46` — "§2.1–§2.6" → "§2.1–§2.6 — Axe 2 (Methodology Capitalization) steps"
-  - `sprint/compound.md:71` — "§3" → "§3 — Axe 3 (Competency Capitalization) steps"
-  - `spec Appendix C cascade table` — three rows (§14.3, §12.1, artefact_type) now cite "§N — Name" form; critically, the `artefact_type` row pointed to the WRONG section (§4 Collect, which is unrelated) and is corrected to `§P6 — Traceability (artefact_type enum at lines 549-560)`.
-  - `hug.md:229` — "§14.3 Step 6" → "§14.3 — Orchestrator Decision Logic, Step 6 — Complexity Assessment"
-  - `go.md:88` + `go.md:94` + `spec §14.3:2884` — "HUG Step 4" → "HUG Step 4 — Git Initialization"
-  - `plan.md:186` — "see §10.1 for per-mode lists" (WRONG: §10.1 is Branch Model) → "see spec §14 — Standard Activity Groups (Lifecycle Phases) for per-mode lists"
-  - `task.md:115` + `backlog.yaml:40` — "spec §12.3" → "spec §12.3 — Unified Backlog"
-- **Coach opt-in → opt-out label (WC2)** — `coach.md:136` header corrected from "(pedagogy axis, opt-in)" to "(pedagogy axis, opt-out — on by default; set `coach.proactive_gap_detection: false` in `config.yaml` to disable)". The `config.yaml` default is `true`, so the feature is opt-out, not opt-in; the previous label was factually inverted.
-- **SSH ConnectTimeout consistency (WC3 — 7 fixes)** — added `-o ConnectTimeout=10` to every SSH invocation in `ssh-operations.md` §"Connection patterns" and sub-sections. The file's §"Timeouts and retries" declares this timeout mandatory ("Always use…"), but the example invocations did not include it. Deploy.md's actual real-usage examples (lines 207, 241) already apply the rule; the reference file is now self-consistent.
-- **Hetzner freshness markers (WC4 — 5 updates)** — added `> Last verified: 2026-04-22` markers to §1 (Server Types), §2 (Load Balancers), §3 (Other Pricing), §4 (Datacenters), §5 (Application Resource Profiles). Prior state: only §1 had a month-level "April 2026" parenthetical; now all five volatile sections carry ISO-date markers scannable by future audit passes.
-- **deploy-env.example completeness (WC5)** — added commented placeholders for `SERVER_IP`, `SSH_USER`, `SSH_KEY` under a new "Filled automatically during Phase 2 (Provision) — or set manually if BYO server" banner, parallel to the existing Coolify banner. Keeps the reference template complete for forkers and BYO-server advanced users (deploy.py writes these keys programmatically during provisioning, but the template documentation was incomplete).
-- **config.yaml section ordering and count (WC8)** — swapped Section 14 (Compound) and Section 15 (Coach) to restore monotone 1..15 numbering (Compound now physically precedes Coach). Updated header comment from "~50 keys across 11 sections" to "~60 keys across 15 sections" (the previous claim was stale since v0.49 feature additions).
-- **Orchestrator P6 bullet completeness (WC9)** — extended the P6 bullet in `gse-orchestrator.md:31` to match spec §P6 canonical enums:
-  - ID prefixes: 8 → 11 values (added TCP-, INT-, OQ-; each actively used elsewhere — TCP- in test-campaign reports, INT-001 in Intent Capture, OQ- in Open Questions Resolution).
-  - `artefact_type`: 7 → 8 values (added `spike`; already referenced in the orchestrator's own lifecycle guardrails at lines 431-432 but missing from the enum line — self-inconsistency fixed).
-- **LRN frontmatter completeness (WC12)** — `learn.md` Step 4 frontmatter template now emits the full canonical set per spec §P14: added `topic`, `trigger` (with canonical enum `reactive | proactive | contextual`), `related_activity`, `traces.derives_from`. The `mode` enum is expanded from 2 values (`quick | deep`) to 3 (`contextual | quick | deep`) aligning with spec §P14. The `gse-one/src/templates/learning-note.md` template was already correct — only the activity's embedded template drifted.
-
-### Notes
-
-- **Verified false positives (4 clusters — no action, documented for future audit refinement):**
-  - **WC6** — Python audit flagged "CLAUDE.md line 178 claims '10 principles'". Verified: the phrase is "10 principle titles" (partial count of titles affected by a near-mistake in the 2026-04-21 audit session, NOT a total count). Same paragraph cites P1-P16 three times nearby. Audit engine's numeric detector should recognize partitive semantics.
-  - **WC7** — Python audit flagged broken doc links in CHANGELOG.md and README.md. Verified: CHANGELOG references to `tutor.md` are historical (file legitimately removed in v0.37.0 when merged into coach.md; Keep-a-Changelog mandates preserving past release narratives). README.md all 10 referenced paths resolve. Audit engine's link checker should exclude CHANGELOG historical references and may have a path-resolution bug in the README scan.
-  - **WC10** — Audit flagged devil-advocate.md missing `perspective:` field. Verified: the field IS present on lines 60, 68, 76, 84 under each RVW-NNN example, positioned identically to the other 6 reviewer agents. Likely detector missed 2-space indentation under RVW-NNN headers.
-  - **WC11** — Audit flagged fix.md missing explicit dashboard regeneration call (which review.md and produce.md have). Verified: the PostToolUse hook on Edit/Write/MultiEdit (hooks.claude.json:28-54) runs `dashboard.py --if-stale` automatically after every structured-artefact write. The explicit calls in review.md/produce.md are belt-and-suspenders for pedagogical user-facing moments; fix.md's summary-driven finalization tone legitimately omits the explicit call without loss of correctness.
-- **Verification methodology** — each warning cluster was independently verified by a dedicated methodology-auditor sub-agent applying Principles 1 (evidence-based), 8 (verify-before-report), and 9 (anti-rigidity check). 12 sub-agents ran in parallel; each returned a verdict CONFIRMED | FALSE_POSITIVE | NEEDS_REFINEMENT. Two clusters were NEEDS_REFINEMENT — their corrections were applied with the auditor-proposed refinements (WC1.4 target corrected from wrong §4 to correct §P6; WC1.9 target corrected from wrong §10.1 to correct §14; WC5 scope clarified to reference-only placeholders).
-- **Patch bump rationale (0.51.0 → 0.51.1)** — no schema changes, no behavior changes, no new activities or fields. All modifications are documentation consistency, cross-reference conventions, and template completeness. Per SemVer, patch is appropriate.
-- Pipeline: 61 unit tests pass; cross-platform parity identical; `gse_generate.py --verify` clean.
+- 13 cross-reference "number + name" upgrades across spec, activities, templates.
+- coach.md:136 corrected from "opt-in" to "opt-out" (config default is `true`).
+- 7 SSH invocations in ssh-operations.md aligned on `-o ConnectTimeout=10` mandatory rule.
+- Hetzner reference freshness markers added to all 5 volatile sections.
+- deploy-env.example: added SERVER_IP / SSH_USER / SSH_KEY commented placeholders.
+- config.yaml: swapped sections 14 (Compound) and 15 (Coach) for monotone numbering; header count refreshed to "~60 keys / 15 sections".
+- Orchestrator P6 bullet: ID prefixes 8 → 11 (added TCP-, INT-, OQ-); artefact_type 7 → 8 (added `spike`).
+- learn.md Step 4 LRN frontmatter: full canonical 5-field set per spec §P14; `mode` enum expanded to contextual/quick/deep.
 
 ## [0.51.0] - 2026-04-22
 
-Layers impacted: **spec** (§P1, §1.6, §12.3, §13.1), **design** (§3.1, §5 Intent Capture, §5.16, §5.17, §10.1), **agents** (gse-orchestrator, coach, deploy-operator, test-strategist), **activities** (reqs, design, preview, produce, review, fix, deliver, task, status, compound), **templates** (backlog.yaml, decisions.md), **tools** (dashboard.py), **references** (ssh-operations.md), **maintainer tooling** (.claude/audit-jobs.json)
-
-**Audit v0.50 error cluster corrections.** Applies fixes for the 15 errors + 5 high-impact invocation-contract drifts surfaced by the 21-job methodology audit run at v0.50.0. Corrections are grouped in 6 coherent clusters; each cluster was validated individually before application.
+### Added
+- TASK status `reviewed` (between `review` and `fixing`/`done`) in backlog.yaml, spec §12.3, design §10.1, 8 activities, dashboard.py.
 
 ### Changed
-
-- **TASK status state machine (Cluster 1)** — introduced `reviewed` status between `review` and `fixing`/`done` in `backlog.yaml` enum. `/gse:produce` now transitions `in-progress → review` (was: directly to `done`); `/gse:review` transitions `review → reviewed` (no HIGH/MEDIUM findings) or `review → fixing` (findings); `/gse:fix` transitions `fixing → done`; `/gse:deliver` accepts `reviewed` OR `done` as ready-to-merge. Rationale: the `reviewed` vs `done` distinction preserves a quality trend signal for coach Axis 5 (a high ratio of `reviewed` vs `done` indicates high PRODUCE quality). Impacted: spec §12.3 status table (added row `reviewed` + clarifying note), design §10.1 lines 1337-1339 (canonical transition triplets), `src/templates/backlog.yaml` (enum + inline documentation), `produce.md:284`, `review.md:25 + 47 + 54 + 245`, `deliver.md:62`, `fix.md:55`, `status.md:78`, `task.md:14 + Step 1`, `gse-orchestrator.md` (new "TASK status state machine" section), `plugin/tools/dashboard.py:718` (counts `reviewed + done + delivered` as productive).
-- **Ad-hoc TASK artefact_type alignment (Cluster 1)** — `/gse:task` Step 1 now maps user intent to the canonical spec §P6 enum (`code | requirement | design | test | doc | config | import | spike`) instead of the previous invalid values (`feat / fix / refactor / task`). Free-text modifier keywords ("fix", "add", "refactor") all map to `code` because the enum describes the artefact class produced, not the commit-message intent. Default: `code`.
-- **Invocation-contract drift (Cluster 2)** — four specialized agents that declared an activation for activities that never invoked them are now reconciled. Direction was chosen per-case based on methodological value:
-  - `requirements-analyst` + `/gse:reqs` → **downward**: added `reqs.md` Step 7.5 "Requirements Quality Pass" invoking the agent to audit drafted REQs for completeness, testability, ambiguity, inter-REQ consistency, INT-001 alignment.
-  - `security-auditor` + `/gse:design` → **downward**: added `design.md` Step 5.5 "Security Design Pass" invoking the agent for threat modeling at the design layer (OWASP + CWE lens, DES-NNN review). Front-loads AI-integrity checks per spec §P15/§P16.
-  - `ux-advocate` + `/gse:preview` → **downward**: added `preview.md` Step 2.5 "UX Heuristic Pass" invoking the agent for Nielsen + WCAG AA + cognitive-load checks on prototypes before soliciting human feedback. Conditional on `project.domain ∈ {web, mobile}`.
-  - `test-strategist` + `/gse:produce` → **upward**: removed `/gse:produce` from the agent's `Activated by:` declaration (spec §1.6 table + `test-strategist.md` frontmatter + opening block). Rationale: the code-vs-tests relationship is evaluated by the IMPL tier at REVIEW per spec §6.5 — duplicating it in PRODUCE would double-spend and break the produce/review separation.
-  - `coach` axis 1 (pedagogy) — documented explicitly as cross-cutting orchestrator-delegated in `coach.md` Invocation contract table (parallel to guardrail-enforcer via hooks). Updated `.claude/audit-jobs.json` `invocation-contract-consistency` check 6 to whitelist this row.
-- **`decisions.md` canonical path (Cluster 3)** — unified on `.gse/decisions.md` (project-wide, per spec §11). Corrected `gse-orchestrator.md:150` and `compound.md:96` which wrongly pointed to a non-existent `docs/sprints/sprint-{NN}/decisions.md`. The `sprint: {NN}` field in each DEC-NNN entry is now the sole filtering mechanism for sprint-scoped consumers. Enriched `src/templates/decisions.md` with a `## Format` section documenting the canonical DEC-NNN structure (type / tier / date / sprint / consequences / traces).
-- **Deploy phase names (Cluster 4)** — aligned `deploy-operator.md:104-105` and `ssh-operations.md:50-51` on the canonical phase keys `coolify` and `dns` (were: `install-coolify`, `configure-domain` — invalid per `deploy.py:49 PHASE_NAMES`, `deploy.json` template, `deploy.md`).
-- **Count / enum drifts (Cluster 5)** —
-  - spec §P1:466 broken cross-reference "Section 9" → "Section 10 — Version Control Strategy" (applied number+name convention per CLAUDE.md to all three refs in the sentence).
-  - spec §13.1:2511 config example `project.domain` enum: 6 → 9 canonical values (aligned with §3.2.1:1143).
-  - design §3.1 three occurrences of "28 templates" → "29 templates (MANIFEST.yaml is one of them, acting as self-descriptor)" — aligned with §11.1, §12, and MANIFEST.yaml real count.
-  - design §5.16 Intent Capture blocks (Exempt/skip conditions + Failure modes) relocated from State Schemas section to the Intent Capture section they describe (moved ~11 lines from §5.16 area back to §5 Intent Capture Design Mechanics, after "Pivot / re-capture command").
-  - spec §13.1 github block: added `upstream_repo: ""` field with cascade resolution order (user override → plugin manifest default → skip). Removes the contradiction with design §5.17:1956 + compound.md:140 + integrate.md:27 which all reference the field.
-- **Coach schema contract (Cluster 6)** — design §5.17 aligned on `coach.md` + `compound.md` (the implementations were canonical):
-  - Output schema: top-level key `verdict:` → `coach:` (match implementation); severity enum `inform | gate` → `low | medium | high` (richer prioritization, spec §P14 compliance).
-  - Invocation table: moments renamed from abstract tags (`sprint_close`, `compound_axe_3`) to explicit activity references (`/gse:compound Axe 2 feed`, `/gse:compound Axe 3 feed`); axes corrected to match `compound.md:81` (Axe 2 feed fires 7 axes 2-8) and `compound.md:219` (Axe 3 feed fires axes 1, 2) — previously wrongly documented as 3 axes and 8 axes respectively.
-  - Removed the dead `severity: gate` branch (line 2248) — all workflow-axis outputs are Inform-tier per spec §P14; the escalation path was never implemented. Replaced with a note documenting future-extension potential.
-
-### Notes
-
-- **Direction mix** — of the 20 fixes, ~13 are downward (implementation follows spec/design), ~5 are upward (spec/design catches up with better implementation), 2 are bidirectional (impl and spec both modified to converge). Upward fixes concern: spec §13.1 upstream_repo declaration, design §5.17 coach schema + invocation taxonomy, design §5.14 decision tree (partially), spec §1.6 test-strategist activation row.
-- **Volume** — ~35 files touched in `gse-one/src/` and 1 in `gse-one/plugin/tools/`. Plugin regenerated via `gse_generate.py --verify` to propagate src changes to `plugin/skills/`, `plugin/agents/`, `plugin/commands/`, `plugin/opencode/` (all three target platforms).
-- **Deliberate scope limits** — this release addresses **error-class findings only**. The audit surfaced 69 warnings and 53 strategic recommendations that remain queued for subsequent sprints. Warnings will be addressed in v0.52.x patches; strategic recommendations (Category E) will be evaluated for a roadmap discussion.
-- **Pre-release backward-compat** — per CLAUDE.md "Pre-release backward-compatibility — not required" rule, the schema changes (new `reviewed` TASK status, new config field `github.upstream_repo`, DEC-NNN format enrichment with `sprint:` field) apply directly without migration tooling. Existing downstream consumers (activities, tools, dashboard) are updated atomically in this same commit.
-- Minor version bump (0.50.0 → 0.51.0) reflects the methodological refinements (new TASK status, new activity steps, new agent invocations) which are feature-level even though each individually is modest.
+- `/gse:produce` transitions `in-progress → review` (was: direct to `done`); `/gse:review` transitions review → reviewed (clean) or review → fixing (findings); `/gse:fix` transitions fixing → done; `/gse:deliver` accepts reviewed OR done.
+- `/gse:task` Step 1 artefact_type: maps to canonical spec §P6 enum (was: invalid feat/fix/refactor/task).
+- 4 agent invocations reconciled: requirements-analyst + reqs.md Step 7.5 (downward), security-auditor + design.md Step 5.5 (downward), ux-advocate + preview.md Step 2.5 (downward), test-strategist + produce.md (upward retraction).
+- `decisions.md` canonical path unified on `.gse/decisions.md` (project-wide per spec §11); fixed orchestrator + compound.md pointers.
+- deploy-operator.md + ssh-operations.md: phase keys aligned on canonical `coolify` / `dns`.
+- spec §13.1 config `project.domain`: 6 → 9 canonical values.
+- Coach schema: top-level key `verdict:` → `coach:`; severity enum `inform|gate` → `low|medium|high`; invocation moments renamed to explicit activity references.
+- spec §13.1 github block: `upstream_repo` field added with cascade resolution.
 
 ## [0.50.0] - 2026-04-22
 
-Layers impacted: **spec** (§12.2), **CLAUDE.md** (meta-principles), **maintainer tooling** (methodology-auditor, audit-jobs catalog, audit tests), **`.claude/` command** (gse-audit job counts)
-
-**Retrospective capitalization of session learnings.** Based on the rétrospective analysis at the end of the 2026-04-21/22 audit cleanup session, applies the "high-confidence" improvements to audit instructions and methodology elements. Codifies patterns that emerged repeatedly during the session into durable methodology artifacts.
-
 ### Added
-- **`.claude/agents/methodology-auditor.md` — Principle 8 "Verification before report"**. Every finding claiming a fact about file content MUST be verified (re-open the file at the cited line, confirm verbatim; for absence claims, grep for the pattern; for numeric claims, check context for historical/section-number/semantic false positives; for structural claims, read the full relevant section). Motivated by the session's discovery that sub-agents produced several false-positive findings (e.g., "deploy.md and hug.md miss `Arguments: $ARGUMENTS`" — both files actually contained the line).
-- **`.claude/agents/methodology-auditor.md` — Principle 9 "Anti-rigidity check"**. Before classifying a divergence as error/warning, the auditor MUST ask whether the divergence carries semantic information (example: deploy.md Phase/Step hierarchy reflects idempotent-milestone tracking) or is a deliberate design choice (example: principle titles spec-long / impl-short pattern). If yes, classify as `severity: info` with "document the convention" recommendation. Counters the LLM uniformity bias that proposes forced alignment regardless of intent.
-- **`.claude/agents/methodology-auditor.md` — "Number + name" cross-reference convention in Output format**. Findings must cite referenced sections/steps with both numeric identifier and section/step name (e.g., `§14.3 Step 1.6 — "Dependency vulnerability check"`). Consistent with the same convention now in CLAUDE.md > Critical rules.
-- **`.claude/agents/methodology-auditor.md` — Two new anti-patterns**. Added "Never proposes forced uniformity when the divergence carries semantic information" and "Never emits a finding without first verifying the cited content" to the explicit anti-patterns list.
-- **`CLAUDE.md` — Methodology meta-principles section** (sub-section of Communication style). Two meta-principles:
-  - **Meta-1 Anti-rigidity discipline** — corpus-wide rule for any contributor: verify divergence meaning before forcing alignment. Names the 3 examples from the session (deploy.md, principle titles, guardrail-enforcer archetype) that would have been erased by naive uniformity.
-  - **Meta-2 Document exceptions inline** — informal guidance: prefer explaining deviations at the site of deviation over silent divergences. Example codebase references (deploy.md v0.48.7, compound.md v0.48.0, Principle title P13 exception).
-  - Explicit rationale on why meta-principles live in CLAUDE.md and not in spec §2 (user-facing vs maintainer-facing separation).
-- **`gse-one-spec.md` §12.2 — "two storage patterns" paragraph**. Makes explicit the previously implicit distinction between **section-level artefacts** (multiple per document: REQ, DES, TST, RVW, DEC, TCP, plan-summary, compound, decision, code, test-campaign — use nested `gse:` frontmatter) and **document-level artefacts** (one per file: intent, learning, external-source — use flat `id: XXX-NNN / artefact_type:` frontmatter). Discovered during v0.48.4 P9 but the convention was not named; now named and propagated.
-- **`.claude/audit-jobs.json` — new job `invocation-contract-consistency`** (Category D, horizontal_cluster, bidirectional). Verifies that every specialized agent's "Activated by:" declaration is honored by actual invocation in the cited activity files, and vice versa. Motivated by v0.48.0 P4 discovery that coach declared invocation at `/gse:pause` and `/gse:compound` but pause.md/compound.md contained zero invocation steps — 3 of 8 coach axes were silently inoperant. Catalog total: 20 → 21 jobs (Category D: 8 → 9).
-- **`gse-one/tests/test_audit.py` — 12 regression guards** against known false-positive classes in `audit.py` numeric patterns (section numbers, principle IDs, specialized-templates, CHANGELOG exclusion, specialized-with-orchestrator, digit-after-letter). Includes a categories completeness smoke test. Joins the existing test_deploy.py (49 tests) for a total of 61 unit tests run by `gse_generate.py --verify`.
-
-### Changed
-- **`.claude/commands/gse-audit.md` — job counts updated** from 20 to 21 and Category D from 8 to 9 jobs (matches the new `invocation-contract-consistency` added to `audit-jobs.json`). Updates affect: frontmatter description, workflow intro, options table, Phase 2 job count, Phase 3 concurrency, Phase 4 tally, Phase 5 summary templates, and invocation examples. All references are now internally consistent.
-
-### Notes
-- Session retrospective: this commit is the "close-loop" on learnings from the v0.48.0 → v0.49.1 post-audit session. Five of the "high-confidence" recommendations from the retrospective analysis are applied (A1, A2, A4, A5 on audit instructions; M5 and M8 on methodology elements). Alternatives were preferred over original recommendations for M1 (meta-principle in CLAUDE.md rather than P17) and M3 (informal note rather than strict rule) — both documented inline in CLAUDE.md with explicit reasoning.
-- Recommendations intentionally NOT applied: M4 (summarize-pattern generalization — YAGNI, 1 use case), M6 (rule-lifecycle formalism — too meta), M7 (Compliance archetype blueprint — speculative), M9 (vernacular-exception pattern — single case).
-- Previous session commits v0.48.0 → v0.49.1 are the immediate context. See CHANGELOG entries for the specific propositions (P1-P14) and conventions adopted.
-- Pipeline: 61 unit tests pass; cross-platform parity identical; `gse_generate.py --verify` clean.
-- Minor version bump (0.49.1 → 0.50.0) reflects the introduction of a new audit job, a new test module, a new methodology concept (document-level vs section-level artefacts), and meta-principles in CLAUDE.md. These aggregate to feature-level changes even though individually each is modest.
+- methodology-auditor.md Principle 8 "Verification before report" + Principle 9 "Anti-rigidity check".
+- methodology-auditor.md "number + name" cross-reference convention in Output format.
+- CLAUDE.md "Methodology meta-principles" section: Meta-1 (Anti-rigidity discipline) + Meta-2 (Document exceptions inline).
+- spec §12.2: section-level vs document-level artefact storage patterns documented.
+- audit-jobs.json new job `invocation-contract-consistency` (Category D, 20 → 21 jobs).
+- tests/test_audit.py: 12 regression tests against known false-positive classes.
 
 ## [0.49.1] - 2026-04-22
 
-Layers impacted: **CLAUDE.md only** (methodology governance rules)
-
-**PRINCIPLE-TITLES — Document the "spec long / implementation short" convention in CLAUDE.md.** Task #23, created during v0.48.8 P13. Completes Option B's CLAUDE.md consolidation pass.
-
 ### Added
-- **`CLAUDE.md` — "Principle title convention — 'spec long / implementation short'"** subsection added under Critical rules (between Cross-reference convention and Memory policy). Documents that the 16 principles (P1-P16) have titles declared in three locations (spec §2 headers, orchestrator bullets, principle source file H1) using two deliberate forms — the spec carries the full descriptive title (optionally with parenthetical sub-title), while the orchestrator and principle source file carry the short form. Includes:
-  - A 7-row example table showing the pattern for P4, P7, P8, P12, P14, P15, P16.
-  - Three invariants (spec is canon for cross-refs; orch/file short forms must match; short form is main title before parenthetical or coherent shorter phrasing).
-  - Rationale for coexistence (pedagogical completeness vs visual compactness).
-  - P13 noted exception ("Hooks" as vernacular) with rationale and "can be revisited" note.
-
-### Changed
-- **`CLAUDE.md` — "Cross-reference convention" subsection** — the forward-reference to the principle-title section (previously saying "pending addition to CLAUDE.md") is updated to point to the now-present section.
-
-### Notes
-- This commit closes the 3 durable-rule tasks from the audit session (PEDAGOGY done in v0.48.0, BACKWARD-COMPAT + Cross-ref in v0.49.0, PRINCIPLE-TITLES here).
-- CLAUDE.md now documents 5 governance rules: Build pipeline (existing), Tool architecture (existing), Versioning (existing), Pre-release backward-compat (new v0.49.0), Cross-reference convention (new v0.49.0), Principle title convention (new here), Memory policy (existing), Communication style (Rule 1 + Rule 2, existing).
-- 49 unit tests pass; cross-platform parity identical.
+- CLAUDE.md "Principle title convention (spec long / implementation short)" section with 7-row example table and P13 noted exception.
 
 ## [0.49.0] - 2026-04-22
 
-Layers impacted: **CLAUDE.md only** (methodology governance rules)
-
-**Option B — Batch consolidation of durable CLAUDE.md rules.** Consolidates two rules adopted during the 2026-04-22 post-audit session into `CLAUDE.md` where they belong (per the existing "Memory policy — in-repo only" invariant that forbids Claude auto-memory for project conventions). These rules apply to all future sessions and to forkers.
-
 ### Added
-- **`CLAUDE.md` — "Pre-release backward-compatibility — not required (temporary rule)"** subsection added under Critical rules (between Versioning and Files to keep in sync). Documents that while the GSE-One plugin is not yet distributed to public end users, schema changes, field renames, enum modifications, and artefact structure refactoring may be applied directly without migration paths. Rule self-dates: will be removed at first public release (Claude/Cursor marketplace, npm) with a pointer to replace it with post-release SemVer discipline. Rationale: pre-release iteration speed vs locking in unripe schema debt.
-- **`CLAUDE.md` — "Cross-reference convention — 'number + name'"** subsection added under Critical rules (between Files to keep in sync and Memory policy). Documents the rule adopted during v0.48.6 P11: cross-references to sections / steps / numbered artefacts MUST include both the numeric identifier AND the section/step name (e.g., `§14.3 Step 1.6 — "Dependency vulnerability check"` rather than `§14.3 Step 1.6`). Includes 6 example forms (✅ and ❌), the stability rationale, application guidance (new refs follow the rule, opportunistic upgrades for existing refs, bulk sweep tracked as `P-NAMED-REFS`), and 3 edge cases (principles cited by ID, intra-document refs, title conventions).
-
-### Notes
-- This commit intentionally touches only `CLAUDE.md` — no methodology source files are modified. The 2 sections added are governance rules for future work.
-- Rules already in `CLAUDE.md`'s "Communication style" section (Rule 1 pedagogical phrasing, Rule 2 single-default questions — both added in v0.48.0) remain unchanged.
-- Deferred work (to be handled separately): `PRINCIPLE-TITLES` convention (pending user decision after explanation); `META.1` numeric registry centralization (big chantier — see `_LOCAL/maintenance/2026-04-21-numeric-registry-centralization.md`); `P-NAMED-REFS` retroactive cross-reference sweep across the whole corpus.
-- 49 unit tests pass; cross-platform parity identical; `audit.py` numeric category clean (post-P14).
+- CLAUDE.md "Pre-release backward-compatibility — not required (temporary rule)" section.
+- CLAUDE.md "Cross-reference convention — number + name" section.
 
 ## [0.48.9] - 2026-04-22
 
-Layers impacted: **maintainer tooling** (`gse-one/audit.py` only)
-
-**Post-audit proposition P14 — Audit engine hygiene.** The numeric-drift category of `gse-one/audit.py` (invoked by `/gse-audit` and standalone) produced 8 false positives during the 2026-04-21 audit cycle. Root cause: three regex imprecisions (no distinction between descriptive text and historical CHANGELOG entries; no handling of section numbers; no semantic filter between "specialized agents" and "specialized templates"). Fixed all three.
-
 ### Fixed
-- **`audit.py` `audit_numeric()` — CHANGELOG.md removed from scan.** The CHANGELOG documents historical states (e.g., "Agent count — '8 specialized' updated to '10 specialized'" is an entry that DOCUMENTS the fix that went from 8→10). Flagging these as drifts is sclerotically wrong — you'd rewrite history to "fix" it. CHANGELOG remains scanned by other categories (todos, broken links) where its content is relevant; only the numeric-claim scan ignores it.
-- **`audit.py` `audit_numeric()` — regex prefix `(?:^|\s)` added to all 3 patterns.** The patterns `(\d+)\s+specialized`, `(\d+)\s+commands?`, `(\d+)\s+principles?` previously matched the digit suffix of section numbers (e.g., "10 Commands" in "### 3.10 Commands") and principle identifiers (e.g., "10 principle" in "P10 principle rule 8"). The new prefix requires the digit to be preceded by whitespace or a start-of-line, excluding these positional false positives while preserving legitimate matches like "23 commands" or "has 10 specialized agents".
-- **`audit.py` `audit_numeric()` — negative lookahead on `specialized` pattern.** Added `(?!\s+(?:templates?|files?|Dockerfiles?|rules?|settings?|categories?))` to exclude "4 specialized templates" (Dockerfile count context) while preserving "10 specialized agents", "10 specialized + orchestrator", etc. The exclusion list is open-ended — forkers can add more terms if they hit other false-positive contexts.
-
-### Verification
-- Before P14: 8 warnings in `numeric` category, all false positives.
-- After P14: 0 warnings in `numeric` category; 1 info entry "numeric claims consistent across 39 files (23 commands, 10 specialized agents, 16 principles)".
-- Other categories unchanged (3 warnings remain in cross_refs + links + test_coverage, unrelated to P14).
-- Ran `python3 gse-one/audit.py --format json --no-save` to verify.
-
-### Not applied
-- **LLM sub-agent false positive on "Arguments: $ARGUMENTS" line in deploy.md and hug.md** — this was the `activities-structure-uniformity` LLM sub-agent misreading the files (both files DO have the line). Prompt-level improvement, not a `audit.py` code fix. Deferred; will address if the issue recurs.
-
-### Notes
-- 1 file modified (`gse-one/audit.py`), no regen impact (audit.py is not part of the distributed plugin — it's a maintainer tool alongside `gse_generate.py`).
-- Cross-platform parity identical; 49 unit tests pass.
-- Anti-rigidity preserved: the negative lookahead is open-ended (add words without restructuring), CHANGELOG exclusion narrows the scan scope (reduces false positives without constraining real findings).
+- audit.py `audit_numeric()`: CHANGELOG.md removed from scan (historical entries are legitimate).
+- audit.py `audit_numeric()`: regex prefix `(?:^|\s)` added to 3 patterns (excludes section numbers like "§3.10" + principle IDs like "P10").
+- audit.py `audit_numeric()`: negative lookahead on `specialized` pattern excludes "templates/files/rules/..." false matches.
 
 ## [0.48.8] - 2026-04-22
 
-Layers impacted: **implementation** (`principles/iterative-incremental.md` only)
-
-**Post-audit proposition P13 — Principle title alignment (minimalist scope).** The audit flagged title drift across spec/orchestrator/principle file for P1, P4, P7, P8, P11, P12, P13, P14, P15, P16 (10 principles). Analysis revealed only 1 real bug; the other 9 cases follow an intentional "spec long title / implementation short title" pattern that is consistent between orchestrator and principle source files. Fixed only the single genuine divergence and documented the convention.
-
 ### Fixed
-- **`gse-one/src/principles/iterative-incremental.md` H1** — "P1 — Iterative-Incremental Development" → "P1 — Iterative & Incremental". The file was the sole source using "Iterative-Incremental Development" (with hyphen and "Development" suffix) while the orchestrator bullet used "Iterative & Incremental" (with ampersand, no suffix) and the spec §2 used "Iterative & Incremental Lifecycle". The three-way divergence is eliminated by aligning the file on the orchestrator's short form.
-
-### Adopted (methodology convention, to be documented in CLAUDE.md at next batch)
-- **Principle title pattern — "spec long / implementation short"**:
-  - **Spec §2 headers** carry the full descriptive title, optionally with a parenthetical sub-title (e.g., "Knowledge Transfer (Coaching)", "Agent Fallibility (Self-Awareness)", "Consequence Visibility (Risk Analysis Presentation)"). The full form is pedagogical and stable for cross-references under the "number + name" convention (P-NAMED-REFS task).
-  - **Orchestrator bullets + principle source file H1** use the short form: main title before any parenthetical, or a coherent shorter phrasing. Example: spec "Knowledge Transfer (Coaching)" → short "Knowledge Transfer"; spec "Risk-Based Decision Classification" → short "Risk Classification".
-  - **Critical rule**: the short form MUST be identical between orchestrator and principle file. Divergences between these two sources are bugs (as was the P1 case fixed above).
-  - **P13 noted exception**: the spec title "Event-Driven Behaviors (Hooks)" uses "Event-Driven Behaviors" as the main title and "(Hooks)" as the parenthetical. However, the orchestrator and principle file use "Hooks" (the parenthetical) as their short form — inverted from the usual pattern. This is preserved as vernacular usage: "Hooks" is the term used throughout the methodology (`hooks.claude.json`, `PreToolUse hooks`, etc.). Can be revisited later if it causes confusion.
-
-### Not applied (after analysis — intentional pattern, not bugs)
-- **P4, P7, P8, P11, P12, P13, P14, P15, P16** — 9 principles flagged by the audit as having divergent titles. On inspection: orchestrator and principle file use the short form consistently with each other; spec §2 uses the long form. This is not an error — it's a deliberate two-form convention that the audit mis-classified as drift. Forcing spec long form into all sources would add verbosity without methodological benefit, violating the anti-rigidity principle.
-
-### Notes
-- 1 file modified + CHANGELOG entry + new task (`PRINCIPLE-TITLES`) to add the convention to CLAUDE.md at next batch.
-- 49 unit tests pass, cross-platform parity identical.
+- principles/iterative-incremental.md H1: "Iterative-Incremental Development" → "Iterative & Incremental" (aligns on orchestrator short form). Other 9 principles flagged as drift follow the intentional "spec long / implementation short" pattern — convention documented in v0.49.1.
 
 ## [0.48.7] - 2026-04-22
 
-Layers impacted: **implementation** (`deploy.md` only)
-
-**Post-audit proposition P12 — deploy.md targeted structural alignment.** The audit flagged 4 structural divergences between `deploy.md` and the other 22 activities. On inspection, only 2 were genuine style alignments; 1 was a legitimate intentional structural choice to preserve (not force-align); 1 was a false positive from the audit.
+### Added
+- deploy.md:34 Workflow structure note: documents the Phase/Step hierarchy is intentional (idempotent milestones tracked in `deploy.json → phases_completed`).
 
 ### Changed
-- **`deploy.md:11` Options table header** — `| Flag | Description |` → `| Flag / Sub-command | Description |`, matching the canonical form used by the 22 other activities. The column can contain either a flag (e.g., `--silent`) or a sub-command-style trigger (e.g., `--training-init`), so the wider label is informative.
-- **`deploy.md:25` Prerequisites preamble** — `Read before execution:` → `Before executing, read:`, matching the canonical form. Semantics identical, word-order aligned for scanning consistency across the corpus.
-
-### Added
-- **`deploy.md:34` Workflow structure note** — new short explanatory paragraph inserted at the top of the `## Workflow` section, documenting `/gse:deploy`'s two-level Phase/Step hierarchy. The note explains that this structure is deliberate and specific to `/gse:deploy`, reflecting the idempotent-milestone nature of deployment (each `### Phase N` is tracked in `.gse/deploy.json → phases_completed.<phase_name>` and can be skipped on re-run; `Step N` inside a Phase is a sub-step). Rationale: renaming `Phase N` → `Step N` to force uniformity with other activities would lose this semantic and require inventing new sub-step terminology. Documenting the exception is the anti-rigidity choice — the divergence is intentional, not accidental.
-
-### Not applied (audit false positive)
-- **Audit finding "`deploy.md` and `hug.md` miss `Arguments: $ARGUMENTS` line"** — verified incorrect. Both files have the line on line 7. No action needed. Audit engine hygiene (task P14) will cover this class of false positive.
-
-### Notes
-- 3 modifications in a single file (deploy.md). Other 22 activities untouched — they were already canonical.
-- 49 unit tests pass, cross-platform parity identical.
-- The anti-rigidity principle (adopted 2026-04-21) was explicitly invoked to reject the naive "rename all Phase to Step" approach. Deploy.md's internal structure carries methodological meaning (milestone idempotence via `phases_completed`) and the correct response was to document the convention, not erase it.
+- deploy.md:11 Options table header: `Flag` → `Flag / Sub-command` (canonical form).
+- deploy.md:25 Prerequisites preamble: `Read before execution:` → `Before executing, read:` (canonical form).
 
 ## [0.48.6] - 2026-04-22
 
-Layers impacted: **design** (§13, §14, §3.2), **implementation** (`deliver.md`, `coach.md`)
-
-**Post-audit proposition P11 — Broken cross-references and stale mentions cleanup.** A bundle of 6 surgical fixes: 2 broken cross-references, 1 strengthened historical disclaimer, 2 frozen version numbers in design examples, 1 obsolete historical phrase in an agent description. New cross-reference convention adopted on the same day (`P-NAMED-REFS` task created for retroactive sweep of the whole corpus).
-
 ### Fixed
-- **`deliver.md` Step 0 (line 54) broken reference** — "Cleanup happens at the next `/gse:deliver` (see Step 10)" replaced with "(see Step 8 — Cleanup Backup Tags)". `deliver.md` only has Steps 0-9; the non-existent "Step 10" was a historical number that never survived a renumbering. The replacement uses the new "number + name" convention for stability.
-- **Design §14 Open Questions row 6 (line 2806) self-contradictory step reference** — the cell said "runs at `/gse:go` Step 2.5 (spec §14.3 Step 1.6)", contradicting itself. Corrected to "runs at `/gse:go` Step 1.6 — 'Dependency vulnerability check' (defined in spec §14.3 Step 1.6 — 'Dependency vulnerability check')". Both references now carry the step name for stability.
+- deliver.md Step 0: broken ref Step 10 → Step 8 — Cleanup Backup Tags.
+- Design §14 Open Questions row 6: self-contradictory `/gse:go Step 2.5 (spec §14.3 Step 1.6)` → explicit Step 1.6 with name.
 
 ### Changed
-- **Design §13 vintage disclaimer strengthened** — the existing "Note on opencode" at line 2747 only warned about opencode's retrofit but did not warn about the other stale content in §13 (principle counts like "4 core principles" + "6 remaining" = 10, contradicting the current 16). New disclaimer makes the historical nature of ALL numeric counts in §13 explicit and points to authoritative sources with named references: §11.1 "Generation Steps", §12 "File Inventory", spec §2 "Core Principles".
-- **Design §3.2 Plugin Manifest examples (lines 100, 118)** — frozen `"version": "0.16.0"` replaced with `"X.Y.Z"` placeholder on both the Claude and Cursor manifest JSON blocks. Explanatory note added above each block: *"example; `"version"` is generated from the `VERSION` file by `gse_generate.py` at build time, so the `"X.Y.Z"` placeholder below is illustrative"*.
-- **`coach.md` frontmatter description** — removed the historical phrase "Absorbs the v0.36 tutor agent." which was a changelog-style mention polluting the description field. The other 9 specialized agents have purely declarative descriptions about their current role — `coach.md` is now consistent. Historical information preserved in `CHANGELOG.md` v0.36 entry.
-
-### Adopted (methodology convention)
-- **"Number + name" cross-reference convention** — cross-references to sections/steps must include both the numeric identifier (for quick navigation) and the section/step name (for stability when renumbering occurs). Example: `§14.3 Step 1.6 — "Dependency vulnerability check"` instead of just `§14.3 Step 1.6`. Retroactive sweep of existing references is captured as task `P-NAMED-REFS` (deferred — will run after P12-P14). The rule itself will be added to `CLAUDE.md` Communication style section at the next CLAUDE.md batch.
-
-### Notes
-- Fixes (1), (2) apply the new naming convention immediately. Fixes (3), (4), (5) did not involve numeric-only cross-references.
-- No regeneration impact beyond the natural flow through the generator; `coach.md` and `deliver.md` propagate to their Claude/Cursor/opencode copies.
-- 49 unit tests pass, cross-platform parity identical.
+- Design §13 vintage disclaimer strengthened: all numeric counts in §13 explicitly marked historical.
+- Design §3.2 Plugin Manifest examples: frozen `"version": "0.16.0"` → `"X.Y.Z"` placeholder.
+- coach.md frontmatter: removed historical phrase "Absorbs the v0.36 tutor agent."
 
 ## [0.48.5] - 2026-04-22
 
-Layers impacted: **spec** (§3.2.1), **implementation** (`hug.md`)
-
-**Post-audit proposition P10 — `project_domain` enum unification.** Three sources listed different values for the same `project_domain` enumeration: template `profile.yaml` (9 values, canonical) had `web | api | cli | data | mobile | embedded | library | scientific | other`; activity `hug.md:98` had 7 (missing `library` and `scientific`); spec §3.2.1:1143 had 6 capitalized examples (`Web / Embedded / Scientific / CLI / Library / Mobile`, missing `api`, `data`, `other`). Aligned hug.md and spec on the 9-value canonical lowercase form.
-
 ### Changed
-- **`hug.md:98` Dimension 8 "Project domain" values** — added `library` and `scientific` to the enumeration presented to users during HUG interview. Previously users working on a code library or a scientific/research project had to fall back on `other`, losing the domain-specific calibrations (test pyramid, activity skip rules, velocity baselines).
-- **Spec §3.2.1:1143 "Project domain" examples** — now lists the 9 canonical lowercase values with an explicit pointer to the authoritative schema (`plugin/templates/profile.yaml`). Previously listed only 6 capitalized examples, which was ambiguous (case-sensitive vs not? examples of a larger set or the full enum?). The clarification note `(9 canonical values — see ...)` removes both ambiguities.
-
-### Notes
-- No changes to `profile.yaml` or `config.yaml` templates — they were already the canonical sources with correct 9-value lists. The drift was strictly in descriptive layers (spec + activity prose).
-- Users whose projects legitimately fall into `library` or `scientific` categories will now receive proper domain-specific behavior: test pyramids per spec §6.1 (Library/SDK and Scientific rows), conditional skip of `/gse:preview` (non-UI domains), etc.
-- No regeneration impact beyond the natural flow through generator to plugin/skills + plugin/commands for the hug activity.
+- hug.md:98 Dimension 8 Project domain enum: 7 → 9 values (added `library`, `scientific`).
+- Spec §3.2.1:1143 Project domain examples: 6 capitalized → 9 canonical lowercase values (aligned with profile.yaml canonical schema).
 
 ## [0.48.4] - 2026-04-22
 
-Layers impacted: **spec** (§P14, §12.2 enum), **implementation** (`learning-note.md` template, `knowledge-transfer.md` principle)
-
-**Post-audit proposition P9 — Learning-note frontmatter unification.** Three sources (template, spec §P14, principle file) used a legacy `gse:` nested schema for learning notes, while the activity `learn.md` Step 4 used a flat `id: LRN-NNN` + `artefact_type: learning` schema consistent with the document-level artefact pattern established by `intent.md`. This created a 3-way contradiction. Resolution: align all sources on the flat schema (the canonical form per spec §4 traceability table which lists `LRN-` as a prefix, and per `MANIFEST.yaml` which declares the filename pattern `LRN-{NNN}-{topic-slug}.md`).
-
 ### Changed
-- **Template `gse-one/src/templates/learning-note.md`** — rewrote frontmatter from the nested `gse:{type,topic,sprint,mode,trigger,related_activity,traces,created}` form to the flat form `id / artefact_type / title / topic / sprint / status / mode / trigger / related_activity / author / created / traces:{triggered_by, derives_from}`. Added previously-missing fields: `id` (canonical prefix per spec §4), `title`, `status`, `author`, `traces.triggered_by`. Content sections of the template (Key Concepts / How This Applies to Your Project / Practice Exercise / Quick Reference Card) unchanged.
-- **Spec §P14 frontmatter example (lines 853-865)** — rewrote to the same flat format as the template. Now consistent with `learn.md` Step 4 and with `intent.md` (the existing document-level artefact precedent).
-- **Spec §P14 path example (line 893)** — `docs/learning/testing-strategies.md` → `docs/learning/LRN-{NNN}-testing-strategies.md`, matching `MANIFEST.yaml` ligne 123 target pattern.
-- **Spec §12.2 `gse.type` enumeration (line 2169)** — removed `learning-note` from the list. The `gse.type` field lives in the *nested* frontmatter schema used by section-level artefacts (requirements, designs, tests, reviews, plan-summary, compound, decision, code, test-campaign — all multi-artefact-per-file). Document-level artefacts (intent, learning) use the flat schema with `artefact_type:` at the top level and do not belong in this enum. `intent` was already absent from the list — the removal of `learning-note` completes the separation.
-- **Principle `gse-one/src/principles/knowledge-transfer.md` frontmatter example (lines 65-79)** — rewrote to the same flat format. Added explanatory note: *"flat schema, per spec §P14 canonical format"*.
-- **Principle filename tree (lines 57-64)** — `git-branching.md`/etc. → `LRN-001-git-branching.md`/etc. Tree preamble rewritten to point to the canonical MANIFEST pattern.
-
-### Notes
-- Plugin not yet distributed — schema change applied directly without migration path. No generated learning notes exist in production user projects yet; future notes will be created with the flat schema from day one.
-- `learn.md` Step 4 (the activity that actually creates learning notes) was already correct and unchanged. The work was to align the descriptive sources (template, spec, principle) with the prescriptive activity.
-- No impact on MANIFEST.yaml (already correct), `coach.md` (only references `docs/learning/LRN-*` pattern), or any other file. Cross-platform parity identical; 49 unit tests pass.
+- learning-note.md template: nested `gse:{...}` frontmatter → flat `id / artefact_type / title / topic / sprint / status / mode / ...` schema (aligns with intent.md document-level pattern).
+- Spec §P14 frontmatter example + path example rewritten on flat format with `LRN-{NNN}-` filename prefix.
+- Spec §12.2 `gse.type` enum: `learning-note` removed (document-level artefact uses flat schema).
+- principles/knowledge-transfer.md frontmatter + filename tree: rewritten on flat format per MANIFEST `LRN-{NNN}-*` pattern.
 
 ## [0.48.3] - 2026-04-22
 
-Layers impacted: **implementation** (`principles/knowledge-transfer.md` only)
-
-**Post-audit proposition P8 — P14 preamble labels sweep (principle file).** The spec §P14 (lines 935-945) declares the 5-option learning-preamble labels as canonical — explicitly stating "Labels are canonical — implementations use this exact wording." A previous version sweep aligned spec, `learn.md`, `coach.md`, and `gse-orchestrator.md` to the canonical form. The principle source file `gse-one/src/principles/knowledge-transfer.md` was missed. P8 fixes that omission.
-
 ### Fixed
-- **`knowledge-transfer.md` Example 1 (Merge strategies, lines 45-46)** — option labels `Yes, quick overview (5 min)` and `Yes, deeper session (15 min)` now match the canonical `Quick overview (5 min)` and `Deep session (15 min)` (spec §P14 lines 939-940). Descriptions after the em-dash are preserved (they are context-adapted per axis — the label before the em-dash is what must be canonical).
-- **`knowledge-transfer.md` Example 2 (Acceptance criteria, lines 159-160)** — same two label corrections.
-
-### Notes
-- Options 3 (`Not now`), 4 (`Not interested`), 5 (`Discuss`) were already canonical in both examples; no change.
-- Descriptions after the em-dash remain context-adapted ("key concepts + examples from your REQs" etc.) — this is the documented pattern: the label identifies the option canonically, the description is tailored to the pedagogy topic.
-- No spec/design/template/tool changes — the canonical source of truth (spec §P14) was already correct; the work is fully inside the principle source file whose prose had drifted.
-- 4 lines changed in 1 source file; plugin/ regens propagate to `plugin/skills/*`, `plugin/commands/*`, `plugin/opencode/*` where applicable.
+- principles/knowledge-transfer.md Examples 1 & 2: preamble labels aligned on spec §P14 canonical wording (`Quick overview (5 min)` / `Deep session (15 min)`).
 
 ## [0.48.2] - 2026-04-22
 
-Layers impacted: **implementation** (`pause.md` only)
-
-**Post-audit proposition P7 — State-management errors in `pause.md`.** Two localized bugs in the `/gse:pause` activity (session pause — auto-commit active worktrees and save a checkpoint for later resume).
-
 ### Fixed
-- **`pause.md` Step 2 duplicate line with invalid nested path removed.** The list of checkpoint fields to populate previously contained both `checkpoint.timestamp: current ISO 8601 timestamp` (using a nested path that has no corresponding structure in the `checkpoint.yaml` template) AND `timestamp: ISO 8601 current time` (flat, correct). The nested-path line was a historical editing artifact — deleting it removes the ambiguity. The surviving flat line gains a parenthetical annotation ("flat top-level field per `checkpoint.yaml` schema") to prevent the duplication from recurring.
-- **`pause.md` Step 1 orphan field `git.last_pause_commit` replaced by schema-declared `git.last_commit`.** The activity previously wrote `git.last_pause_commit: {hash}` into each TASK entry's `git:` block in `backlog.yaml`. This field was undeclared in the `backlog.yaml` template schema AND had no reader anywhere in the repo (`resume.md` uses `saved_last_commit` from the checkpoint file, not from backlog). Since pause creates a real commit, it now updates the schema-declared `git.last_commit: {ISO 8601 timestamp}` field instead — aligning the behavior with the existing schema and giving the field a real-time semantic (previously unused).
-
-### Notes
-- Plugin is not yet distributed to end users, so backward-compatibility is not required. Schema changes can remove or rename fields without migration paths. This rule will be added to CLAUDE.md at the next batch update.
-- No spec/design modifications — the spec does not descend to this level of per-activity field lists, and the design does not describe `pause.md` line-by-line. The work is fully localized to the implementation layer of a single file.
-- No impact on `backlog.yaml` template (already correct — `last_commit` is declared, `last_pause_commit` was never part of the schema) or on `checkpoint.yaml` template (already authoritative and flat). `resume.md` is unaffected — it reads from the checkpoint, not from the now-removed `last_pause_commit` backlog field.
+- pause.md Step 2: removed duplicate `checkpoint.timestamp` line with invalid nested path (kept flat `timestamp` per schema).
+- pause.md Step 1: orphan `git.last_pause_commit` replaced with schema-declared `git.last_commit` (no reader existed for the orphan).
 
 ## [0.48.1] - 2026-04-22
 
-Layers impacted: **spec** (§12.3 origin enum, §13.1 deploy.app_type enum), **implementation** (3 activities: reqs.md, assess.md, backlog.md)
-
-**Post-audit proposition P6 — Schema drift bundle (template ↔ activity ↔ spec).** Four small schema inconsistencies surfaced by the 2026-04-21 audit, grouped because they share the same root cause: the spec lagged behind the template + code (upward drifts), and two activities used invalid enum values (downward fixes).
-
 ### Changed
-- **Spec §12.3 `origin` enum extended to 6 values** (was 5). The backlog.yaml template (line 23), task.md (line 95), and backlog.md (line 122) already declared and used the 6th value `ad-hoc` (for tasks created on-demand by `/gse:task` outside the sprint planning flow). The spec example block at line 2206 now documents the same 6-value enumeration: `plan | review | collect | user | import | ad-hoc`. **Upward refinement** — the spec catches up with the runtime reality.
-- **Spec §13.1 `deploy.app_type` enum extended to 6 values** (was 4). The design doc §5.18 (line 2406) and the deploy.py tool already supported 6 values (`auto | streamlit | python | node | static | custom`). The spec example config block at line 2596 now matches: previously listed only `auto | python | streamlit | static`, missing `node` (for which a Dockerfile.node template exists) and `custom` (which bypasses template generation for user-provided Dockerfiles). **Upward refinement** — the spec catches up with the design + code.
+- Spec §12.3 `origin` enum: 5 → 6 values (added `ad-hoc`, already used by task.md + backlog.md).
+- Spec §13.1 `deploy.app_type` enum: 4 → 6 values (added `node`, `custom`).
 
 ### Fixed
-- **`reqs.md` Step 8 persist block now includes `elicitation_summary`** — Step 0.5 ("Needs Elicitation") mandates saving a résumé of the user's stated needs plus the agent's reformulation into the `elicitation_summary` frontmatter field. The template `sprint/reqs.md` (line 6) includes this field as part of the canonical schema. But Step 8's persist block (the YAML frontmatter the activity writes at file creation time) previously omitted the field, meaning agents executing `/gse:reqs` could silently skip it. Step 8 now lists `elicitation_summary: "{user's original words + agent's reformulation from Step 0.5}"` inline in the persisted YAML.
-- **`assess.md` Step 5 no longer writes an invalid status value** — previously said "Set `status: pool` and `sprint: null`" when creating candidate tasks from assessment gaps. `pool` is NOT a valid value of the TASK status enumeration (the canonical 8 values are `open | planned | in-progress | review | fixing | done | delivered | deferred` per `backlog.yaml` template line 19). The pool concept is expressed by the combination `status: open` + `sprint: null`, not by a status value named "pool". Fixed to `status: open` with a parenthetical clarification for readers.
-- **`backlog.md` Step 3 GitHub-sync mapping table corrected** — the first row previously mapped a non-existent GSE-One status `pool` to GitHub `open (label: pool)`. Rewrote the first column header from "GSE-One Status" to "GSE-One Status (+ condition)" and the first row to `open` AND `sprint: null (pool)`, which reflects the actual data model. GitHub side keeps the `pool` label (meaningful as a GitHub Issue classifier).
-
-### Notes
-- No modifications to `backlog.yaml` template, the orchestrator, the `origin` enum at the template level, or `deploy.py` — those were already correct. Work was on the *descriptive* and *prescriptive* layers (spec + 3 activities) to match the runtime reality.
-- No regeneration impact — 3 activity files touched flow through the generator to `plugin/skills/*/SKILL.md` and `plugin/commands/gse-*.md`. Verified via `--verify`.
+- reqs.md Step 8 persist block: added missing `elicitation_summary` field.
+- assess.md Step 5: invalid `status: pool` → `status: open` + `sprint: null` (canonical pool encoding).
+- backlog.md Step 3 GitHub-sync mapping: first row corrected (no `pool` status; `open` + `sprint: null` → GitHub `open (label: pool)`).
 
 ## [0.48.0] - 2026-04-22
 
-Layers impacted: **spec** (no change — already canonical), **design** (§11.1 + §12 count alignment, new `--verify` paragraph), **implementation** (6 agents, 4 activities, 1 template, generator), **CLAUDE.md** (archetype table + communication rules)
-
-**Post-audit propositions P1–P5 batched commit.** Five methodology coherence fixes surfaced by the 2026-04-21 /gse-audit run, applied incrementally with explicit user validation per proposition. Audit report archive: `_LOCAL/audits/audit-2026-04-21-112532-v0.47.10.md`.
-
 ### Added
-- **New agent archetype `Compliance`** — `guardrail-enforcer` moved from Reviewer archetype to a dedicated Compliance archetype in `CLAUDE.md`. Rationale: guardrail-enforcer emits real-time action alerts (`GUARD-NNN` + `EMERGENCY/HARD/SOFT` guardrail tiers carrying action semantics WARN/BLOCK/HALT), not artefact review findings. Forcing HIGH/MEDIUM/LOW would lose the tier semantics. Archetype count: 5 (Identity, Reviewer [7 agents], Operational, Observational, Compliance).
-- **Coach invocation contract now implemented in 4 activities** — per `coach.md:44-55`. New steps: `pause.md` Step 3.5 (moment `/gse:pause`, axes 2-8 — sustainability + engagement end-of-session check); `compound.md` Step 2.0 (moment `/gse:compound Axe 2 feed`, axes 2-8 — cross-sprint trend analysis); `compound.md` Step 3 intro paragraph (moment `/gse:compound Axe 3 feed`, axes 1+2 — pedagogy + profile drift); `plan.md --strategic` Step 0.6 (moment `sprint promotion`, axes 3+4+5+8 — retrospective cross-sprint analysis). Previously these moments existed only in coach.md's contract without corresponding activity-side invocation — 3 of 8 coach axes (quality_trends, sprint_velocity, sustainability) were silently inoperant.
-- **`compound.md` Step 2.7 — "Summarize raw workflow observations (coach ledger maintenance)"** — new substep describing the ledger maintenance mechanism: group raw entries by axis, produce one condensed summary entry per axis, mark with `summarized: true`, keep growth bounded (≤ 7 entries per sprint). Format of summary entries left to the coach's judgment (anti-rigidity).
-- **`gse_generate.py` — new `verify_external_docs()` function** — warning-level check asserting hand-maintained docs (README.md, install.py, gse-one/README.md) mention the expected counts derived from source-of-truth registries (`SPECIALIZED_AGENTS`, `ACTIVITY_NAMES`, `src/templates/`, `src/principles/`). Non-blocking by design — prose must be able to evolve, localize, and reformulate without breaking the build. Definitive numeric-drift audit remains in `gse-one/audit.py`.
-- **CLAUDE.md — new "Communication style (development sessions)" section** — two durable rules for Claude during interactive sessions: (1) pedagogical phrasing with parenthetical term reminders, no cryptic jargon chains; (2) propositions must use single-default questions, one action per question, with the default explicitly stated.
+- Compliance agent archetype (guardrail-enforcer) separated from Reviewer archetype. 5 archetypes total.
+- Coach invocation contract implemented in 4 activities: pause.md Step 3.5, compound.md Step 2.0 + Step 3, plan.md --strategic Step 0.6 (activates 3 previously dormant coach axes).
+- compound.md Step 2.7: workflow-observations summarization mechanism (ledger maintenance).
+- gse_generate.py `verify_external_docs()`: warning-level check on README/install.py count mentions.
+- CLAUDE.md "Communication style (development sessions)" section: pedagogical phrasing + single-default questions rules.
 
 ### Changed
-- **`workflow_observations[]` lifecycle clarified across 4 files** — design §5.17 was already correct ("persistent cross-sprint ledger for trending, summarized at /gse:compound"). The template (`status.yaml:67-70`), orchestrator description (`gse-orchestrator.md:160`), and coach agent (`coach.md:152`) previously claimed "transient, cleared at sprint close", contradicting the design and breaking the 3 trend-based axes (quality_trends, sprint_velocity, sustainability) that each require ≥ 3 sprints of history. All three are now aligned with the design.
-- **`review.md` Step 6 FIX insertion threshold** — now says "HIGH or MEDIUM findings → `status: fixing`" (was "HIGH only"). Aligns with spec §14, design §10.1, and `plan.yaml` template comment — previously 3 of 4 sources said HIGH-or-MEDIUM while review.md said HIGH-only, forcing `fix.md` Step 1.4 to compensate at runtime. User retains `/gse:fix --severity HIGH` for scope narrowing.
-- **`code-reviewer.md`** aligned to Reviewer archetype — added missing `perspective: code-reviewer` field on all 3 RVW examples, added `(baseline)` qualifier to severity legend, added CRITICAL reservation note (all 6 other Reviewer agents already had these).
-- **Fix-label prose harmonized to `Suggestion:`** in `code-reviewer.md` and `security-auditor.md` (was `Fix:`), matching the canonical YAML schema field name `suggestion:` in `review.md` Step 4 and the majority pattern (architect, requirements-analyst, test-strategist, ux-advocate). `devil-advocate.md` intentionally retains `Action:` — more directive semantics appropriate for AI-integrity findings (hallucinations, fabrications).
-- **`gse-one-implementation-design.md` §11.1 + §12** — templates count 28 → 29 (actual count excluding MANIFEST.yaml descriptor). Grand total file count 150 → 151. Added §11.1 paragraph documenting what `--verify` asserts (plugin structure, body parity, guardrails patterns, external-docs warning-level check).
+- `workflow_observations[]` lifecycle unified across 4 files: persistent cross-sprint ledger (was: transient, contradicted design §5.17).
+- review.md Step 6 FIX insertion threshold: "HIGH or MEDIUM" (was: "HIGH only"; aligns with spec §14).
+- code-reviewer.md aligned on Reviewer archetype (perspective field + severity legend + CRITICAL note).
+- Fix-label harmonized to `Suggestion:` in code-reviewer + security-auditor (devil-advocate keeps `Action:` by design).
+- design §11.1 + §12: templates count 28 → 29.
 
 ### Fixed
-- **Numeric drift across user-facing docs**: `install.py:726` now emits "10 specialized agents" (was "8"). `README.md` arborescence: "11 agents (10 specialized + orchestrator)", "29 templates", "10 specialized (mode: subagent)". `gse-one/README.md` arborescence: same pattern + "29 artefact & config templates". `gse-one/gse_generate.py` docstring: "29 artefact & config templates" and "Shared (29 templates)". `CHANGELOG.md` historical entries and section numbers like "§3.10 Commands" intentionally NOT modified (historical record / false positives flagged by audit engine).
-
-### Deferred (planned work captured in `_LOCAL/maintenance/`)
-- **META.1 — Numeric Registry Centralization** — structural fix for numeric drift via per-document `{doc}_registry.md` files regenerated from SSOT registries, prose references instead of inlined counts. Full plan in `_LOCAL/maintenance/2026-04-21-numeric-registry-centralization.md`. Execute after remaining audit propositions (P6–P14).
-- **P-MOMENT-TAGS** — unify coach moment tag vocabulary (currently natural-language in `coach.md:44-55` vs snake_case in `design §5.17:2200-2212`). Flagged as warning in audit.
-
-### Notes
-- No spec modifications in this release — all spec-level rules were already canonical. The work consisted of aligning design, implementation, and CLAUDE.md to the spec (downward refinement) plus one upward propagation (`workflow_observations` lifecycle — design was source of truth, other layers were stale).
-- VERSION bumped to 0.48.0 (minor) because of new archetype (Compliance), new coach invocation moments (structural activity changes), and new summarization mechanism (semantic lifecycle change). Individual propositions were pure fixes, but the aggregate crosses into feature territory.
+- Numeric drift across user-facing docs: install.py "10 specialized agents", README "11 agents / 29 templates".
 
 ## [0.47.10] - 2026-04-21
 
