@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.61.1] - 2026-04-23
+
+Layers impacted: **documentation** (`src/activities/{hug,compound,review}.md`, `src/agents/gse-orchestrator.md`), **implementation** (`gse_generate.py` comments, `plugin/tools/dashboard.py` comment).
+
+**Patch release — i18n hygiene sweep.** Removes residual French prose from the distributed plugin in six cohesive clusters identified by a targeted language audit. No schema, no behavior, no user-facing invariant changes — purely cosmetic/documentation alignment in preparation for broader distribution.
+
+### Added
+
+- **`src/activities/hug.md` Step 0 substep 3** — inline marker `<!-- multilingual by design: pre-language-selection UI -->` above the two multilingual example blocks (AskUser template + text fallback). Documents the intentional multilingual content at the one site of the plugin where the user has not yet chosen a language, protecting these blocks from future audit passes that would wrongly flag them as "untranslated".
+
+### Changed
+
+- **`src/agents/gse-orchestrator.md` Beginner term mapping table (lines 252-255)** — replaced the four French example strings with English equivalents while keeping the ✅/❌ emojis for visual UX: `"✅ vérifié"` → `"✅ verified"`, `"❌ échec"` → `"❌ failed"`, `"✅ corrigé"` → `"✅ corrected"`, `"vérification automatique"` → `"automated verification"`. Aligns the 4 outliers with the 15+ other rows of the table (all English paraphrases).
+- **`src/activities/hug.md` beginner-flow example trace (lines 121-132)** — full translation of the illustrative transcript from French to English. Preserves the pedagogical value (illustrates the 1-question-at-a-time cadence mechanic in a realistic setting) while removing the implicit "beginner ⇒ francophone" bias. The adjacent expert-flow example was already in English — the two examples are now symmetric.
+- **`src/activities/hug.md` Step 5.5 beginner dashboard message (line 298)**, **`src/activities/compound.md` beginner dashboard message (line 264)**, **`src/activities/review.md` beginner dashboard message (line 267)** — three illustrative "For beginners" phrases translated from French to English, each suffixed with `(adapt wording to the user's language)`. Removes the dissymmetry where these three activities showed beginner examples in French while ~15 other activities showed them in English.
+- **`AMÉL` prefix renamed to `ENH`** across the corpus (project-internal follow-up identifier, stood for "AMÉLioration"). Consistent with the other anglophone methodology prefixes (TASK, LRN, DEC, RVW, GUARD). Five occurrences updated:
+  - `gse_generate.py:379` — dashboard sync hook docstring
+  - `gse_generate.py:574` — opencode plugin generator docstring
+  - `gse_generate.py:624` — emitted TypeScript comment in `plugin/opencode/plugins/gse-guardrails.ts`
+  - `src/agents/gse-orchestrator.md:88` — "tracked as AMÉL follow-ups" prose
+  - `plugin/tools/dashboard.py:63` — debounce helpers section comment
+
+### Removed
+
+- **`src/activities/hug.md` git identity Gate (line 224)** — removed the French confirmation example `"c'est fait"` from the list of user confirmation cues, leaving only `("done" / "ok")`. The LLM understands all languages natively; enumerating one is inconsistent (no Spanish or German equivalents were listed).
+
+### Methodology notes
+
+- No false positive was detected in this audit cycle — all 6 clusters validated directly by the maintainer. No `audit.py` detector refinement needed.
+- Meta-1 (Anti-rigidity discipline) explicitly preserved Cluster 1 (pre-language-selection UI): the remaining multilingual content in `hug.md:42-67` is intentional and documented inline.
+- Pre-1.0 backward-compatibility waiver applies: the `AMÉL` → `ENH` rename is an internal-identifier change with no user-facing contract impact. Not a breaking change under SemVer; no migration path needed.
+
 ## [0.61.0] - 2026-04-23
 
 Layers impacted: **implementation** (`install.py` 6-mode refactor + `gse_generate.py` VERSION writer + `src/activities/go.md` + `src/activities/hug.md` branch collapse), **documentation** (`CLAUDE.md` Tool architecture section rewrite + Activity path reference convention clarification).

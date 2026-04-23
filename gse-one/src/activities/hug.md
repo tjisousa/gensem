@@ -34,7 +34,7 @@ If a language is already configured, skip to Step 1.
 
 1. **Detect system locale** — Read `$LANG` or `$LC_ALL` to identify the system language (e.g., `fr_FR.UTF-8` → French).
 2. **Build the option list** — Start with the detected locale language (marked "Recommended"), then add the standard list: English, Français, Español, Deutsch. **Deduplicate:** if the detected locale matches one of the four, move it to first position instead of duplicating.
-3. **Ask in all listed languages** — The question itself is displayed in each language so the user can understand it regardless of their language:
+3. **Ask in all listed languages** — The question itself is displayed in each language so the user can understand it regardless of their language. <!-- multilingual by design: pre-language-selection UI -->
 
    Example (interactive — detected locale = Japanese). Use your runtime's native interactive question tool (see orchestrator P4 — `AskUser` maps to `AskUserQuestion` on Claude Code, `AskQuestion` on Cursor ≥2.4, `question` on opencode). Apply the template literally:
    ```
@@ -120,15 +120,15 @@ The number of questions asked at once is proportional to the user's IT expertise
 
 Example — beginner flow (1 question at a time):
 ```
-[Step 0] → Language selected: Français
-[Step 1] → Inferences reported in French
-[Step 2.1] → "Comment décririez-vous votre expérience avec les outils informatiques ?"
-             → Réponse : débutant → cadence = 1 par 1
-[Step 2.2] → "Préférez-vous des réponses courtes ou des explications détaillées ?"
-             → Réponse
-[Step 2.3] → "Souhaitez-vous que je prenne les décisions seul, ou que je vous consulte ?"
-             → Réponse
-[Step 2.4] → ... (1 question à la fois jusqu'à complétion)
+[Step 0] → Language selected: English
+[Step 1] → Inferences reported in English
+[Step 2.1] → "How would you describe your experience with computer tools?"
+             → Response: beginner → cadence = 1 at a time
+[Step 2.2] → "Do you prefer short answers or detailed explanations?"
+             → Response
+[Step 2.3] → "Would you like me to make decisions on my own, or consult you first?"
+             → Response
+[Step 2.4] → ... (1 question at a time until complete)
 ```
 
 Example — expert flow (all at once):
@@ -221,7 +221,7 @@ Verify the project environment is ready. **This step is blocking** — do NOT me
         - Option 2: `git config --local user.name "<name>"` and `git config --local user.email "<email>"`
         Re-verify identity, then proceed to the commit.
      6. **On option 3:** run `git config --local user.name "GSE User"` and `git config --local user.email "user@local"`. Immediately print a single reminder: *"Placeholder identity set locally for this project. If you plan to share this repo or push to a remote, replace it via `/gse:hug --update` or directly with `git config --global user.name` / `user.email`."* Do not repeat the reminder on subsequent activities. Proceed to the commit.
-     7. **On option 4:** print the two `git config --global ...` commands as a copy-paste block, wait for user confirmation ("done" / "ok" / "c'est fait"), then re-run the identity detection. If still missing, re-present the Gate (options 1-5).
+     7. **On option 4:** print the two `git config --global ...` commands as a copy-paste block, wait for user confirmation ("done" / "ok"), then re-run the identity detection. If still missing, re-present the Gate (options 1-5).
      8. **On option 5:** explain (scope difference between global/local, visibility of commits on pushed branches, throwaway nature of option 3), then re-present options 1-4.
    - If no: acknowledge and continue without git. Note that some GSE features (branching, version control guardrails) will be unavailable.
 2. **Create `.gse/` directory** — If it does not exist:
@@ -295,7 +295,7 @@ After `.gse/` is created and profile saved:
 2. **Generate the first dashboard** — Run: `python3 "$(cat ~/.gse-one)/tools/dashboard.py"`
 3. **Verify** — Check that `docs/dashboard.html` was created and is not empty.
 4. Inform the user:
-   - **For beginner users:** "J'ai créé un tableau de bord pour suivre l'avancement de ton projet. Tu peux l'ouvrir dans ton navigateur à tout moment : `docs/dashboard.html`. Il se met à jour à chaque étape."
+   - **For beginner users:** "I've created a dashboard to track your project's progress. You can open it in your browser at any time: `docs/dashboard.html`. It updates at each step." (adapt wording to the user's language)
    - **For intermediate/advanced users:** "Dashboard generated at `docs/dashboard.html`. Regenerated after each activity. Run `python3 \"$(cat ~/.gse-one)/tools/dashboard.py\" --watch` for live updates."
 
 ### Step 6 — Transition

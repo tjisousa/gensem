@@ -1,5 +1,5 @@
 <!-- GSE-ONE START -->
-<!-- gse-one-version: 0.61.0 -->
+<!-- gse-one-version: 0.61.1 -->
 # GSE-One Methodology (opencode edition)
 
 This section is managed by GSE-One. Edit `gse-one/src/` and regenerate — do not hand-edit between the START/END markers.
@@ -86,7 +86,7 @@ Rationale: once a sprint has been delivered, its scope, budget, and traceability
 
 **Failure mode:** if `git` itself is not installed (exit code non-zero on `git --version`), the activity aborts gracefully with *"git is not installed — GSE-One requires git, please install it first"*. No Gate is shown.
 
-For the current release (v0.25.0), only `/gse:hug` Step 4 and `/gse:go` Step 2.7 implement the preflight — other activities (pause, deliver, task, produce, fix) will follow in subsequent releases (tracked as AMÉL follow-ups).
+For the current release (v0.25.0), only `/gse:hug` Step 4 and `/gse:go` Step 2.7 implement the preflight — other activities (pause, deliver, task, produce, fix) will follow in subsequent releases (tracked as ENH follow-ups).
 
 Rationale: git identity is a pre-commit prerequisite the agent cannot assume is set, especially on fresh machines, classroom laptops, or CI containers. Letting the commit fail silently leaves the user with an opaque git error and a broken foundational setup. A single-Gate resolution is educational, non-destructive, and reversible.
 
@@ -250,10 +250,10 @@ When `profile.it_expertise` is `beginner`, apply these translation rules to ALL 
 | `merge` | "combine changes" |
 | `dashboard.html` | "the project progress page" |
 | `python3 "$(cat ~/.gse-one)/tools/dashboard.py"` | Do not show — regenerate silently or say "I've updated the project progress page" |
-| `test passed` | "✅ vérifié" (or equivalent in user's language) |
-| `test failed` | "❌ échec" |
-| `test fixed` | "✅ corrigé" |
-| `test campaign` | "vérification automatique" |
+| `test passed` | "✅ verified" (or equivalent in user's language) |
+| `test failed` | "❌ failed" |
+| `test fixed` | "✅ corrected" |
+| `test campaign` | "automated verification" |
 | `npm test` / `pytest` / etc. | Do not show the command — show the results summary |
 | `*.test.ts` / `test_*.py` | Do not mention file names — map to feature descriptions |
 

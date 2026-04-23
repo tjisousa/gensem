@@ -60,7 +60,7 @@ ERROR_MARKER = GSE_DIR / ".dashboard-error.yaml"
 
 
 # ---------------------------------------------------------------------------
-# Debounce config + error-marker helpers (AMÉL-02 / spec §7 policy)
+# Debounce config + error-marker helpers (ENH-02 / spec §7 policy)
 # ---------------------------------------------------------------------------
 
 def _read_debounce_seconds(default=5.0):
