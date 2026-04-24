@@ -177,7 +177,11 @@ subcmd_install() {
     [ -n "$project_dir" ] && info "Project dir    : ${project_dir}"
     [ "$mode" = "plugin" ] && info "Scope          : ${scope}"
 
-    if [ -n "$current" ] && [ "$current" = "$target_tag" ]; then
+    # Version-match early-exit only applies to plugin mode (one global install
+    # per machine). No-plugin is per-project — running the installer in a new
+    # project dir must always provision that project, even if some earlier
+    # project at the same version is already registered.
+    if [ "$mode" = "plugin" ] && [ -n "$current" ] && [ "$current" = "$target_tag" ]; then
         info "already at ${current} — nothing to do."
         exit 0
     fi
