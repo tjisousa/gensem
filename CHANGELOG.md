@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.0] - 2026-04-24
+
+### Added
+- `install.sh` POSIX-sh bootstrap at repo root: zero-prompt `curl | sh` one-liner with `install` / `uninstall` / `upgrade` subcommands, CWD-based mode auto-detection, PATH-based platform auto-detection, and `GSE_PLATFORM`/`GSE_MODE`/`GSE_SCOPE`/`GSE_VERSION`/`GSE_PROJECT_DIR`/`GSE_LOCAL_TARBALL` env-var overrides.
+- `.github/workflows/release.yml`: on `v*` tag push, verifies via `gse_generate.py --verify` then packages `gse-one.tar.gz` (gse-one/plugin + install.py + VERSION + CHANGELOG.md + README.md + install.sh) and publishes as a GitHub release asset.
+- `scripts/test-install.sh` maintainer smoke test: shellchecks `install.sh` and runs an end-to-end sandboxed install/uninstall cycle via `GSE_LOCAL_TARBALL`.
+- README: new "Quick install (curl | sh)", "Environment variables", and "Troubleshooting" sections promoting the one-liner as primary install path.
+
+### Changed
+- CLAUDE.md Build pipeline + Tool architecture sections cross-reference the release workflow, `install.sh` entry point, and `GSE_*` overrides.
+- README: existing `git clone + python3 install.py` flow relocated under "Manual install (maintainers, forks, Windows without WSL)" as a fallback.
+
 ## [0.62.1] - 2026-04-23
 
 *CHANGELOG style discipline adopted + retroactive condensation of verbose v0.48.0–v0.62.0 entries.*

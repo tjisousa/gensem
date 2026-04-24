@@ -13,6 +13,10 @@
 #   GSE_SCOPE      project|local|user                (default: user)
 #   GSE_VERSION    vX.Y.Z|latest                     (default: latest)
 #   GSE_PROJECT_DIR /abs/path                        (no-plugin only)
+#   GSE_LOCAL_TARBALL /abs/path/gse-one.tar.gz       (maintainer-only: skip
+#                                                     network fetch and use a
+#                                                     local tarball instead;
+#                                                     consumed by scripts/test-install.sh)
 
 set -eu
 
@@ -20,7 +24,7 @@ OWNER_REPO="nicolasguelfi/gensem"
 API_LATEST="https://api.github.com/repos/${OWNER_REPO}/releases/latest"
 REGISTRY_FILE="${HOME}/.gse-one"
 
-info() { printf '[gse-one] %s\n' "$*"; }
+info() { printf '[gse-one] %s\n' "$*" >&2; }
 warn() { printf '[gse-one] warn: %s\n' "$*" >&2; }
 fail() { printf '[gse-one] error: %s\n' "$*" >&2; exit 1; }
 
@@ -82,6 +86,7 @@ detect_platform_flag() {
 }
 
 resolve_version() {
+    if [ -n "${GSE_LOCAL_TARBALL:-}" ]; then printf 'local'; return; fi
     req="${GSE_VERSION:-latest}"
     if [ -n "$req" ] && [ "$req" != "latest" ]; then printf '%s' "$req"; return; fi
     info "Resolving latest release via GitHub API..."
@@ -105,10 +110,17 @@ installed_version() {
 # Download release tarball and extract into $dest; echo dir containing install.py.
 download_and_extract() {
     tag=$1; dest=$2
-    url="https://github.com/${OWNER_REPO}/releases/download/${tag}/gse-one.tar.gz"
-    info "Downloading ${url}"
-    curl -fsSL "$url" | tar -xz -C "$dest" \
-        || fail "Failed to download or extract tarball from ${url}"
+    if [ -n "${GSE_LOCAL_TARBALL:-}" ]; then
+        [ -f "$GSE_LOCAL_TARBALL" ] || fail "GSE_LOCAL_TARBALL=${GSE_LOCAL_TARBALL} not found."
+        info "Using local tarball: ${GSE_LOCAL_TARBALL}"
+        tar -xz -C "$dest" -f "$GSE_LOCAL_TARBALL" \
+            || fail "Failed to extract local tarball ${GSE_LOCAL_TARBALL}"
+    else
+        url="https://github.com/${OWNER_REPO}/releases/download/${tag}/gse-one.tar.gz"
+        info "Downloading ${url}"
+        curl -fsSL "$url" | tar -xz -C "$dest" \
+            || fail "Failed to download or extract tarball from ${url}"
+    fi
     if [ -f "$dest/install.py" ]; then
         printf '%s' "$dest"; return
     fi
@@ -117,13 +129,13 @@ download_and_extract() {
     dirname "$nested"
 }
 
-# Create temp dir + register cleanup trap; echo the dir.
+# Create temp dir and echo it. Caller must register the cleanup trap (trap set
+# inside a function consumed via `$(...)` fires when the subshell exits,
+# which deletes the dir before the outer shell can use it).
 make_tmp() {
-    tmp=$(mktemp -d 2>/dev/null || mktemp -d -t gse-one)
-    [ -n "$tmp" ] && [ -d "$tmp" ] || fail "Failed to create temp directory."
-    # shellcheck disable=SC2064
-    trap "rm -rf '$tmp'" EXIT INT TERM
-    printf '%s' "$tmp"
+    t=$(mktemp -d 2>/dev/null || mktemp -d -t gse-one)
+    [ -n "$t" ] && [ -d "$t" ] || fail "Failed to create temp directory."
+    printf '%s' "$t"
 }
 
 # Run install.py from the extracted directory (it asserts CWD contains install.py
@@ -147,6 +159,8 @@ prepare() {
 
     target_tag=$(resolve_version)
     tmp=$(make_tmp)
+    # shellcheck disable=SC2064
+    trap "rm -rf '$tmp'" EXIT INT TERM
     install_root=$(download_and_extract "$target_tag" "$tmp")
 }
 
