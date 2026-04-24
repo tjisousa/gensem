@@ -64,14 +64,13 @@ preflight() {
     fi
 }
 
-# Detect mode; CWD with .claude/.cursor/.opencode → no-plugin.
+# Default mode is no-plugin — install artifacts into the current project, not
+# globally. Users who want a user-scope plugin install must set GSE_MODE=plugin
+# explicitly. This avoids surprise global installs for a casual one-liner run
+# in an unrelated directory.
 detect_mode() {
     if [ -n "${GSE_MODE:-}" ]; then printf '%s' "$GSE_MODE"; return; fi
-    if [ -d ".claude" ] || [ -d ".cursor" ] || [ -d ".opencode" ]; then
-        printf 'no-plugin'
-    else
-        printf 'plugin'
-    fi
+    printf 'no-plugin'
 }
 
 # Translate detected platforms into install.py --platform value.

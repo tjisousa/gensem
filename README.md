@@ -53,7 +53,7 @@ curl -fsSL https://raw.githubusercontent.com/nicolasguelfi/gensem/main/install.s
 curl -fsSL https://raw.githubusercontent.com/nicolasguelfi/gensem/main/install.sh | sh -s -- upgrade
 ```
 
-The script auto-detects which of Claude Code, Cursor, and opencode are on your PATH and installs on all of them. If the current directory already contains `.claude/`, `.cursor/`, or `.opencode/`, it switches to project-local mode and installs inside that folder. Otherwise it performs a user-scope plugin install. Once finished, open your coding agent and type `/gse:go` (plugin mode) or `/go` (no-plugin mode).
+The script auto-detects which of Claude Code, Cursor, and opencode are on your PATH and installs on all of them **inside the current directory** (no-plugin mode). It creates a `.claude/`, `.cursor/`, or `.opencode/` subfolder per detected platform and writes a registry marker `~/.gse-one` pointing at the chosen platform dir — nothing is installed globally by default. To install as a user-scope plugin instead, set `GSE_MODE=plugin` explicitly. Once finished, open your coding agent and type `/go` (no-plugin mode) or `/gse:go` (plugin mode).
 
 **Requirements:** `curl`, `tar`, and `python3 ≥ 3.8` on PATH. macOS and Linux are supported out of the box; Windows users should use WSL or the [Manual install](#manual-install-maintainers-forks-windows-without-wsl) path.
 

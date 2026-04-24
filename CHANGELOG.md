@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.63.2] - 2026-04-24
+
+### Changed
+- `install.sh` default mode is now `no-plugin` with `project-dir = $PWD`, regardless of whether a `.claude/` / `.cursor/` / `.opencode/` folder pre-exists in CWD. Prior default ("no platform folder → plugin + user scope = global install") caused surprise global installs for a casual one-liner run. Users who want the global plugin install must now opt in via `GSE_MODE=plugin`.
+- Spec `docs/specs/curl-plugin-based-install.md` §3.1 and §5.3 updated to match the new default.
+- README "Quick install" description rewritten to state the new default explicitly.
+
 ## [0.63.1] - 2026-04-24
 
 ### Added

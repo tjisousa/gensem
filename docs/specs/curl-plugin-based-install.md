@@ -52,8 +52,8 @@ A `curl | sh` one-liner eliminates all three.
   - Install (default), `uninstall`, and `upgrade` subcommands.
 - **GitHub release tarball** as source of plugin files — tag-pinned, built by CI on tag push.
 - **Auto-detection:**
-  - Mode-first: if `$PWD` contains `.claude/`, `.cursor/`, or `.opencode/`, mode is `no-plugin` and `project-dir` is `$PWD`.
-  - Otherwise mode is `plugin`, scope is `user`.
+  - Mode default: `no-plugin`, with `project-dir = $PWD`. Whatever platforms are detected get installed into the current directory (`.claude/` / `.cursor/` / `.opencode/` subfolders are created as needed). This avoids surprise global installs when a user pastes the one-liner in a random directory.
+  - `GSE_MODE=plugin` (opt-in) switches to user-scope plugin install.
   - Platform scan: install on **all** detected platforms (equivalent of `install.py --platform all`).
 - **Env-var overrides:** `GSE_PLATFORM`, `GSE_MODE`, `GSE_SCOPE`, `GSE_VERSION`, `GSE_PROJECT_DIR`.
 - **Runtime version resolution.** `GSE_VERSION=latest` → `https://api.github.com/repos/<owner>/gensem/releases/latest`. User may pin with `GSE_VERSION=v0.63.0`.
@@ -186,9 +186,8 @@ A `curl | sh` one-liner eliminates all three.
 
 ```
 resolve_mode():
-    if PWD has .claude/ or .cursor/ or .opencode/:
-        return ("no-plugin", PWD)
-    return ("plugin", "user")
+    if GSE_MODE set:     return (GSE_MODE, GSE_PROJECT_DIR or PWD)
+    return ("no-plugin", PWD)   # default — install into current directory
 
 resolve_platform():
     platforms = []
