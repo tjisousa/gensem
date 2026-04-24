@@ -17,10 +17,13 @@
 #                                                     network fetch and use a
 #                                                     local tarball instead;
 #                                                     consumed by scripts/test-install.sh)
+#   GSE_OWNER_REPO  owner/repo                       (override upstream repo for
+#                                                     test forks, e.g.
+#                                                     tjisousa/gensem)
 
 set -eu
 
-OWNER_REPO="nicolasguelfi/gensem"
+OWNER_REPO="${GSE_OWNER_REPO:-nicolasguelfi/gensem}"
 API_LATEST="https://api.github.com/repos/${OWNER_REPO}/releases/latest"
 REGISTRY_FILE="${HOME}/.gse-one"
 
