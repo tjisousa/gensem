@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.62.2] - 2026-04-24
+
+### Added
+- `resume.md` Step 0 — Verify Pause State: reads `status.yaml.session_paused` + `pause_checkpoint` before searching for a checkpoint to load.
+- Two Gates in Step 0: inconsistent paused state (Use latest / Repair status / Discuss); not paused (Run /gse:go instead / Force resume / Discuss).
+
+### Changed
+- `resume.md` Step 1: when Step 0 confirms a coherent paused state, the named `pause_checkpoint` overrides the "latest by filename" search.
+
+### Fixed
+- `/gse:resume` now detects when the project is not paused, instead of silently loading the latest stale checkpoint.
+
 ## [0.62.1] - 2026-04-23
 
 *CHANGELOG style discipline adopted + retroactive condensation of verbose v0.48.0–v0.62.0 entries.*

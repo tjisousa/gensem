@@ -28,6 +28,44 @@ Before executing, read (in priority order — load essential state first, defer 
 
 ## Workflow
 
+### Step 0 — Verify Pause State
+
+Read `status.yaml → session_paused` and `status.yaml → pause_checkpoint` to confirm the project is in a coherent paused state before searching for a checkpoint to load. This step closes the read-side gap of the `pause.md` ↔ `resume.md` state symmetry: pause Step 3 writes `session_paused: true` + `pause_checkpoint: checkpoint-{...}.yaml` and resume Step 6 clears them, but until v0.62.2 these two fields were write-only — never consulted to drive resume behavior.
+
+**Skip conditions:**
+- If `--list` is specified, skip this step entirely (read-only listing has no state to validate).
+- If `--checkpoint FILE` is specified, this step still runs but only emits an informational note on inconsistency — it does not block the explicit override.
+
+Three coherence cases:
+
+1. **Coherent paused state** — `session_paused: true` AND `pause_checkpoint` is non-empty AND the file `.gse/checkpoints/{pause_checkpoint}` exists on disk.
+   - Use `pause_checkpoint` as the default checkpoint for Step 1 (overrides the "latest by filename" search).
+   - Proceed silently.
+
+2. **Inconsistent paused state** — `session_paused: true` BUT `pause_checkpoint` is empty OR the named file is missing on disk.
+   - Report:
+     ```
+     Status marked as paused, but the named checkpoint cannot be located.
+       pause_checkpoint: "{value or '(empty)'}"
+       .gse/checkpoints/ contains: {N} file(s)
+     ```
+   - Present Gate decision:
+     - **Use latest** (default if any checkpoint exists) — Continue with the most recent checkpoint by filename.
+     - **Repair status** — Reset `session_paused: false` and `pause_checkpoint: ""` in `status.yaml`, then suggest `/gse:go`.
+     - **Discuss** — Investigate the divergence with the user.
+
+3. **Not paused** — `session_paused: false` (or absent for pre-v0.47.8 projects).
+   - Report:
+     ```
+     No active pause detected (status.yaml.session_paused = false).
+       Last activity: {last_activity} at {last_activity_timestamp}
+       Available checkpoints: {N}
+     ```
+   - Present Gate decision:
+     - **Run /gse:go instead** (default) — Switch to normal orchestration; resume is not the right command here.
+     - **Force resume from latest** — Override and resume anyway (rare: e.g., recovery from manual state corruption).
+     - **Discuss** — Investigate.
+
 ### Step 1 — Load Checkpoint
 
 1. If `--list` is specified:
@@ -38,8 +76,9 @@ Before executing, read (in priority order — load essential state first, defer 
 2. If `--checkpoint FILE` is specified:
    - Load the specified checkpoint file
 3. Otherwise:
-   - Find the latest checkpoint in `.gse/checkpoints/` (sorted by filename, newest first)
-   - If no checkpoints exist: report "No checkpoint found. Use `/gse:go` to start." and exit
+   - Use the `pause_checkpoint` confirmed by Step 0 case 1 if a coherent paused state was detected.
+   - Otherwise (Step 0 case 2 "Use latest" or case 3 "Force resume from latest"), find the latest checkpoint in `.gse/checkpoints/` (sorted by filename, newest first).
+   - If no checkpoints exist: report "No checkpoint found. Use `/gse:go` to start." and exit.
 
 4. Read the checkpoint YAML and extract: `git_state.worktrees`, `status_snapshot`, `backlog_sprint_snapshot`, `note`
 
